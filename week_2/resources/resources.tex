@@ -1,0 +1,171 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\title{CS 300 -- Week 2 Resources\\\large Sorting Algorithms and Algorithm Analysis}
+\author{Jose de Lima}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Overview}
+Week 2 focuses on two foundational comparison-based sorting algorithms --
+\textbf{selection sort} and \textbf{insertion sort} -- and on the language we
+use to describe how algorithms scale: \textbf{Big-O notation}. The resources
+below introduce each algorithm step-by-step and provide a reference for the
+asymptotic running times of the most common data-structure operations.
+
+\section{Selection Sort}
+\textbf{Resource:} \href{https://www.youtube.com/watch?v=g-PGLbMth_g}{Selection Sort in 3 Minutes (YouTube)}
+
+\subsection*{Idea}
+Selection sort builds the sorted portion of the array one element at a time by
+repeatedly \emph{selecting} the smallest (or largest) element from the
+unsorted portion and swapping it into place.
+
+\subsection*{Algorithm}
+\begin{enumerate}[leftmargin=*]
+    \item Treat index $0$ as the boundary between the sorted and unsorted halves.
+    \item Scan the unsorted half to find the index of the minimum element.
+    \item Swap that minimum with the element at the boundary.
+    \item Advance the boundary by one and repeat until the array is sorted.
+\end{enumerate}
+
+\subsection*{Pseudocode}
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+for i = 0 to n - 2:
+    minIndex = i
+    for j = i + 1 to n - 1:
+        if A[j] < A[minIndex]:
+            minIndex = j
+    swap(A[i], A[minIndex])
+\end{lstlisting}
+
+\subsection*{Complexity}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Time:} $O(n^2)$ in the best, average, and worst cases, because
+          the inner scan always traverses the remaining unsorted region.
+    \item \textbf{Space:} $O(1)$ -- sorting is done in place.
+    \item \textbf{Stability:} Not stable by default (equal keys can be reordered
+          by the swap step).
+    \item \textbf{Swaps:} At most $n-1$, which is useful when writes are
+          expensive (e.g., flash memory).
+\end{itemize}
+
+\section{Insertion Sort}
+\textbf{Resource:} \href{https://www.youtube.com/watch?v=JU767SDMDvA}{Insertion Sort in 2 Minutes (YouTube)}
+
+\subsection*{Idea}
+Insertion sort grows a sorted prefix by taking the next unsorted element and
+\emph{inserting} it into its correct position among the already-sorted items,
+shifting larger elements one slot to the right to make room.
+
+\subsection*{Algorithm}
+\begin{enumerate}[leftmargin=*]
+    \item Start at index $1$; treat index $0$ as a trivially sorted prefix.
+    \item Save $A[i]$ as \texttt{key}.
+    \item Walk backwards through the sorted prefix, shifting any element
+          greater than \texttt{key} one position to the right.
+    \item Place \texttt{key} in the resulting gap.
+    \item Advance $i$ and repeat until the array is sorted.
+\end{enumerate}
+
+\subsection*{Pseudocode}
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+for i = 1 to n - 1:
+    key = A[i]
+    j = i - 1
+    while j >= 0 and A[j] > key:
+        A[j + 1] = A[j]
+        j = j - 1
+    A[j + 1] = key
+\end{lstlisting}
+
+\subsection*{Complexity}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Best case:} $O(n)$ when the input is already (nearly) sorted
+          -- the inner loop exits immediately each iteration.
+    \item \textbf{Average / worst case:} $O(n^2)$ for random or reverse-sorted
+          input.
+    \item \textbf{Space:} $O(1)$ -- in-place.
+    \item \textbf{Stability:} Stable -- equal keys keep their original order.
+    \item \textbf{Practical note:} Very fast on small or nearly-sorted arrays,
+          which is why hybrid sorts (e.g., Timsort, Introsort) fall back to
+          insertion sort for small partitions.
+\end{itemize}
+
+\section{Selection Sort vs. Insertion Sort}
+\begin{center}
+\begin{tabular}{l|l|l}
+\textbf{Property} & \textbf{Selection Sort} & \textbf{Insertion Sort} \\ \hline
+Best-case time    & $O(n^2)$                & $O(n)$                  \\
+Average time      & $O(n^2)$                & $O(n^2)$                \\
+Worst-case time   & $O(n^2)$                & $O(n^2)$                \\
+Space             & $O(1)$                  & $O(1)$                  \\
+Stable?           & No                      & Yes                     \\
+\# of swaps       & $O(n)$                  & $O(n^2)$                \\
+Adaptive?         & No                      & Yes                     \\
+\end{tabular}
+\end{center}
+
+\section{Big-O Cheatsheet}
+
+\subsection*{What Big-O Describes}
+Big-O notation expresses an \emph{upper bound} on the growth rate of an
+algorithm's running time (or space) as a function of the input size $n$. It
+lets us compare algorithms independent of hardware, language, or constant
+factors.
+
+\subsection*{Common Growth Classes (fastest to slowest)}
+\begin{itemize}[leftmargin=*]
+    \item $O(1)$ -- constant: hash-table lookup, array index access.
+    \item $O(\log n)$ -- logarithmic: binary search, balanced-BST operations.
+    \item $O(n)$ -- linear: a single pass over $n$ elements.
+    \item $O(n \log n)$ -- linearithmic: merge sort, heap sort, quicksort (avg).
+    \item $O(n^2)$ -- quadratic: selection sort, insertion sort, bubble sort.
+    \item $O(2^n)$ -- exponential: naive recursion over subsets.
+    \item $O(n!)$ -- factorial: brute-force permutations (e.g., TSP).
+\end{itemize}
+
+\subsection*{Related Notation}
+\begin{itemize}[leftmargin=*]
+    \item $\Omega(f(n))$ -- asymptotic lower bound (best case).
+    \item $\Theta(f(n))$ -- tight bound (matching upper and lower bound).
+\end{itemize}
+
+\subsection*{Rules of Thumb}
+\begin{itemize}[leftmargin=*]
+    \item Drop constants: $O(3n) = O(n)$.
+    \item Drop non-dominant terms: $O(n^2 + n) = O(n^2)$.
+    \item Nested loops over the same collection usually multiply: two nested
+          loops over $n$ items yield $O(n^2)$.
+    \item Halving the problem each step usually yields $O(\log n)$.
+\end{itemize}
+
+\subsection*{Why it Matters for This Course}
+When we compare vectors, linked lists, hash tables, and trees later in CS 300,
+the deciding factor is rarely which data structure \emph{can} store the data
+-- it is which one makes the operations we care about (insert, search, remove,
+traverse) cheap as $n$ grows. The cheatsheet summarizes those trade-offs in a
+single table and should be kept close at hand throughout the term.
+
+\section*{Links Summary}
+\begin{itemize}[leftmargin=*]
+    \item Selection Sort video: \url{https://www.youtube.com/watch?v=g-PGLbMth_g}
+    \item Insertion Sort video: \url{https://www.youtube.com/watch?v=JU767SDMDvA}
+\end{itemize}
+
+\end{document}

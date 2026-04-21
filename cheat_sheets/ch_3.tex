@@ -1,0 +1,137 @@
+\documentclass[10pt]{article}
+\input{../notes-style.tex}
+
+\usepackage{multicol}
+\usepackage{array}
+
+\title{Ch.~3 Cheat Sheet\\\large Data Structures, Big-O, Sorting}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\begin{multicols}{2}
+
+\subsection*{ADT vs.\ data structure}
+\textbf{ADT} = interface (\emph{what}). \textbf{Data structure} =
+implementation (\emph{how}). One ADT, many implementations.
+\begin{tabular}{@{}ll@{}}
+\textbf{ADT}           & \textbf{typical DS}\\
+List                   & array, linked list\\
+Stack                  & array / linked list\\
+Queue                  & linked list / ring buf\\
+Priority queue         & binary heap\\
+Set                    & hash table / BST\\
+Map / Dictionary       & hash table / BST\\
+Graph                  & adj.\ list / matrix
+\end{tabular}
+
+\subsection*{The seven structures}
+\begin{itemize}
+    \item \textbf{Array / vector} -- contiguous; $O(1)$ indexing.
+    \item \textbf{Linked list} -- nodes + pointers; $O(1)$ insert if you
+    hold the prev.
+    \item \textbf{Tree} -- hierarchical; recursion natural.
+    \item \textbf{BST} -- ordered tree; $O(\log n)$ ops if balanced.
+    \item \textbf{Heap} -- complete binary tree; $O(1)$ peek, $O(\log n)$
+    push/pop.
+    \item \textbf{Hash table} -- bucketed; $O(1)$ expected ops.
+    \item \textbf{Graph} -- nodes + edges; adjacency list or matrix.
+\end{itemize}
+
+\subsection*{Searching}
+\begin{tabular}{@{}lll@{}}
+Linear search & any data     & $O(n)$\\
+Binary search & sorted       & $O(\log n)$
+\end{tabular}
+Binary search midpoint: \texttt{lo + (hi - lo) / 2} (avoid overflow).
+
+\subsection*{Big-O in one sentence}
+$f(n) = O(g(n))$ iff $\exists c > 0, n_0$ such that $f(n) \leq c \cdot g(n)$
+for all $n \geq n_0$. Drop constants, drop lower-order terms, keep the
+dominant term.
+
+\subsection*{Growth hierarchy}
+\[
+O(1) < O(\log n) < O(n) < O(n \log n) < O(n^2) < O(2^n) < O(n!)
+\]
+\textbf{Rule of thumb for loops:}
+\begin{itemize}
+    \item Single loop over $n$: $O(n)$.
+    \item Nested over $n$: $O(n^2)$.
+    \item Halving each iteration: $O(\log n)$.
+    \item Divide-and-conquer ($T(n) = 2T(n/2) + O(n)$): $O(n \log n)$.
+\end{itemize}
+
+\subsection*{Constant-time operations}
+\texttt{v[i]}, \texttt{v.back()}, \texttt{push\_back} (amortized),
+\texttt{pop\_back}, \texttt{size()}, arithmetic, a bounded-iteration
+loop. \emph{Not} constant: hashing a long string, a loop whose bound
+depends on input.
+
+\columnbreak
+
+\subsection*{Sorting comparison}
+\begin{tabular}{@{}l|ccc|cc@{}}
+\textbf{Sort}        & \textbf{best}     & \textbf{avg}      & \textbf{worst}    & \textbf{stable} & \textbf{in-place}\\
+\hline
+Bubble               & $n$               & $n^2$             & $n^2$             & yes             & yes\\
+Insertion            & $n$               & $n^2$             & $n^2$             & yes             & yes\\
+Selection            & $n^2$             & $n^2$             & $n^2$             & no              & yes\\
+Shell                & $n \log n$        & var.              & $n^{3/2}$         & no              & yes\\
+Merge                & $n \log n$        & $n \log n$        & $n \log n$        & yes             & no\\
+Quick                & $n \log n$        & $n \log n$        & $n^2$             & no              & yes\\
+Heap                 & $n \log n$        & $n \log n$        & $n \log n$        & no              & yes\\
+Radix (LSD)          & $nk$              & $nk$              & $nk$              & yes             & no
+\end{tabular}
+
+\subsection*{``Which sort do I pick?''}
+\begin{itemize}
+    \item \textbf{Small array ($n < 20$)} or \textbf{nearly sorted}:
+    insertion sort ($O(n)$ best case, tiny constants).
+    \item \textbf{General-purpose, RAM-bound}: quicksort (what
+    \texttt{std::sort} uses, with heapsort fallback).
+    \item \textbf{Stability required}: merge sort (\texttt{std::stable\_sort}).
+    \item \textbf{External / too big for RAM}: merge sort (sequential
+    I/O; the model for external mergesort).
+    \item \textbf{Integer keys, bounded width}: radix sort (beats
+    comparison-based $\Omega(n \log n)$ bound).
+    \item \textbf{Tightest worst-case guarantee}: heap sort.
+\end{itemize}
+
+\subsection*{The $\Omega(n \log n)$ lower bound}
+Any \emph{comparison-based} sort needs $\Omega(n \log n)$ comparisons in
+the worst case. Decision-tree argument: $n!$ possible outputs, so any
+binary tree that distinguishes them has depth $\geq \log_2(n!) = \Theta(n
+\log n)$. Radix and counting sort beat this because they're
+\emph{non-comparison}.
+
+\subsection*{Stable vs.\ unstable}
+A sort is \textbf{stable} if equal keys retain their original relative
+order. Matters when sorting by one field after another (e.g., sort by
+last name, then stable-sort by city).
+
+\subsection*{In-place}
+Uses $O(1)$ or $O(\log n)$ auxiliary memory. Merge sort's $O(n)$ buffer
+makes it \emph{not} in-place; its recursion stack is $O(\log n)$.
+
+\subsection*{Quicksort: watch the pivot}
+Average $O(n \log n)$; worst $O(n^2)$ on already-sorted input with
+first-element pivot. Fixes: median-of-three; randomize. \texttt{std::sort}
+uses introsort: quicksort + fallback to heapsort after a depth limit.
+
+\subsection*{Top gotchas}
+\begin{itemize}
+    \item Quoting ``$O(n \log n)$ always'' for quicksort (it's average;
+    worst case is $O(n^2)$).
+    \item Saying merge sort is in-place (it's not).
+    \item Using \texttt{strcmp}-style comparators for numeric sort.
+    \item Assuming \texttt{std::sort} is stable (use
+    \texttt{std::stable\_sort}).
+    \item Reasoning about ``fast'' without bounding $n$.
+\end{itemize}
+
+\end{multicols}
+\end{document}

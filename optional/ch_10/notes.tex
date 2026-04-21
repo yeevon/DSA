@@ -1,0 +1,842 @@
+\documentclass[11pt]{article}
+\input{../../notes-style.tex}
+
+\title{CS 300 -- Chapter 10 Notes\\\large Graphs}
+\author{Jose de Lima}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{ideabox}
+\textbf{Why graphs matter.} Every previous data structure in this course is really a specialization of a graph: a linked list is a path graph, a tree is a connected acyclic graph, a heap is a tree with an ordering, a hash-chained bucket is a forest. Graphs are the most general model of ``structured connections,'' so they're where interesting algorithms live: shortest paths, scheduling, routing, dependency resolution, network flow, recommendation, social analysis. You'll use them more than any other data structure in the wild.
+\end{ideabox}
+
+\section{10.1 Introduction}
+
+\subsection*{The vocabulary}
+
+\begin{defnbox}
+\textbf{Graph.} A pair $G = (V, E)$ where $V$ is a set of \emph{vertices} (nodes) and $E$ is a set of \emph{edges}, each edge connecting two vertices.
+
+\textbf{Adjacent.} Two vertices are adjacent if an edge connects them.
+
+\textbf{Path.} A sequence of edges from a source vertex to a destination vertex. The \emph{length} of a path is the number of edges (or the sum of edge weights, for weighted graphs).
+
+\textbf{Distance.} The length of the \emph{shortest} path between two vertices.
+
+\textbf{$|V|$ and $|E|$.} The number of vertices and edges. By convention, algorithms are analyzed as a function of both; the abbreviations $V$ and $E$ appear inside Big-O notation.
+\end{defnbox}
+
+\begin{notebox}
+Watch the word ``length'' -- it's overloaded. An \emph{unweighted} path length is a count of edges; a \emph{weighted} path length is a sum of weights. When someone says ``shortest path'' without qualifying, they usually mean the weighted version unless context makes it obvious.
+\end{notebox}
+
+\subsection*{The shape of the space}
+
+A graph has up to $\binom{V}{2} = \Theta(V^2)$ possible edges (undirected) or $V(V-1) = \Theta(V^2)$ (directed). The real world rarely fills that space:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Dense graph}: $|E| = \Theta(V^2)$. Every vertex is connected to a constant fraction of the others. Complete graphs, small road networks within a city block.
+    \item \textbf{Sparse graph}: $|E| = O(V)$ or $O(V \log V)$. Each vertex has only a few neighbors. Most real graphs: social networks, road networks, computer networks, the web.
+\end{itemize}
+
+Dense vs.\ sparse matters \emph{enormously} for algorithm choice. An $O(V^2)$ algorithm on a sparse graph is wasteful; an $O(E \log V)$ algorithm is brilliant on sparse graphs and mediocre on dense ones. The first question to ask about any graph algorithm is: ``what does this cost on a sparse input?''
+
+\begin{examplebox}
+\textbf{Concrete numbers.} Facebook has roughly $3 \times 10^9$ users and an average of a few hundred friends per user. That's $V = 3 \times 10^9$, $E \approx 10^{12}$. The dense upper bound would be $V^2 \approx 9 \times 10^{18}$ -- seven orders of magnitude larger. An adjacency matrix is physically impossible; an adjacency list is plausible. This is why sparsity assumptions drive the design of real graph systems.
+\end{examplebox}
+
+\section{10.2 Applications}
+
+The textbook section runs through three examples; the interesting claim is the same in each:
+
+\begin{ideabox}
+\textbf{Graphs model anything with binary relationships.} Once your problem is ``these things connect to those things,'' you're working with a graph. The graph abstraction is so ubiquitous that recognizing it in a problem is 90\% of the solution.
+\end{ideabox}
+
+\subsection*{Navigation (geography)}
+
+Cities/intersections are vertices; roads are edges. Edge weights are distances or travel times. Shortest-path queries give driving directions. This is what powers Google Maps, Waze, and every GPS unit made since the 90s.
+
+The interesting twist: edge weights aren't static. Real-time traffic turns the same road into a different edge every few minutes. The right algorithm has to be fast enough that you can \emph{re-solve} every time conditions change, not just once.
+
+\subsection*{Product recommendations (e-commerce)}
+
+Products are vertices; ``bought together'' or ``viewed together'' is an edge. A customer's basket gives you a starting set; walk one step out along the edges and you have recommendations.
+
+\subsection*{Social and professional networks}
+
+People are vertices; relationships are edges. ``Friends of friends'' is a two-step walk. PageRank, centrality, community detection all live here.
+
+\subsection*{Other common models you'll encounter}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Compiler dependencies.} Source files are vertices, \texttt{\#include} edges drive rebuild order -- a topological sort of the dependency DAG.
+    \item \textbf{Spreadsheet formula dependencies.} Cells are vertices, references are edges. Evaluation order is a topological sort; circular references are a cycle detection problem.
+    \item \textbf{Package managers.} Libraries are vertices, dependency constraints are edges. Resolving versions is a constraint problem on the graph.
+    \item \textbf{Build systems (\texttt{make}, \texttt{bazel}, \texttt{cmake}).} Targets are vertices, prerequisites are edges. Determining what to rebuild after a change is reachability.
+    \item \textbf{State machines.} States are vertices, transitions are edges. Model checking is graph reachability with labels.
+    \item \textbf{Game AI and pathfinding.} Tiles or waypoints are vertices, valid moves are edges. A* (shortest path with a heuristic) is the industry standard.
+    \item \textbf{Neural networks.} The topology is literally a weighted DAG.
+\end{itemize}
+
+\begin{notebox}
+If you can phrase your problem as ``given these things and these connections, what can I reach / what's the best path / what's the order / which connections matter,'' stop trying to invent algorithms and go find the right graph algorithm instead. That's the whole payoff of the abstraction.
+\end{notebox}
+
+\section{10.3 Adjacency Lists}
+
+We have the vocabulary. Now: how do we store a graph in memory?
+
+\begin{defnbox}
+\textbf{Adjacency list.} Each vertex carries a list (or vector) of the vertices it's adjacent to. One list per vertex.
+\end{defnbox}
+
+\subsection*{C++ representations}
+
+Several idioms are common; pick based on your data model.
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+// 1. Vertices as integer IDs 0..V-1, parallel array of neighbor vectors.
+//    The fastest and most common choice in competitive programming.
+std::vector<std::vector<int>> adj(V);
+adj[u].push_back(v);   // add edge u--v
+adj[v].push_back(u);   // undirected => add to both lists
+
+// 2. Weighted edges: store (neighbor, weight) pairs.
+std::vector<std::vector<std::pair<int,int>>> adj(V);
+adj[u].emplace_back(v, weight);
+
+// 3. Vertex objects with owned adjacency data (OOP style).
+struct Vertex {
+    std::string label;
+    std::vector<Vertex*> neighbors;
+};
+\end{lstlisting}
+
+\subsection*{Cost analysis}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Space}: $O(V + E)$. Each vertex's list contributes one header; each edge contributes two list entries (one in each endpoint's list for undirected graphs).
+    \item \textbf{``Is $u$ adjacent to $v$?''}: $O(\deg(u))$. Scan $u$'s list. Worst case $O(V)$ if $u$ is connected to everything.
+    \item \textbf{``List all neighbors of $u$''}: $O(\deg(u))$. Perfect -- you just hand over the list.
+    \item \textbf{Add/remove edge}: $O(1)$ to add. Removal is $O(\deg(u))$ because you have to find the entry.
+\end{itemize}
+
+\begin{ideabox}
+Adjacency lists are the default choice for sparse graphs. The space win ($V + E$ vs.\ $V^2$) is so large that even the slower adjacency query is usually tolerated. Essentially every production graph library (NetworkX, boost::graph, the JDK's graph APIs) uses lists by default.
+\end{ideabox}
+
+\section{10.4 Adjacency Matrices}
+
+\begin{defnbox}
+\textbf{Adjacency matrix.} A $V \times V$ matrix $M$ where $M[i][j] = 1$ if there's an edge from $i$ to $j$, else $0$. For weighted graphs, $M[i][j]$ holds the weight (with $\infty$ or some sentinel for ``no edge'').
+\end{defnbox}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+std::vector<std::vector<int>> m(V, std::vector<int>(V, 0));
+m[u][v] = 1;
+m[v][u] = 1;   // undirected
+
+// Weighted version; INT_MAX = "no edge"
+std::vector<std::vector<int>> w(V, std::vector<int>(V, INT_MAX));
+w[i][i] = 0;   // zero distance to self
+w[u][v] = weight;
+\end{lstlisting}
+
+\subsection*{Cost analysis}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Space}: $\Theta(V^2)$. Forgiving for small dense graphs, catastrophic for large sparse ones.
+    \item \textbf{``Is $u$ adjacent to $v$?''}: $O(1)$. Just read the matrix cell.
+    \item \textbf{``List all neighbors of $u$''}: $O(V)$. Scan row $u$ even if there are only two neighbors.
+    \item \textbf{Add/remove edge}: $O(1)$.
+    \item \textbf{Matrix math}: $M^k[i][j]$ is the number of length-$k$ walks from $i$ to $j$. This is the basis of matrix-multiplication shortest-path algorithms and a ton of algebraic graph theory.
+\end{itemize}
+
+\subsection*{When to pick which}
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+& Adjacency list & Adjacency matrix \\
+\hline
+Space & $O(V+E)$ & $\Theta(V^2)$ \\
+Edge query $(u,v)?$ & $O(\deg u)$ & $O(1)$ \\
+List neighbors of $u$ & $O(\deg u)$ & $O(V)$ \\
+Iterate all edges & $O(V+E)$ & $O(V^2)$ \\
+Good for... & sparse, large $V$ & dense, small $V$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{warnbox}
+The $V^2$ space blow-up of an adjacency matrix is lethal well before $V$ seems ``large.'' At $V = 10^5$, a matrix of \texttt{int} costs 40 GB; at $V = 10^6$, it's 4 TB. Adjacency lists happily hold the same data in kilobytes or megabytes, depending on edge count. \emph{Always check sparsity before reaching for a matrix.}
+\end{warnbox}
+
+\begin{notebox}
+A third representation worth knowing is the \textbf{edge list}: just \texttt{std::vector<Edge>} with no per-vertex indexing. Useless for most queries, but perfect for Kruskal's MST algorithm (which processes edges in weight order) and for streaming graphs through a network.
+\end{notebox}
+
+\section{10.5 Breadth-First Search}
+
+\begin{ideabox}
+\textbf{BFS in one sentence.} Explore vertices in order of distance from the start: all distance-1 vertices before any distance-2, all distance-2 before any distance-3, and so on. The queue \emph{is} the algorithm -- FIFO ordering is what produces the distance-layered traversal.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+void bfs(const std::vector<std::vector<int>>& adj, int start) {
+    std::vector<bool> discovered(adj.size(), false);
+    std::queue<int> frontier;
+
+    frontier.push(start);
+    discovered[start] = true;
+
+    while (!frontier.empty()) {
+        int u = frontier.front(); frontier.pop();
+        visit(u);
+        for (int v : adj[u]) {
+            if (!discovered[v]) {
+                discovered[v] = true;
+                frontier.push(v);
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\begin{warnbox}
+\textbf{Mark on enqueue, not on dequeue.} The \texttt{discovered} flag is set \emph{when a vertex is pushed}, not when it's popped. If you mark on pop, the same vertex can be pushed many times through different neighbors, blowing up the queue. The ``mark on enqueue'' invariant guarantees each vertex is pushed exactly once.
+\end{warnbox}
+
+\subsection*{Distance and parent tracking}
+
+BFS's real power isn't just ``visit everything.'' It computes \emph{shortest paths in unweighted graphs} for free. Augment each visited vertex with a distance and a parent pointer:
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+void bfs(const std::vector<std::vector<int>>& adj, int start,
+         std::vector<int>& dist, std::vector<int>& parent) {
+    int n = adj.size();
+    dist.assign(n, -1);
+    parent.assign(n, -1);
+    std::queue<int> q;
+    q.push(start);
+    dist[start] = 0;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : adj[u]) {
+            if (dist[v] == -1) {
+                dist[v] = dist[u] + 1;
+                parent[v] = u;
+                q.push(v);
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+After BFS, \texttt{dist[v]} is the minimum number of edges from \texttt{start} to \texttt{v}; following \texttt{parent} pointers back from \texttt{v} reconstructs the path in reverse.
+
+\subsection*{Cost}
+
+$O(V + E)$. Each vertex is dequeued once; each edge is scanned at most twice (once from each endpoint, for undirected graphs). Can't be beat for unweighted shortest paths.
+
+\subsection*{Why BFS works -- the invariant}
+
+\begin{ideabox}
+At any point in BFS, the queue contains vertices at distances $\{d, d, \ldots, d, d+1, d+1, \ldots\}$ -- a stretch of one layer, then the next. When a layer-$d$ vertex is popped, its yet-undiscovered neighbors are exactly the layer-$d+1$ vertices reachable through it, and they go to the back of the queue. That's why the FIFO ordering preserves ``shortest path''-ness -- any alternative path would have been seen (and shorter) on an earlier iteration.
+\end{ideabox}
+
+\subsection*{Typical applications}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Shortest path in unweighted graph} -- unbeatable.
+    \item \textbf{``Friend of a friend'' recommendations} -- explore distance-2 and distance-3 neighborhoods.
+    \item \textbf{Connected components} -- run BFS from every unvisited vertex; each run finds one component.
+    \item \textbf{Bipartite check} -- 2-color BFS layers; if an edge connects two same-colored vertices, the graph isn't bipartite.
+    \item \textbf{Crawling / scraping} -- explore a website or peer-to-peer network level-by-level.
+    \item \textbf{Closest-of-many search} -- as in the peer-to-peer example above, find the first node satisfying a condition (fewest hops).
+\end{itemize}
+
+\section{10.6 Depth-First Search}
+
+\begin{ideabox}
+\textbf{DFS in one sentence.} Go as far as possible along one path, backtrack only when stuck. A stack (explicit or the call stack) \emph{is} the algorithm.
+\end{ideabox}
+
+\subsection*{Iterative DFS}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+void dfs(const std::vector<std::vector<int>>& adj, int start) {
+    std::vector<bool> visited(adj.size(), false);
+    std::stack<int> s;
+    s.push(start);
+
+    while (!s.empty()) {
+        int u = s.top(); s.pop();
+        if (visited[u]) continue;
+        visited[u] = true;
+        visit(u);
+        for (int v : adj[u])
+            if (!visited[v]) s.push(v);
+    }
+}
+\end{lstlisting}
+
+\begin{warnbox}
+\textbf{Iterative DFS marks on pop, not on push.} The opposite of BFS. If you mark on push with a stack, the neighbor ordering gets reversed in a subtle way that most people trip over. The idiomatic iterative form above pushes liberally and filters at the top of the loop; duplicate stack entries are OK.
+\end{warnbox}
+
+\subsection*{Recursive DFS}
+
+Shorter and usually what you want:
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+void dfs(int u, const std::vector<std::vector<int>>& adj,
+         std::vector<bool>& visited) {
+    if (visited[u]) return;
+    visited[u] = true;
+    visit(u);
+    for (int v : adj[u]) dfs(v, adj, visited);
+}
+\end{lstlisting}
+
+\begin{warnbox}
+\textbf{Recursion depth.} The call stack can be as deep as $V$ on a path-shaped graph. At $V$ around $10^5$ or more, on most platforms you'll overflow the stack. Either increase the thread stack limit, or iterate with an explicit stack. This is the single most common bug in graduate-level graph assignments.
+\end{warnbox}
+
+\subsection*{Cost}
+
+$O(V + E)$, same as BFS -- each vertex is visited once, each edge examined at most twice (undirected).
+
+\subsection*{BFS vs.\ DFS: when to pick which}
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+& BFS & DFS \\
+\hline
+Auxiliary structure & queue (FIFO) & stack (LIFO) \\
+Shortest path in unweighted graphs & yes & no \\
+Memory (worst case) & $O(V)$ queue & $O(V)$ stack \\
+Explores & breadth-first & depth-first \\
+Natural for & distance, levels & reachability, ordering \\
+Solves & shortest path, connectivity & topological sort, cycle detection, SCCs \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{ideabox}
+The deep insight: \textbf{DFS produces an ordering} (the order in which vertices are finished), while \textbf{BFS produces a layering} (the distance from start). Almost every advanced graph algorithm is some clever use of one or the other -- topological sort and SCC from DFS finish times; Dijkstra and shortest paths from BFS-style frontier expansion.
+\end{ideabox}
+
+\section{10.7 Directed Graphs}
+
+\begin{defnbox}
+\textbf{Directed graph (digraph).} Edges have direction. $(u \to v) \in E$ does \emph{not} imply $(v \to u) \in E$.
+
+\textbf{Cycle.} A path that starts and ends at the same vertex.
+
+\textbf{DAG (directed acyclic graph).} A directed graph with no cycles. The single most useful graph class in computer science.
+\end{defnbox}
+
+\subsection*{Why DAGs matter}
+
+A DAG captures ``A must come before B'' relationships without contradicting itself. Anything that \emph{orders} things is a DAG:
+
+\begin{itemize}[leftmargin=*]
+    \item Course prerequisites ($\to$ topological sort).
+    \item Build systems ($\to$ incremental rebuild).
+    \item Spreadsheet formulas ($\to$ evaluation order).
+    \item Git commit history ($\to$ merges and ancestors).
+    \item Neural net forward passes.
+    \item Dataflow programs.
+\end{itemize}
+
+If your directed graph has a cycle, you have a contradiction: A needs B first, but B also needs A first. Cycle detection on directed graphs is DFS plus a ``currently in recursion'' flag.
+
+\subsection*{Representation}
+
+Same adjacency list or matrix, but only one direction per edge:
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+// Directed: only add u -> v, not v -> u
+adj[u].push_back(v);
+\end{lstlisting}
+
+\subsection*{Terminology that bites}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{In-degree} of $v$: number of edges ending at $v$.
+    \item \textbf{Out-degree} of $v$: number of edges starting at $v$.
+    \item \textbf{Successor / predecessor}: $v$ is a successor of $u$ if $(u \to v) \in E$; then $u$ is a predecessor of $v$.
+    \item \textbf{Source}: vertex with in-degree 0 (no one points to it).
+    \item \textbf{Sink}: vertex with out-degree 0 (it points to no one).
+\end{itemize}
+
+\begin{examplebox}
+\textbf{Kidney exchange as a cycle problem.} A directed edge $D \to R$ means ``donor family of patient $D$ is willing to give a kidney to recipient $R$.'' A $k$-way simultaneous exchange is a cycle of length $k$. Hospitals literally run cycle-detection algorithms on these graphs to match transplants -- a real-world optimization problem worth billions of dollars in life-years.
+\end{examplebox}
+
+\section{10.8 Weighted Graphs}
+
+\begin{defnbox}
+\textbf{Weighted graph.} Each edge carries a numerical weight (cost, distance, time, capacity, \ldots). Path length = sum of edge weights along the path.
+\end{defnbox}
+
+\subsection*{Why weights complicate things}
+
+In an unweighted graph, ``shortest'' means ``fewest hops.'' BFS handles it. In a weighted graph, ``shortest'' means ``smallest total weight'' -- and a path with more edges can easily be shorter than one with fewer:
+
+\begin{center}
+A $\xrightarrow{10}$ C versus A $\xrightarrow{2}$ B $\xrightarrow{3}$ C  \quad (length 10 vs.\ 5)
+\end{center}
+
+BFS can't see this. You need an algorithm that explores in order of \emph{weighted distance}, not edge count -- enter Dijkstra (§10.9).
+
+\subsection*{Representation}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+// List form: (neighbor, weight) pairs.
+std::vector<std::vector<std::pair<int,int>>> adj(V);
+adj[u].emplace_back(v, w);
+
+// Matrix form: INT_MAX (or INFINITY) marks "no edge".
+std::vector<std::vector<int>> w(V, std::vector<int>(V, INT_MAX));
+w[i][i] = 0;
+w[u][v] = weight;
+\end{lstlisting}
+
+\subsection*{Negative weights}
+
+Negative edge weights are allowed, but \textbf{negative cycles} break the shortest-path problem entirely: you can loop around the negative cycle forever, driving the total cost to $-\infty$. Shortest path is undefined.
+
+\begin{warnbox}
+\textbf{Dijkstra can't handle negative weights, period.} Its correctness proof relies on never having to revisit a ``finished'' vertex, and negative edges can make that false. Use Bellman-Ford (§10.10) or the special Johnson's algorithm if any edge is negative. Knowing which shortest-path algorithm tolerates which edge signs is a classic exam question.
+\end{warnbox}
+
+\section{10.9 Dijkstra's Shortest Path}
+
+\begin{ideabox}
+\textbf{Dijkstra in one sentence.} BFS, but the frontier is a priority queue keyed by distance. Always expand the closest unvisited vertex next; its distance is now final.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+For every vertex $v$, maintain:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{dist[v]}: best-known shortest distance from the source (initially $\infty$).
+    \item \texttt{prev[v]}: previous vertex along that best-known path (initially null).
+\end{itemize}
+
+At each step, pull the vertex with smallest tentative \texttt{dist} out of the priority queue (it won't improve), and \emph{relax} all its outgoing edges: for each edge $(u, v, w)$, if \texttt{dist[u] + w < dist[v]}, update \texttt{dist[v]} and \texttt{prev[v]}.
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+#include <queue>
+#include <vector>
+#include <limits>
+
+using Edge = std::pair<int,int>;   // (neighbor, weight)
+const int INF = std::numeric_limits<int>::max();
+
+void dijkstra(const std::vector<std::vector<Edge>>& adj, int src,
+              std::vector<int>& dist, std::vector<int>& prev) {
+    int n = adj.size();
+    dist.assign(n, INF);
+    prev.assign(n, -1);
+    dist[src] = 0;
+
+    // Min-heap of (distance, vertex). std::greater flips the default max-heap.
+    using PQE = std::pair<int,int>;
+    std::priority_queue<PQE, std::vector<PQE>, std::greater<PQE>> pq;
+    pq.push({0, src});
+
+    while (!pq.empty()) {
+        auto [d, u] = pq.top(); pq.pop();
+        if (d > dist[u]) continue;          // stale entry -- already improved
+        for (auto [v, w] : adj[u]) {
+            int alt = d + w;
+            if (alt < dist[v]) {
+                dist[v] = alt;
+                prev[v] = u;
+                pq.push({alt, v});
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\begin{warnbox}
+\textbf{The ``stale entry'' trick.} \texttt{std::priority\_queue} doesn't support decrease-key, so whenever we improve a vertex's distance, we just push a new, smaller entry. When we later pop, we check \texttt{if (d > dist[u]) continue;} to skip outdated entries. This is the idiomatic C++ Dijkstra -- simple, fast, and what you'd write in interviews or contests.
+\end{warnbox}
+
+\subsection*{Why it works -- greedy correctness}
+
+\begin{ideabox}
+When we pop the closest remaining vertex $u$ with tentative distance $d$, \emph{no later path can possibly be shorter}. Any other path to $u$ goes through some unvisited vertex $v$ with $\texttt{dist}[v] \geq d$ (that's why $u$ was chosen first), and then adds a non-negative edge weight on top of $\texttt{dist}[v]$, giving total $\geq d$. So $d$ is final at pop time. This is exactly why \textbf{Dijkstra requires non-negative edges}: the argument breaks if a negative edge can shave below $d$ after the fact.
+\end{ideabox}
+
+\subsection*{Cost}
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+Priority-queue implementation & Runtime \\
+\hline
+Unsorted array / linear scan & $O(V^2 + E)$ \\
+Binary heap (\texttt{std::priority\_queue}) & $O((V + E) \log V)$ \\
+Fibonacci heap & $O(E + V \log V)$ \\
+\hline
+\end{tabular}
+\end{center}
+
+For sparse graphs, the binary-heap version is the sweet spot: simple, fast, what you'd reach for in real code. Fibonacci heaps have better theoretical bounds but rarely win in practice because of their hideous constant factors.
+
+\subsection*{Reconstructing the path}
+
+After Dijkstra, walk \texttt{prev} backwards from the destination:
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+std::vector<int> pathTo(int target, const std::vector<int>& prev) {
+    std::vector<int> path;
+    for (int v = target; v != -1; v = prev[v]) path.push_back(v);
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+\end{lstlisting}
+
+If \texttt{prev[target] == -1} and \texttt{target != src}, the target is unreachable.
+
+\section{10.10 Bellman-Ford Shortest Path}
+
+\begin{ideabox}
+\textbf{Bellman-Ford in one sentence.} Relax every edge $V-1$ times. If any edge can \emph{still} be relaxed after that, there's a negative cycle. Slower than Dijkstra but handles negative weights.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+struct Edge { int u, v, w; };
+
+bool bellmanFord(int n, const std::vector<Edge>& edges, int src,
+                 std::vector<int>& dist, std::vector<int>& prev) {
+    dist.assign(n, INF);
+    prev.assign(n, -1);
+    dist[src] = 0;
+
+    // Main loop: relax every edge V-1 times.
+    for (int i = 0; i < n - 1; ++i) {
+        for (const auto& e : edges) {
+            if (dist[e.u] != INF && dist[e.u] + e.w < dist[e.v]) {
+                dist[e.v] = dist[e.u] + e.w;
+                prev[e.v] = e.u;
+            }
+        }
+    }
+
+    // Negative-cycle check: one more pass -- if anything still relaxes,
+    // the graph has a reachable negative cycle.
+    for (const auto& e : edges) {
+        if (dist[e.u] != INF && dist[e.u] + e.w < dist[e.v])
+            return false;
+    }
+    return true;
+}
+\end{lstlisting}
+
+\subsection*{Why $V-1$ iterations?}
+
+A shortest path has at most $V-1$ edges (any more would revisit a vertex, wasting weight if weights are non-negative -- and if weights are negative, see below). Each iteration propagates ``correct'' distances one edge farther along. After $V-1$ passes, every shortest path has been fully propagated, as long as no negative cycles exist.
+
+If an edge is \emph{still} relaxable on a $V$-th iteration, then some path keeps getting shorter -- a negative cycle is the only way that can happen.
+
+\subsection*{Cost}
+
+$O(VE)$. Roughly $V$ times slower than Dijkstra in the worst case, but:
+
+\begin{itemize}[leftmargin=*]
+    \item Handles negative weights.
+    \item Detects negative cycles.
+    \item Works on \emph{any} graph representation -- just give it a list of edges.
+    \item Easy to parallelize (independent edge relaxations).
+\end{itemize}
+
+\subsection*{Dijkstra vs.\ Bellman-Ford, decision flowchart}
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+Situation & Use \\
+\hline
+All edges non-negative, sparse & Dijkstra + binary heap \\
+Negative edges, no negative cycles & Bellman-Ford \\
+Need to detect negative cycles & Bellman-Ford \\
+All-pairs shortest paths & Floyd-Warshall (§10.13) \\
+Unweighted graph & BFS (not either of these) \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{notebox}
+\textbf{SPFA} (``Shortest Path Faster Algorithm'') is a queue-based refinement of Bellman-Ford that's often faster in practice -- only re-process vertices whose distance actually changed. Worst case is still $O(VE)$, but average behavior on real graphs is much better.
+\end{notebox}
+
+\section{10.11 Topological Sort}
+
+\begin{defnbox}
+\textbf{Topological sort.} A linear ordering of a DAG's vertices such that every edge $u \to v$ has $u$ appearing before $v$. Exists iff the graph is acyclic. Not unique: most DAGs have many valid orderings.
+\end{defnbox}
+
+\begin{ideabox}
+\textbf{The canonical use case.} Whenever you have ``do A before B'' constraints and want a valid linear schedule, you want topological sort. Course prerequisites, build orders, spreadsheet evaluation, task scheduling, dataflow execution -- all the same problem.
+\end{ideabox}
+
+\subsection*{Kahn's algorithm (in-degree method)}
+
+Repeatedly peel off vertices with no incoming edges -- they're safe to do first.
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+std::vector<int> topoSortKahn(int n,
+                              const std::vector<std::vector<int>>& adj) {
+    std::vector<int> indeg(n, 0);
+    for (int u = 0; u < n; ++u)
+        for (int v : adj[u]) ++indeg[v];
+
+    std::queue<int> q;
+    for (int u = 0; u < n; ++u)
+        if (indeg[u] == 0) q.push(u);
+
+    std::vector<int> order;
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        order.push_back(u);
+        for (int v : adj[u])
+            if (--indeg[v] == 0) q.push(v);
+    }
+
+    if ((int)order.size() != n) return {};  // cycle detected
+    return order;
+}
+\end{lstlisting}
+
+If the final order doesn't have all $n$ vertices, the remaining vertices form a cycle -- automatic cycle detection, no extra work.
+
+\subsection*{DFS-based topological sort}
+
+Alternative: DFS, and \emph{push each vertex onto a result stack when it finishes} (after its recursion returns). Reverse the stack.
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+void dfsTopo(int u, const std::vector<std::vector<int>>& adj,
+             std::vector<bool>& visited, std::vector<int>& out) {
+    visited[u] = true;
+    for (int v : adj[u])
+        if (!visited[v]) dfsTopo(v, adj, visited, out);
+    out.push_back(u);   // post-order: u is "done" now
+}
+
+std::vector<int> topoSortDfs(int n,
+                             const std::vector<std::vector<int>>& adj) {
+    std::vector<bool> visited(n, false);
+    std::vector<int> out;
+    for (int u = 0; u < n; ++u)
+        if (!visited[u]) dfsTopo(u, adj, visited, out);
+    std::reverse(out.begin(), out.end());
+    return out;
+}
+\end{lstlisting}
+
+Why the reversal? DFS finishes deeper-in-the-dependency-chain vertices first. In a topological ordering, those should come \emph{last} (they depend on earlier stuff). Reversing puts them in the right order.
+
+\subsection*{Cost}
+
+Both are $O(V + E)$.
+
+\subsection*{Kahn vs.\ DFS}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Kahn} is iterative and natural for streaming/parallel processing -- multiple vertices can be in the ``ready'' queue simultaneously.
+    \item \textbf{DFS} is shorter to write and fits naturally with other DFS-based algorithms (SCC, cycle detection).
+\end{itemize}
+
+Pick based on context. Most textbooks teach DFS; most real-world schedulers (like Tarjan's, or \texttt{make}'s job dispatcher) use Kahn-style because they can work on ``what's ready now'' incrementally.
+
+\section{10.12 Minimum Spanning Tree}
+
+\begin{defnbox}
+\textbf{Spanning tree.} A subset of a connected graph's edges that connects all vertices and forms a tree ($V-1$ edges, no cycles).
+
+\textbf{Minimum spanning tree (MST).} A spanning tree with the smallest possible sum of edge weights. Requires a connected, undirected, weighted graph.
+\end{defnbox}
+
+\begin{examplebox}
+\textbf{Physical intuition.} You're the electric company. Each edge is a potential power line between two cities, with a cost (length, terrain difficulty). You must connect every city. What's the cheapest wiring plan? That's an MST.
+\end{examplebox}
+
+\subsection*{Kruskal's algorithm (greedy edges)}
+
+Sort all edges by weight. Add each edge to the MST unless it would create a cycle. Stop when you have $V-1$ edges.
+
+``Would it create a cycle?'' is answered with a \textbf{union-find} (disjoint-set) data structure: two vertices are in the same component iff their roots are equal.
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+struct DSU {
+    std::vector<int> parent, rank_;
+    DSU(int n) : parent(n), rank_(n, 0) {
+        std::iota(parent.begin(), parent.end(), 0);
+    }
+    int find(int x) {
+        while (parent[x] != x) {
+            parent[x] = parent[parent[x]];   // path compression
+            x = parent[x];
+        }
+        return x;
+    }
+    bool unite(int a, int b) {
+        a = find(a); b = find(b);
+        if (a == b) return false;
+        if (rank_[a] < rank_[b]) std::swap(a, b);
+        parent[b] = a;
+        if (rank_[a] == rank_[b]) ++rank_[a];
+        return true;
+    }
+};
+
+struct Edge { int u, v, w; };
+
+std::vector<Edge> kruskal(int n, std::vector<Edge> edges) {
+    std::sort(edges.begin(), edges.end(),
+              [](const Edge& a, const Edge& b){ return a.w < b.w; });
+
+    DSU dsu(n);
+    std::vector<Edge> mst;
+    for (const auto& e : edges) {
+        if (dsu.unite(e.u, e.v)) {
+            mst.push_back(e);
+            if ((int)mst.size() == n - 1) break;
+        }
+    }
+    return mst;
+}
+\end{lstlisting}
+
+\subsection*{Cost}
+
+$O(E \log E) = O(E \log V)$ (since $E \leq V^2$, the two are equivalent up to a constant factor). Dominated by the sort; union-find operations are near-$O(1)$ amortized.
+
+\subsection*{Why the greedy works}
+
+\begin{ideabox}
+\textbf{Cut property.} For any ``cut'' (partition of vertices into two sets), the minimum-weight edge crossing the cut is in \emph{some} MST. Kruskal's always adds the next-smallest edge that connects two different components -- that's exactly a minimum edge across the cut between those components. So each added edge is safe.
+\end{ideabox}
+
+\subsection*{Prim's algorithm (greedy vertex frontier)}
+
+Alternative MST algorithm: start from any vertex, repeatedly add the cheapest edge that connects an ``inside'' vertex to an ``outside'' vertex. Structurally it's Dijkstra with a different relaxation rule (compare edge weight directly, not cumulative distance).
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+& Kruskal & Prim \\
+\hline
+Approach & greedy on edges & greedy on vertex frontier \\
+Needs & sorted edge list, union-find & adjacency list, priority queue \\
+Cost & $O(E \log E)$ & $O(E \log V)$ w/ binary heap \\
+Good when & edges are easy to enumerate & graph is dense, adjacency is fast \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{notebox}
+For a dense graph ($E = \Theta(V^2)$), Prim with an array-based priority queue runs in $O(V^2)$, which beats Kruskal's $O(V^2 \log V)$. For sparse graphs, they're essentially tied.
+\end{notebox}
+
+\section{10.13 All-Pairs Shortest Path (Floyd-Warshall)}
+
+\begin{ideabox}
+\textbf{Floyd-Warshall in one sentence.} Compute shortest path from \emph{every} vertex to every other vertex by, in turn, allowing each vertex as an intermediate step. Three nested loops, no priority queue, $O(V^3)$.
+\end{ideabox}
+
+\subsection*{Algorithm}
+
+Maintain \texttt{dist[i][j]} = current best-known distance from $i$ to $j$. Initialize:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{dist[i][i] = 0}.
+    \item \texttt{dist[i][j] = w(i,j)} if the edge exists.
+    \item \texttt{dist[i][j] = $\infty$} otherwise.
+\end{itemize}
+
+Then iterate: for each intermediate vertex $k$, for each pair $(i, j)$, ask ``does going through $k$ beat the current best?''
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+void floydWarshall(std::vector<std::vector<int>>& dist) {
+    int n = dist.size();
+    for (int k = 0; k < n; ++k)
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < n; ++j)
+                if (dist[i][k] != INF && dist[k][j] != INF
+                    && dist[i][k] + dist[k][j] < dist[i][j])
+                    dist[i][j] = dist[i][k] + dist[k][j];
+}
+\end{lstlisting}
+
+\subsection*{Why it works -- the $k$-loop invariant}
+
+\begin{ideabox}
+After the $k$-th outer iteration, \texttt{dist[i][j]} is the shortest path from $i$ to $j$ using \emph{only vertices $\{0, 1, \ldots, k\}$ as intermediates}. When $k = n-1$, that's the shortest path using any vertex, which is the answer. The $k$ loop must be \emph{outermost} -- swapping the loop order breaks the invariant and gives wrong answers. This is a favorite homework trap.
+\end{ideabox}
+
+\subsection*{Cost}
+
+$O(V^3)$ time, $O(V^2)$ space. That's cubic, but with tiny constants -- three nested for loops of integer additions. On modern hardware it's vectorizable and absolutely flies for $V$ up to a few thousand.
+
+\subsection*{Floyd-Warshall vs.\ running Dijkstra $V$ times}
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+& Dijkstra from every source & Floyd-Warshall \\
+\hline
+Total cost (binary heap) & $O(V (V+E) \log V)$ & $O(V^3)$ \\
+Handles negative edges? & no & yes \\
+Detects negative cycles? & no & yes (check diagonal) \\
+Code complexity & moderate & very simple \\
+Ideal on & sparse, non-negative & dense, or need negative-weight support \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{warnbox}
+\textbf{Negative cycle detection.} After Floyd-Warshall, if any \texttt{dist[i][i] < 0}, there's a negative cycle through vertex $i$. Slick -- no extra pass needed.
+\end{warnbox}
+
+\subsection*{Path reconstruction}
+
+Floyd-Warshall only computes distances. To recover paths, track the intermediate vertex alongside:
+
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+std::vector<std::vector<int>> next;   // next[i][j] = first hop from i toward j
+
+// During init: next[i][j] = j if edge exists, else -1; next[i][i] = i.
+// During update:
+if (dist[i][k] + dist[k][j] < dist[i][j]) {
+    dist[i][j] = dist[i][k] + dist[k][j];
+    next[i][j] = next[i][k];
+}
+
+// Reconstruct path i -> j:
+std::vector<int> path = {i};
+while (path.back() != j) path.push_back(next[path.back()][j]);
+\end{lstlisting}
+
+\subsection*{Algebraic view}
+
+Floyd-Warshall is min-plus matrix multiplication in disguise. Replace ``product + sum'' with ``sum + min,'' and the adjacency matrix raised to high enough a power (in this semiring) is exactly the all-pairs-shortest-path matrix. This connects shortest paths to a whole field of tropical algebra, used in everything from compiler optimization to network calculus.
+
+\begin{ideabox}
+\textbf{Chapter takeaway.} Graphs are the universal data structure of computer science. Every major algorithm in this chapter -- BFS, DFS, Dijkstra, Bellman-Ford, topological sort, Kruskal, Floyd-Warshall -- is an instance of ``explore the graph by expanding a frontier in some specific order.'' The frontier type (queue, stack, priority queue, edge-sorted list, triple loop) and the relaxation rule (visit once, update-if-shorter, etc.) are what distinguish them. Internalize the pattern and you can reason about a new graph algorithm in minutes.
+\end{ideabox}
+
+\end{document}

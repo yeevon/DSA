@@ -1,0 +1,143 @@
+\documentclass[10pt]{article}
+\input{../notes-style.tex}
+
+\usepackage{multicol}
+\usepackage{array}
+
+\title{Ch.~1 Cheat Sheet\\\large Arrays, Vectors, C-Strings}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\begin{multicols}{2}
+
+\subsection*{Vector declaration \& init}
+\begin{lstlisting}[language=C++]
+vector<int> a;           // empty
+vector<int> b(5);        // 5 zeros
+vector<int> c(5, 7);     // 5 sevens
+vector<int> d{1,2,3};    // literal list
+vector<int> e = d;       // deep copy
+\end{lstlisting}
+
+\subsection*{Element access}
+\begin{tabular}{@{}ll@{}}
+\texttt{v[i]}        & no bounds check (UB if bad)\\
+\texttt{v.at(i)}     & throws \texttt{out\_of\_range}\\
+\texttt{v.front()}   & same as \texttt{v[0]}\\
+\texttt{v.back()}    & same as \texttt{v[size-1]}\\
+\texttt{v.size()}    & returns \texttt{size\_t} (unsigned!)
+\end{tabular}
+
+\subsection*{Operation complexity}
+\begin{tabular}{@{}lll@{}}
+\texttt{v[i]} / \texttt{at(i)}   & $O(1)$    & random access\\
+\texttt{push\_back}              & $O(1)^*$  & amortized\\
+\texttt{pop\_back}               & $O(1)$    & no shift\\
+\texttt{back} / \texttt{front}   & $O(1)$    & \\
+\texttt{insert(pos, x)}          & $O(n)$    & shift right\\
+\texttt{erase(pos)}              & $O(n)$    & shift left\\
+\texttt{resize(n)}               & $O(n)$    & may realloc\\
+\texttt{reserve(n)}              & $O(n)$    & no default-init
+\end{tabular}
+
+\subsection*{Canonical loops}
+\begin{lstlisting}[language=C++]
+for (size_t i = 0; i < v.size(); ++i) // index
+for (int x : v)                        // by value
+for (int& x : v)                       // by ref (mutate)
+for (const int& x : v)                 // read-only, no copy
+\end{lstlisting}
+
+\subsection*{Iteration patterns}
+\textbf{Running best:} track \texttt{best}, compare each element.\\
+\textbf{Running count:} \texttt{++count} when predicate holds.\\
+\textbf{First match:} early \texttt{return} / \texttt{break} on hit.\\
+\textbf{Paired scan (two vectors):} single index drives both.\\
+\textbf{In-place transform:} \texttt{v[i] = f(v[i])} -- no new vector.
+
+\subsection*{\texttt{resize} vs \texttt{push\_back}}
+\begin{itemize}
+    \item \texttt{resize(n)} fills with default-constructed values;
+    indexes \texttt{0..n-1} become valid immediately.
+    \item \texttt{push\_back(x)} appends one; size grows by 1.
+    \item Know-the-size-up-front? Prefer \texttt{resize} then index.
+    Size unknown? Use \texttt{push\_back} (optionally
+    \texttt{reserve}-ing first to avoid reallocs).
+\end{itemize}
+
+\columnbreak
+
+\subsection*{Value semantics}
+\begin{itemize}
+    \item \texttt{b = a;} -- \textbf{deep copy} of every element.
+    \item \texttt{a == b} -- element-wise compare; sizes must match.
+    \item Pass large vectors by \texttt{const\&} to avoid copies.
+    \item After \texttt{push\_back}/\texttt{resize}/\texttt{reserve},
+    \emph{existing} iterators and pointers may be invalidated.
+\end{itemize}
+
+\subsection*{Swap}
+\begin{lstlisting}[language=C++]
+int t = a; a = b; b = t;   // by hand
+std::swap(a, b);           // preferred
+std::swap(v[i], v[j]);     // swap elements
+\end{lstlisting}
+Never \texttt{a = b; b = a;} -- you lose \texttt{a}'s old value.
+
+\subsection*{Arrays vs.\ vectors}
+\begin{tabular}{@{}lll@{}}
+                   & \textbf{array}       & \textbf{vector}\\
+size               & fixed at compile time& dynamic\\
+passes size        & no (decays to ptr)   & yes (\texttt{.size()})\\
+bounds check       & never                & \texttt{.at()}\\
+copy with \texttt{=}& no (just pointer)   & yes (deep)\\
+compare with \texttt{==}& no (pointers)   & yes (elements)\\
+use when           & fixed known N        & default choice
+\end{tabular}
+
+\subsection*{2D containers}
+\begin{lstlisting}[language=C++]
+int m[3][4] = {};            // raw 2D array
+vector<vector<int>> g(R, vector<int>(C, 0));
+\end{lstlisting}
+Row-major: inner loop varies the \emph{column}. Reversing nesting
+tanks cache performance.
+
+\subsection*{C-strings vs.\ \texttt{std::string}}
+\begin{tabular}{@{}ll@{}}
+declare      & \texttt{char s[N]} / \texttt{const char*} \\
+terminator   & \texttt{'\textbackslash 0'} required \\
+compare      & \texttt{strcmp(a,b)} returns \texttt{<0,0,>0}\\
+concat       & \texttt{strcat} (must pre-size) \\
+assign       & \texttt{strcpy(dst, src)} -- \emph{not} \texttt{=} \\
+modern       & \texttt{std::string} -- all of the above with operators
+\end{tabular}
+\texttt{strcmp} gotcha: \texttt{if (strcmp(a,b))} tests ``not equal.''
+
+\subsection*{\texttt{<cctype>} quick ref}
+\begin{tabular}{@{}ll@{}}
+\texttt{isalpha/isdigit/isalnum} & classify\\
+\texttt{isspace}                 & space, tab, newline\\
+\texttt{isupper/islower}         & case\\
+\texttt{toupper/tolower}         & convert
+\end{tabular}
+All take \texttt{int}, return \texttt{int}. Cast \texttt{char} to
+\texttt{unsigned char} first to avoid UB on negative values.
+
+\subsection*{Top gotchas}
+\begin{itemize}
+    \item \texttt{v.size() - 1} when \texttt{v} is empty: underflow
+    to huge unsigned.
+    \item Modifying a vector while iterating invalidates iterators.
+    \item \texttt{strcmp} returns 0 on \emph{equality} (opposite of
+    what ``truthy'' suggests).
+    \item Row-major 2D: iterate rows outer, cols inner.
+    \item Parallel vectors drift out of sync; use a struct.
+\end{itemize}
+
+\end{multicols}
+\end{document}

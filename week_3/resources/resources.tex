@@ -1,0 +1,159 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\title{CS 300 -- Week 3 Resources\\\large Linked Lists: Deletion in a Doubly Linked List}
+\author{Jose de Lima}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Overview}
+Week 3 shifts from array-backed structures to \textbf{linked lists}, where
+each element (a \emph{node}) owns its own memory and references its neighbors
+through pointers. The resource below focuses on one of the trickiest
+operations on a \textbf{doubly linked list}: deleting a node, whether it
+sits at the head, in the middle, or at the tail.
+
+\section{Doubly Linked List Refresher}
+
+A \textbf{doubly linked list (DLL)} node stores three things:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{data} -- the payload (an \texttt{int}, a \texttt{Bid}, etc.).
+    \item \texttt{prev} -- a pointer to the previous node (or \texttt{nullptr}
+          if this is the head).
+    \item \texttt{next} -- a pointer to the next node (or \texttt{nullptr} if
+          this is the tail).
+\end{itemize}
+
+The list itself keeps a \texttt{head} pointer (and usually a \texttt{tail}
+pointer for $O(1)$ tail access). Compared to a singly linked list, the extra
+\texttt{prev} pointer costs memory but makes backward traversal and node
+deletion far easier, because a node can find its predecessor in $O(1)$
+without re-walking the list.
+
+\begin{center}
+\texttt{NULL <- [prev|data|next] <-> [prev|data|next] <-> [prev|data|next] -> NULL}
+\end{center}
+
+\section{Deleting a Node from a Doubly Linked List}
+\textbf{Resource:} \href{https://www.youtube.com/watch?v=LvUgew66zOQ}{Delete a node from a Doubly Linked List (YouTube)}
+
+Deletion breaks into three cases depending on where the target node sits in
+the list. In each case the goal is the same: detach the node from its
+neighbors, update the surrounding pointers so the list remains well-formed,
+and free the node's memory.
+
+\subsection{Case 1 -- Delete the Head Node}
+\begin{enumerate}[leftmargin=*]
+    \item Let \texttt{temp = head}.
+    \item Advance the head: \texttt{head = head->next}.
+    \item If the new \texttt{head} is not \texttt{nullptr}, set
+          \texttt{head->prev = nullptr} (the new head has no predecessor).
+    \item If the new \texttt{head} is \texttt{nullptr}, the list is now empty,
+          so also clear \texttt{tail}.
+    \item \texttt{delete temp;}
+\end{enumerate}
+
+\subsection{Case 2 -- Delete a Middle Node}
+Assume \texttt{cur} points at the node to remove and it is not the head or
+tail.
+\begin{enumerate}[leftmargin=*]
+    \item \texttt{cur->prev->next = cur->next;}
+    \item \texttt{cur->next->prev = cur->prev;}
+    \item \texttt{delete cur;}
+\end{enumerate}
+This is the case where DLLs shine -- no second traversal is needed to find
+the predecessor, because \texttt{cur->prev} already points at it.
+
+\subsection{Case 3 -- Delete the Tail Node}
+\begin{enumerate}[leftmargin=*]
+    \item Let \texttt{temp = tail}.
+    \item Move tail back: \texttt{tail = tail->prev}.
+    \item If the new \texttt{tail} is not \texttt{nullptr}, set
+          \texttt{tail->next = nullptr}.
+    \item If the new \texttt{tail} is \texttt{nullptr}, also clear
+          \texttt{head} (list is empty).
+    \item \texttt{delete temp;}
+\end{enumerate}
+
+\subsection{Pseudocode (all three cases combined)}
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+function deleteNode(list, cur):
+    if cur == nullptr: return
+
+    if cur->prev != nullptr:
+        cur->prev->next = cur->next
+    else:
+        list.head = cur->next      # cur was the head
+
+    if cur->next != nullptr:
+        cur->next->prev = cur->prev
+    else:
+        list.tail = cur->prev      # cur was the tail
+
+    delete cur
+\end{lstlisting}
+
+\subsection{Edge Cases to Watch}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Empty list:} nothing to delete -- return early.
+    \item \textbf{Single-node list:} the node is \emph{both} head and tail;
+          after deletion, both must be set to \texttt{nullptr}.
+    \item \textbf{Dangling pointers:} always \texttt{delete} the removed node
+          and stop using references to it afterward.
+    \item \textbf{Double-free:} make sure no other structure still owns the
+          node before freeing.
+\end{itemize}
+
+\subsection{Complexity}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{If you already hold a pointer to the node:} $O(1)$ time,
+          $O(1)$ space -- this is the doubly linked list's signature win
+          over a singly linked list.
+    \item \textbf{If you must first find the node by value/index:} $O(n)$
+          time for the search, plus $O(1)$ for the unlink.
+\end{itemize}
+
+\section{Singly vs. Doubly Linked List -- Deletion}
+\begin{center}
+\begin{tabular}{l|l|l}
+\textbf{Property}               & \textbf{Singly} & \textbf{Doubly} \\ \hline
+Pointers per node               & 1 (\texttt{next})                & 2 (\texttt{prev}, \texttt{next}) \\
+Delete with node pointer only   & $O(n)$ (need predecessor)        & $O(1)$                            \\
+Backward traversal              & Not supported in $O(1)$          & $O(1)$ per step                   \\
+Memory overhead                 & Lower                             & Higher (extra pointer)            \\
+Implementation complexity       & Simpler                           & More pointer bookkeeping          \\
+\end{tabular}
+\end{center}
+
+\section*{Key Takeaways}
+\begin{itemize}[leftmargin=*]
+    \item Doubly linked lists trade one extra pointer per node for $O(1)$
+          deletion when you already hold the node.
+    \item Every DLL deletion is fundamentally the same three-step dance:
+          relink the predecessor, relink the successor, free the node --
+          with special handling when either neighbor is \texttt{nullptr}.
+    \item Always reason about the empty-list and single-node cases
+          explicitly; most linked-list bugs live there.
+\end{itemize}
+
+\section*{Links Summary}
+\begin{itemize}[leftmargin=*]
+    \item Delete a Node from a Doubly Linked List: \url{https://www.youtube.com/watch?v=LvUgew66zOQ}
+\end{itemize}
+
+\end{document}
