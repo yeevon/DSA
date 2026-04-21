@@ -1,3 +1,8 @@
+---
+layout: default
+permalink: /practice/ch_2/
+---
+
 # Chapter 2 — Practice Prompts
 
 Paste any drill into a fresh Claude session. Shape:

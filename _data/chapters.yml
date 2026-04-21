@@ -1,0 +1,69 @@
+required:
+  - id: ch_1
+    n: 1
+    title: "Chapter 1"
+    subtitle: "Programming basics, arrays, and vectors"
+    notes_pdf: /week_1/ch_1/notes.pdf
+    cheat_pdf: /cheat_sheets/ch_1.pdf
+  - id: ch_2
+    n: 2
+    title: "Chapter 2"
+    subtitle: "Algorithms, recursion, greedy, and DP"
+    notes_pdf: /week_1/ch_2/notes.pdf
+    cheat_pdf: /cheat_sheets/ch_2.pdf
+  - id: ch_3
+    n: 3
+    title: "Chapter 3"
+    subtitle: "Data structures, ADTs, Big-O, sorting"
+    notes_pdf: /week_2/ch_3/notes.pdf
+    cheat_pdf: /cheat_sheets/ch_3.pdf
+  - id: ch_4
+    n: 4
+    title: "Chapter 4"
+    subtitle: "Lists, stacks, queues, deques"
+    notes_pdf: /week_3/ch_4/notes.pdf
+    cheat_pdf: /cheat_sheets/ch_4.pdf
+  - id: ch_5
+    n: 5
+    title: "Chapter 5"
+    subtitle: "Hash tables"
+    notes_pdf: /week_4/ch_5/notes.pdf
+    cheat_pdf: /cheat_sheets/ch_5.pdf
+  - id: ch_6
+    n: 6
+    title: "Chapter 6"
+    subtitle: "Trees and binary search trees"
+    notes_pdf: /week_5/ch_6/notes.pdf
+    cheat_pdf: /cheat_sheets/ch_6.pdf
+
+optional:
+  - id: ch_7
+    n: 7
+    title: "Chapter 7"
+    subtitle: "Heaps and priority queues"
+    notes_pdf: /optional/ch_7/notes.pdf
+  - id: ch_9
+    n: 9
+    title: "Chapter 9"
+    subtitle: "AVL and red-black trees"
+    notes_pdf: /optional/ch_9/notes.pdf
+  - id: ch_10
+    n: 10
+    title: "Chapter 10"
+    subtitle: "Graphs: BFS, DFS, shortest paths"
+    notes_pdf: /optional/ch_10/notes.pdf
+  - id: ch_11
+    n: 11
+    title: "Chapter 11"
+    subtitle: "B-trees and 2-3-4 trees"
+    notes_pdf: /optional/ch_11/notes.pdf
+  - id: ch_12
+    n: 12
+    title: "Chapter 12"
+    subtitle: "The set ADT"
+    notes_pdf: /optional/ch_12/notes.pdf
+  - id: ch_13
+    n: 13
+    title: "Chapter 13"
+    subtitle: "Extra sorts and list idioms"
+    notes_pdf: /optional/ch_13/notes.pdf

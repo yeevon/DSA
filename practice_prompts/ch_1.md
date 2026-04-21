@@ -1,3 +1,8 @@
+---
+layout: default
+permalink: /practice/ch_1/
+---
+
 # Chapter 1 — Practice Prompts
 
 Paste any one of these into a fresh Claude session. Each mimics the shape of

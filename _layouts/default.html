@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page.title %}{{ page.title }} — {% endif %}{{ site.title }}</title>
+  <link rel="stylesheet" href="{{ '/assets/style.css' | relative_url }}">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+</head>
+<body>
+  {% include nav.html %}
+  <main class="container">
+    {{ content }}
+  </main>
+</body>
+</html>
