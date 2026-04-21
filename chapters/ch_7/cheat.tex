@@ -1,0 +1,135 @@
+\documentclass[10pt]{article}
+\input{../../notes-style.tex}
+
+\usepackage{multicol}
+\usepackage{array}
+
+\title{Ch.~7 Cheat Sheet\\\large Heaps and Priority Queues}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\begin{multicols}{2}
+
+\subsection*{What a heap is}
+A \textbf{complete} binary tree with the heap property:
+\begin{itemize}
+    \item \textbf{Max-heap}: every parent $\ge$ both children. Root is max.
+    \item \textbf{Min-heap}: every parent $\le$ both children. Root is min.
+\end{itemize}
+\textit{Not} a BST: left and right siblings are unordered w.r.t.\
+each other. No in-order traversal, no search, no range query.
+
+\subsection*{Array representation}
+Zero-indexed, root at 0. For node at index $i$:
+\[
+\text{parent}(i) = \left\lfloor \tfrac{i-1}{2} \right\rfloor,\
+\text{left}(i) = 2i+1,\
+\text{right}(i) = 2i+2
+\]
+Works only because the tree is complete (no gaps).
+
+\subsection*{Why array beats pointers}
+\begin{tabular}{@{}l|l@{}}
+\textbf{Pointer tree}       & \textbf{Array heap}\\
+\hline
+3 ptrs / node               & no per-node overhead\\
+cache miss per child hop    & children 1--2 cells ahead\\
+\texttt{new}/\texttt{delete}& \texttt{vector} amort.\ $O(1)$
+\end{tabular}
+
+\subsection*{Percolate up (insert fixup)}
+\begin{lstlisting}[language=C++]
+while (i > 0) {
+    int p = (i - 1) / 2;
+    if (h[i] <= h[p]) break;
+    std::swap(h[i], h[p]);
+    i = p;
+}
+\end{lstlisting}
+
+\subsection*{Percolate down (extract fixup)}
+\begin{lstlisting}[language=C++]
+while (2*i + 1 < n) {
+    int L = 2*i + 1, R = 2*i + 2, big = L;
+    if (R < n && h[R] > h[L]) big = R;
+    if (h[i] >= h[big]) break;
+    std::swap(h[i], h[big]);
+    i = big;
+}
+\end{lstlisting}
+Watch: swap with the \emph{larger} child, not an arbitrary child.
+
+\subsection*{Insert / extract}
+\begin{itemize}
+    \item \textbf{Insert}: \texttt{push\_back}, then percolate up.
+    \item \textbf{Extract}: save root, move last to root,
+        \texttt{pop\_back}, percolate down.
+\end{itemize}
+Both $O(\log n)$; peek $O(1)$.
+
+\columnbreak
+
+\subsection*{Cost table}
+\begin{tabular}{@{}l|lll@{}}
+               & peek  & pop          & push\\
+\hline
+sorted array   & $O(1)$& $O(1)$       & $O(n)$\\
+unsorted array & $O(n)$& $O(n)$       & $O(1)$\\
+balanced BST   & $O(\log n)$ & $O(\log n)$ & $O(\log n)$\\
+\textbf{heap}  & $O(1)$ & $O(\log n)$ & $O(\log n)$
+\end{tabular}
+
+\subsection*{Heapify (bottom-up build)}
+For $i$ from $\lfloor n/2 \rfloor - 1$ down to $0$, call
+\texttt{percolateDown(i)}. Total $O(n)$, not $O(n \log n)$:
+most nodes are near the bottom and do almost no work
+($\sum n/2^{i+1} \cdot i = O(n)$).
+
+\subsection*{Heapsort}
+\begin{enumerate}
+    \item Heapify in place -- $O(n)$.
+    \item For \texttt{end = n-1} down to 1: swap
+    \texttt{a[0]} with \texttt{a[end]}, then
+    \texttt{percolateDown(0, size=end)}. -- $O(n \log n)$.
+\end{enumerate}
+In place, $O(1)$ extra, \textbf{not stable}. Worst case
+$O(n \log n)$ -- why introsort falls back to it.
+
+\subsection*{Priority queue ADT}
+Operations: \texttt{push(x)}, \texttt{pop()} (returns extremum),
+\texttt{peek()}, \texttt{size()}, \texttt{empty()}. Usually
+implemented as a heap. Uses: Dijkstra / A* / Prim, event
+simulation, top-$k$, process scheduling.
+
+\subsection*{\texttt{std::priority\_queue}}
+\begin{lstlisting}[language=C++]
+std::priority_queue<int> maxpq;            // max-heap
+std::priority_queue<int, std::vector<int>,
+    std::greater<int>> minpq;              // min-heap
+\end{lstlisting}
+\texttt{.top()} returns \textbf{const ref} -- no in-place priority
+change. To update priority: pop + push, or use indexed heap.
+
+\subsection*{Treap (sneak preview of balance)}
+Each node carries (key, random priority).\ BST order on keys,
+heap order on priorities. Insert as BST leaf, then rotate up while
+priority $>$ parent's. Rotations preserve BST order.\
+Expected $O(\log n)$ all ops; worst-case $O(n)$ (unlucky priorities).
+
+\subsection*{Top gotchas}
+\begin{itemize}
+    \item Index arithmetic off-by-one: \texttt{(i-1)/2}, not
+        \texttt{i/2}. Must use int division.
+    \item Swapping with the smaller child in
+        \texttt{percolateDown} -- creates a new violation below.
+    \item Using a heap where you need ordered traversal or
+        search (use a BST / \texttt{std::map}).
+    \item Treating \texttt{pop()} on empty as safe -- UB in C++.
+\end{itemize}
+
+\end{multicols}
+\end{document}

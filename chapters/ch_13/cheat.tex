@@ -1,0 +1,149 @@
+\documentclass[10pt]{article}
+\input{../../notes-style.tex}
+
+\usepackage{multicol}
+\usepackage{array}
+
+\title{Ch.~13 Cheat Sheet\\\large Additional Algorithms and List Forms}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\begin{multicols}{2}
+
+\subsection*{Bubble sort}
+Repeatedly pass through the array swapping adjacent
+out-of-order pairs.
+\begin{lstlisting}[language=C++]
+for (int i = 0; i < n - 1; ++i) {
+    bool swapped = false;
+    for (int j = 0; j + 1 < n - i; ++j)
+        if (a[j] > a[j+1]) {
+            std::swap(a[j], a[j+1]);
+            swapped = true;
+        }
+    if (!swapped) break;   // early exit if sorted
+}
+\end{lstlisting}
+$O(n^2)$ worst, $O(n)$ best (sorted). Stable, in place.
+\textbf{Never use in production} -- insertion sort beats it in
+every dimension. Useful only as a teaching example and as a
+simple way to ``almost-sort'' partially-sorted data.
+
+\subsection*{Quickselect (find the $k$-th smallest)}
+Quicksort, but only recurse into the partition that contains $k$.
+\begin{lstlisting}[language=C++]
+int quickselect(vector<int>& a, int lo, int hi, int k) {
+    int p = lomutoPartition(a, lo, hi);
+    if (p == k) return a[p];
+    if (k < p) return quickselect(a, lo,    p-1, k);
+    else       return quickselect(a, p+1, hi,    k);
+}
+\end{lstlisting}
+Expected $O(n)$; worst $O(n^2)$ (bad pivot). C++:
+\texttt{std::nth\_element(first, nth, last)} -- $O(n)$ expected,
+puts the $n$-th smallest at the \texttt{nth} position, with
+everything smaller before and larger after.
+
+\subsection*{Applications of quickselect}
+Median, top-$k$, percentile queries without a full sort. For
+streaming / huge $n$: combine with a heap of size $k$.
+
+\subsection*{Bucket sort}
+Assumes a roughly uniform distribution over a bounded range.
+\begin{enumerate}
+    \item Split the range into $k$ buckets.
+    \item Distribute items into buckets by a key function.
+    \item Sort each bucket (insertion / \texttt{std::sort}).
+    \item Concatenate.
+\end{enumerate}
+Average $O(n + k)$ if items distribute uniformly;
+worst $O(n^2)$ (all into one bucket).
+
+\subsection*{Bucket / counting / radix family}
+\begin{tabular}{@{}l|l@{}}
+\textbf{use when} & \textbf{algo}\\
+\hline
+small integer range & counting sort\\
+uniform over $[0,1)$ or similar & bucket sort\\
+multi-digit / multi-byte keys  & radix (LSD / MSD)\\
+general / comparisons only     & merge / quick / heap
+\end{tabular}
+
+\columnbreak
+
+\subsection*{List ADT vs.\ linked list}
+\textbf{List} = sequential positional collection ADT. One
+\emph{implementation} is a linked list. Wrap the raw node-pointer
+code in a class with invariants (head, tail, size, no cycles).
+
+\begin{lstlisting}[language=C++]
+template <class T>
+class List {
+    struct Node { T val; Node* next; };
+    Node* head_ = nullptr;
+    Node* tail_ = nullptr;
+    std::size_t size_ = 0;
+public:
+    void push_front(T); void push_back(T);
+    void pop_front();   void pop_back();
+    std::size_t size() const { return size_; }
+    // iterators, destructor, rule of 5 ...
+};
+\end{lstlisting}
+
+\subsection*{Why wrap, why not just \texttt{std::list}}
+\textbf{Wrap own} when learning, when teaching, or when you need
+a special invariant (XOR list, intrusive list, lock-free).
+\textbf{Prefer \texttt{std::list}} in real code -- it's been tuned,
+supports iterators, has the rule of 5 right. \textbf{But usually}:
+prefer \texttt{std::vector} unless profiling proves otherwise.
+Linked lists lose on cache locality, most of the time.
+
+\subsection*{Circular lists}
+Tail's \texttt{next} points to head (singly); plus head's
+\texttt{prev} points to tail (doubly).
+\begin{itemize}
+    \item No null end -- termination is \textbf{``came back to the start''}.
+    \item Natural for round-robin schedulers, ring buffers,
+    infinite playlists, Josephus problem.
+    \item Traversal trap: forgetting the terminator and looping
+    forever.
+\end{itemize}
+
+\subsection*{Sentinel DLL (the clean variant)}
+Allocate a dummy \texttt{head} and \texttt{tail} (or a single
+sentinel that points to itself). Real nodes sit between.
+\begin{itemize}
+    \item No empty-list special case.
+    \item Insert / remove: always 4 pointer writes, never a nullptr check.
+    \item Matches \texttt{std::list}'s internal shape.
+\end{itemize}
+
+\subsection*{When \emph{not} to reach for a linked list}
+\begin{itemize}
+    \item Random access / indexing by position (vector wins).
+    \item Dense numeric data with tight loops (cache murder).
+    \item Tiny elements where the pointer overhead dominates.
+    \item When you need \texttt{sort} / \texttt{binary\_search} --
+    no random access, no \texttt{std::sort}.
+\end{itemize}
+
+\subsection*{Top gotchas}
+\begin{itemize}
+    \item Using bubble sort in anything that ships.
+    \item Quickselect with first-element pivot on sorted data --
+    quadratic; shuffle or use random pivot.
+    \item Bucket sort with skewed data -- degenerates to one
+    bucket's sort.
+    \item Forgetting the rule of 5 in a hand-rolled \texttt{List}
+    (copy / move / destructor leaks).
+    \item Circular-list traversal with \texttt{while (n)} instead
+    of \texttt{do \{...\} while (n != start)}.
+\end{itemize}
+
+\end{multicols}
+\end{document}

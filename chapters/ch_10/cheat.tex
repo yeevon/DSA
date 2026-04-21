@@ -1,0 +1,155 @@
+\documentclass[10pt]{article}
+\input{../../notes-style.tex}
+
+\usepackage{multicol}
+\usepackage{array}
+
+\title{Ch.~10 Cheat Sheet\\\large Graphs}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\begin{multicols}{2}
+
+\subsection*{Vocabulary}
+\begin{itemize}
+    \item \textbf{Vertex} ($V$), \textbf{edge} ($E$). $n = |V|$, $m = |E|$.
+    \item \textbf{Directed} (arcs) vs.\ \textbf{undirected}.
+    \item \textbf{Weighted}: edges carry a weight $w(u,v)$.
+    \item \textbf{Path / cycle}. \textbf{DAG}: directed acyclic.
+    \item \textbf{Connected}: every pair reachable (undirected).
+    \item \textbf{Sparse}: $m = O(n)$. \textbf{Dense}: $m = \Theta(n^2)$.
+\end{itemize}
+
+\subsection*{Representations}
+\begin{tabular}{@{}l|l|l@{}}
+             & \textbf{adj.\ list}    & \textbf{adj.\ matrix}\\
+\hline
+space        & $O(n+m)$               & $O(n^2)$\\
+has-edge?    & $O(\deg(u))$           & $O(1)$\\
+iterate nbrs & $O(\deg(u))$           & $O(n)$\\
+best for     & sparse                 & dense, heavy has-edge queries
+\end{tabular}
+
+\begin{lstlisting}[language=C++]
+using AdjList = std::vector<std::vector<int>>;
+// weighted:
+using W = std::vector<std::vector<std::pair<int,int>>>;
+\end{lstlisting}
+
+\subsection*{BFS (unweighted shortest path)}
+Queue, visited set, parent / dist arrays.
+\begin{lstlisting}[language=C++]
+std::queue<int> q; q.push(s);
+dist[s] = 0;
+while (!q.empty()) {
+    int u = q.front(); q.pop();
+    for (int v : adj[u]) if (dist[v] == -1) {
+        dist[v] = dist[u] + 1;
+        parent[v] = u;
+        q.push(v);
+    }
+}
+\end{lstlisting}
+$O(n+m)$. Gives shortest path in \emph{edge count}.
+
+\subsection*{DFS}
+Stack (iterative) or recursion. Uses: cycle detection, topo sort,
+connectivity, tarjan's SCC. $O(n+m)$.
+
+\subsection*{BFS vs.\ DFS}
+\begin{tabular}{@{}l|l@{}}
+\textbf{pick BFS when}  & \textbf{pick DFS when}\\
+\hline
+shortest in \# edges    & topo / SCC / cycles\\
+level-by-level          & all paths / backtracking\\
+small branching         & deep graphs
+\end{tabular}
+
+\subsection*{Dijkstra (non-negative weights)}
+Min-heap of \texttt{(dist, vertex)}. On pop, skip if stale.
+\begin{lstlisting}[language=C++]
+pq.push({0, s}); dist[s] = 0;
+while (!pq.empty()) {
+    auto [d, u] = pq.top(); pq.pop();
+    if (d > dist[u]) continue;    // lazy delete
+    for (auto [v, w] : adj[u])
+        if (d + w < dist[v]) {
+            dist[v] = d + w;
+            pq.push({dist[v], v});
+        }
+}
+\end{lstlisting}
+Heap version: $O((n+m)\log n)$. Breaks on negative edges.
+
+\columnbreak
+
+\subsection*{Bellman-Ford (negative weights OK)}
+Relax every edge $V-1$ times. One more pass detects a negative
+cycle.
+\[
+O(V \cdot E).
+\]
+Use when some edges are negative (currency arbitrage, reward nets).
+
+\subsection*{Topological sort (DAG only)}
+\textbf{Kahn} (BFS of in-degree 0):
+\begin{enumerate}
+    \item Compute in-degree of every vertex.
+    \item Push all zero-in-degree into a queue.
+    \item Pop, emit, decrement in-degree of neighbors, push new zeros.
+\end{enumerate}
+If emitted count $< n$, a cycle exists.\\
+\textbf{DFS version}: post-order push onto a stack; reverse is topo.
+Both $O(n+m)$.
+
+\subsection*{Minimum spanning tree}
+\textbf{Kruskal}: sort edges, take if endpoints in different
+components (use union-find). $O(m \log m)$.\\
+\textbf{Prim}: grow a single tree; min-heap of crossing edges.
+$O(m \log n)$. Prefer Prim on dense, Kruskal on sparse.
+
+\subsection*{Floyd-Warshall (all-pairs)}
+\begin{lstlisting}[language=C++]
+for (int k = 0; k < n; ++k)
+  for (int i = 0; i < n; ++i)
+    for (int j = 0; j < n; ++j)
+      if (d[i][k] + d[k][j] < d[i][j])
+        d[i][j] = d[i][k] + d[k][j];
+\end{lstlisting}
+$O(n^3)$, $O(n^2)$ space. Handles negative edges (no negative
+cycles). Beats $V \times$ Dijkstra once $m \approx n^2$.
+
+\subsection*{Algorithm picker}
+\begin{tabular}{@{}l|l@{}}
+\textbf{task} & \textbf{algo}\\
+\hline
+reachability, unweighted & BFS / DFS\\
+shortest path, unweighted& BFS\\
+shortest path, $w \ge 0$ & Dijkstra\\
+shortest path, any $w$   & Bellman-Ford\\
+all-pairs shortest paths & Floyd-Warshall\\
+schedule DAG             & topo sort\\
+minimum spanning tree    & Kruskal / Prim\\
+strong connectivity      & Tarjan / Kosaraju (DFS)
+\end{tabular}
+
+\subsection*{Top gotchas}
+\begin{itemize}
+    \item Running Dijkstra on a graph with negative edges -- silently
+    wrong, not an error.
+    \item Forgetting the \emph{lazy-delete} check in Dijkstra's PQ
+    (\texttt{if (d > dist[u]) continue;}) -- blows up runtime.
+    \item Topo sort on a graph with cycles -- Kahn emits fewer than
+    $n$ nodes; handle that case.
+    \item Using an adj matrix on a sparse graph -- $O(n^2)$ space
+    for nothing.
+    \item Writing BFS with a stack, or DFS with a queue. Check data
+    structure before coding.
+\end{itemize}
+
+\end{multicols}
+\end{document}

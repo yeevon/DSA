@@ -41,6 +41,8 @@ Deeper-dive notes outside the required course sequence.
     <tr>
       <th>Chapter</th>
       <th>Notes</th>
+      <th>Personal Notes</th>
+      <th>Practice Exercise</th>
     </tr>
   </thead>
   <tbody>
@@ -51,6 +53,8 @@ Deeper-dive notes outside the required course sequence.
         <span class="ch-sub">{{ ch.subtitle }}</span>
       </td>
       <td><a href="{{ '/notes/' | append: ch.id | append: '/' | relative_url }}">Chapter {{ ch.n }} Notes</a></td>
+      <td><a href="{{ '/cheats/' | append: ch.id | append: '/' | relative_url }}">Personal Notes</a></td>
+      <td><a href="{{ '/practice/' | append: ch.id | append: '/' | relative_url }}">Practice Exercise</a></td>
     </tr>
   {% endfor %}
   </tbody>

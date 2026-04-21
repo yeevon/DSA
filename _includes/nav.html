@@ -20,6 +20,10 @@
       {% for ch in site.data.chapters.required %}
       <li><a href="{{ '/cheats/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
       {% endfor %}
+      <li class="sep">Optional</li>
+      {% for ch in site.data.chapters.optional %}
+      <li><a href="{{ '/cheats/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
+      {% endfor %}
     </ul>
   </details>
 
@@ -27,6 +31,10 @@
     <summary>Practice</summary>
     <ul>
       {% for ch in site.data.chapters.required %}
+      <li><a href="{{ '/practice/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
+      {% endfor %}
+      <li class="sep">Optional</li>
+      {% for ch in site.data.chapters.optional %}
       <li><a href="{{ '/practice/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
       {% endfor %}
     </ul>

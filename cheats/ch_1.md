@@ -1,6 +1,6 @@
 ---
 layout: pdf
 title: "Chapter 1 — Personal Notes"
-pdf_url: /cheat_sheets/ch_1.pdf
+pdf_url: /chapters/ch_1/cheat.pdf
 permalink: /cheats/ch_1/
 ---
