@@ -12,8 +12,8 @@ All implementations target C++17. Source on [GitHub](https://github.com/yeevon/D
   <thead>
     <tr>
       <th>Chapter</th>
+      <th>Lectures</th>
       <th>Notes</th>
-      <th>Personal Notes</th>
       <th>Practice Exercise</th>
     </tr>
   </thead>
@@ -24,8 +24,8 @@ All implementations target C++17. Source on [GitHub](https://github.com/yeevon/D
         <span class="ch-title">{{ ch.title }}</span>
         <span class="ch-sub">{{ ch.subtitle }}</span>
       </td>
-      <td><a href="{{ '/notes/' | append: ch.id | append: '/' | relative_url }}">Chapter {{ ch.n }} Notes</a></td>
-      <td><a href="{{ '/cheats/' | append: ch.id | append: '/' | relative_url }}">Personal Notes</a></td>
+      <td><a href="{{ '/lectures/' | append: ch.id | append: '/' | relative_url }}">Chapter {{ ch.n }} Lectures</a></td>
+      <td><a href="{{ '/notes/' | append: ch.id | append: '/' | relative_url }}">Notes</a></td>
       <td><a href="{{ '/practice/' | append: ch.id | append: '/' | relative_url }}">Practice Exercise</a></td>
     </tr>
   {% endfor %}
@@ -40,8 +40,8 @@ Deeper-dive notes outside the required course sequence.
   <thead>
     <tr>
       <th>Chapter</th>
+      <th>Lectures</th>
       <th>Notes</th>
-      <th>Personal Notes</th>
       <th>Practice Exercise</th>
     </tr>
   </thead>
@@ -52,8 +52,8 @@ Deeper-dive notes outside the required course sequence.
         <span class="ch-title">{{ ch.title }}</span>
         <span class="ch-sub">{{ ch.subtitle }}</span>
       </td>
-      <td><a href="{{ '/notes/' | append: ch.id | append: '/' | relative_url }}">Chapter {{ ch.n }} Notes</a></td>
-      <td><a href="{{ '/cheats/' | append: ch.id | append: '/' | relative_url }}">Personal Notes</a></td>
+      <td><a href="{{ '/lectures/' | append: ch.id | append: '/' | relative_url }}">Chapter {{ ch.n }} Lectures</a></td>
+      <td><a href="{{ '/notes/' | append: ch.id | append: '/' | relative_url }}">Notes</a></td>
       <td><a href="{{ '/practice/' | append: ch.id | append: '/' | relative_url }}">Practice Exercise</a></td>
     </tr>
   {% endfor %}

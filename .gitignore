@@ -36,6 +36,14 @@ texput.log
 tools/
 
 # ------------------------------------------------------------------
+# Reference source materials (personal study; not for redistribution)
+# CLRS textbook PDF: copyrighted third-party content.
+# MIT OCW materials: CC BY-NC-SA 4.0, redistributable but bulky --
+# kept local; cited inline where used.
+# ------------------------------------------------------------------
+reference/
+
+# ------------------------------------------------------------------
 # Python
 # ------------------------------------------------------------------
 __pycache__/

@@ -1,0 +1,744 @@
+# Changelog
+
+All notable changes to this repo, newest first. Includes small ops
+(doc tweaks, memory updates, file moves) — not just feature work. The
+intent is a complete trail of project activity that an outside reader
+(or a returning Claude session) can read top-down to catch up.
+
+Format: dated sections, each entry tagged **Added / Changed / Removed
+/ Fixed / Decided / Deferred**. "Decided" captures architectural or
+process decisions that don't ship code; "Deferred" captures explicit
+non-decisions (a question raised and intentionally postponed).
+
+---
+
+## 2026-04-23
+
+- **Changed** `chapters/ch_6/notes.tex` — compact reference mirror of
+  Step-3 lectures.tex additions: (1) new `\subsection*{Set-ADT order
+  ops on a BST}` with `find_min` / `find_max` / `find_next` /
+  `find_prev` summaries + the "hash tables can't do these" tagline;
+  (2) Random-insertion expected-height result added to existing
+  Height-vs-balance subsection (CLRS Theorem 12.4 cite). Net +15
+  lines (was 155, now 170). Build verified: 2-page PDF.
+- **Changed** `chapters/ch_6/lectures.tex` — Step-3 ch_6 revisions per
+  approved gap analysis (self-approved per autonomy directive). **Title
+  fix:** subtitle *"Trees"* → *"Trees and Binary Search Trees"*.
+  **Cross-ref fixes (5 instances):** all references to AVL/red-black
+  in *"ch.~7"*, *"ch.~7-8"*, *"ch.~7--9"*, or §6.9/§6.10-internal-as-AVL
+  corrected to point at **ch.~9** (which is the actual cs-300
+  AVL/Red-Black chapter — ch_7 is Heaps, ch_8 doesn't exist):
+  - line 36 mastery-checklist forward-ref
+  - line 60 looking-ahead paragraph in chapter map
+  - line 1334 §6.8 untitled notebox (was confusingly pointing at ch_6's
+    own §6.9/§6.10, which are Parent Pointers and Recursive BST)
+  - line 1651 chapter-end forward-links notebox
+  - chapter-map *"week 7+ / ch.~7--9"* phrasing rewritten
+  **Three new callouts:**
+  - §6.4 new subsection *"Min, max, successor, predecessor: the
+    Set-ADT order operations BSTs make cheap"* placed after the
+    BSTs-in-STL notebox, before §6.5. Bridges back to the §4.1
+    Set-ADT framing: hash tables can't do `find_min`/`find_next` in
+    better than $O(n)$, BSTs do them in $O(h)$ — *this* is why one
+    picks `std::set` over `std::unordered_set`. Includes `examplebox
+    [Min and max]` (~10 lines C++), `examplebox [In-order successor
+    on a BST with parent pointers]` (~15 lines C++ covering the two
+    cases), and `ideabox [Why two cases, and what's really going on]`
+    explaining the in-order traversal mirror plus the connection to
+    the §6.6 removal use of in-order successor. Per CLRS Ch 12.2
+    Theorem 12.2.
+  - §6.8 `notebox` *"Random insertion gives $O(\log n)$ height in
+    expectation"* (CLRS Theorem 12.4). States the result, sketches
+    the parallel to randomized quicksort, and lands the practical
+    implication: vanilla BSTs survive in real codebases because
+    typical input is already $O(\log n)$ on average; production
+    reaches for red-black (ch_9) for *worst-case* guarantees and
+    adversarial-input immunity. Closes with a one-line bridge to
+    the §5.7 universal-hashing parallel.
+  - §6.8 `defnbox` *"Rotation: the local fix-up that preserves the
+    BST invariant"* placed after the random-insertion notebox,
+    before §6.9. Tiny ASCII picture of a left-rotation showing the
+    in-order key sequence is unchanged ("A y B x C" before and
+    after). Forward-refs ch_9 for the full AVL/red-black machinery.
+    Gives the reader a mental hook for what rotations *do* without
+    duplicating ch_9's work.
+  **Build verified:** `pdflatex` produces 31-page PDF, no errors.
+  Well under the 40-page autonomy ceiling.
+  **Net delta:** +120 lines (was 1677, now 1797), ~+7% growth — close
+  to the +100 estimate (the in-order successor `ideabox` ran longer
+  than guessed). `notes.tex` updated separately above.
+- **Added** `design_docs/chapter_reviews/ch_6_gaps.md` — Step-2 gap
+  analysis for ch_6 against CLRS Ch 12 (BSTs: 12.2 Querying with
+  successor/predecessor + Theorem 12.2 all-O(h) result; 12.4 Randomly
+  built BSTs Theorem 12.4 expected-height result). Per the bounded-
+  additions rule, **3 additions** proposed (successor/predecessor as
+  Set-ADT ops bridging to §4.1 framing; random-BST expected height;
+  rotation preview defnbox), plus 5 must-do cross-ref fixes (every
+  "ch.~7" / "ch.~7-8" reference for AVL/red-black is wrong — actual
+  is ch.~9), plus title subtitle fix. Self-approved Step 3 per the
+  autonomy directive.
+- **Added** `design_docs/chapter_reviews/ch_6.md` — Step-1 as-is
+  inventory of `chapters/ch_6/lectures.tex` (1677 lines, 10 sections
+  §6.1–§6.10 with **no stub**, 51 callout boxes — lowest density of
+  any chapter at ~1 per 33 lines) and `chapters/ch_6/notes.tex` (155
+  lines). Notable findings: (a) **5+ wrong cross-refs** to ch.~7-8
+  for AVL/red-black (actual is ch.~9); (b) **stylistic regression
+  starting at §6.6** with ~16 untitled callouts (cosmetic, defer);
+  (c) **title subtitle understates content** ("Trees" but §6.3–§6.10
+  are entirely BSTs); (d) Step-2 candidates: successor/predecessor
+  as Set-ADT order ops, random-BST expected-height result, rotation
+  preview.
+- **Saved memory** `feedback_chapter_review_autonomy.md` — per user
+  direction (2026-04-23, mid-ch_6 Step 1): proceed Step 1→2→3→next
+  chapter without explicit approval. Hard ceiling: lectures.pdf must
+  stay under 40 pages. Bounded-additions rule still applies.
+- **Changed** `chapters/ch_5/notes.tex` — compact reference mirror of
+  Step-3 lectures.tex additions: (1) title subtitle now matches lecture
+  *"Hash Tables and Cryptographic Hashing"*; (2) new compact
+  `\subsection*{Universal hashing}` between "Double hashing" and
+  "Probe-table deletion" — defines universal family with $1/m$
+  collision bound, names canonical $h_{a,b}$ family, expected chain
+  $\leq 1 + \alpha$ for any keys, real-systems salted-hash analog.
+  Net +10 lines (was 136, now 146). Build verified: 2-page PDF.
+  Set-ADT framing (lectures ADD #3) and uniform-hashing-analysis
+  notebox (lectures ADD #1) intentionally not mirrored — the former
+  is conceptual scaffolding, the latter is implicit in the existing
+  cost formulas already in `notes.tex`.
+- **Changed** `chapters/ch_5/lectures.tex` — Step-3 ch_5 revisions per
+  approved gap analysis. **Title fix:** subtitle *"Hash Tables"* →
+  *"Hash Tables and Cryptographic Hashing"* (per user direction —
+  §5.9 substantial enough to surface). **§5.10 stub dropped** per
+  ch_2/ch_3 precedent; chapter now ends at §5.9. **Three new callouts:**
+  - §5.1 `notebox` *"Hash tables implement the Set ADT"* placed
+    immediately after the `defnbox [Hash table]`. Bridges back to
+    the Sequence/Set framing added to ch_4 §4.1 in Step 3 with
+    explicit $\textsection 4.1$ back-ref. Names
+    `std::unordered_set` and `std::unordered_map` and forward-refs
+    §5.8 (direct hashing as trivial Set) and ch_6 (BSTs as ordered
+    Set alternative).
+  - §5.2 `notebox` *"Why $O(1+\alpha)$? The simple uniform hashing
+    assumption"* placed between the degenerate-hash warnbox and the
+    STL notebox. States the assumption (any key equally likely to
+    hash to any of $m$ slots, independent), one-paragraph sketch of
+    CLRS Theorem 11.1, and ties §5.3–§5.5 cost formulas back to the
+    same assumption.
+  - §5.7 new subsection *"Universal hashing: the principled defense
+    against adversarial input"* placed at the end of §5.7 before
+    §5.8. Includes: `defnbox [Universal hash family]` with $1/m$
+    collision bound; motivating paragraph on adversarial inputs;
+    `examplebox` with ~20-line C++ implementation of the
+    $h_{a,b}(k) = ((ak+b) \bmod p) \bmod m$ family from CLRS
+    Ch 11.3.3; `notebox` with linearity-of-expectation derivation
+    showing $E[\text{chain}] \leq 1 + \alpha$; closing `ideabox` on
+    Python/Rust/Java approximating this with startup-randomized
+    seeds rather than full universal-family construction.
+  **Build verified:** `pdflatex` produces 26-page PDF, no errors.
+  One in-flight LaTeX-syntax fix: `\mathbb{1}` (requires amssymb,
+  not loaded) → `\mathbf{1}` for the indicator variable notation.
+  **Net delta:** +146 lines (was 1554, now 1700), ~+9.4% growth —
+  over the +95 estimate because the universal hashing subsection
+  ran longer (the indicator-variable derivation is itself ~15 lines).
+  Still well within the bounded-additions rule. `notes.tex` updated
+  separately above.
+- **Added** `design_docs/chapter_reviews/ch_5_gaps.md` — Step-2 gap
+  analysis for ch_5 against CLRS Ch 11.2 (chaining + simple uniform
+  hashing analysis, Theorems 11.1+11.2), CLRS Ch 11.3.3 (universal
+  hashing, $h_{ab}(k) = ((ak+b) \bmod p) \bmod m$ family, Theorem 11.3),
+  and OCW 6.006 lec4 (comparison-model lower bound, direct-access-array
+  → hashing reduction, universal hashing expectation derivation,
+  ops-comparison table). Per the "3–5 high-value adds" rule (reinforced
+  2026-04-23 with user direction "don't blow up curriculum till after
+  ch_6"), **3 additions** proposed:
+  - **§5.2:** ADD simple-uniform-hashing analysis notebox (CLRS
+    Theorems 11.1+11.2). Currently the chapter asserts $O(1+\alpha)$
+    expected without naming the assumption or sketching the
+    derivation; same gap repeats in §5.3–§5.5.
+  - **§5.7 (new subsection):** ADD universal hashing — defnbox +
+    $h_{a,b}$ family C++ examplebox + expectation sketch. The §5.7
+    `notebox [Hash randomization]` currently gestures at "Python
+    randomizes hashes against flooding" without the underlying
+    theory; universal hashing is that theory.
+  - **§5.1:** ADD "Hash tables implement the Set ADT" notebox
+    bridging to the Sequence/Set framing added to ch_4 §4.1 in
+    Step 3. Pulls `std::unordered_set` into the discussion alongside
+    the existing `std::unordered_map` references.
+  Plus 2 must-do fixes: drop §5.10 stub; title subtitle → *"Hash
+  Tables and Cryptographic Hashing"* (per user direction —
+  cryptographic content in §5.9 is substantial enough to surface).
+  **Explicitly deferred to post-build audit**: open-addressing
+  uniform-hashing proofs (Theorem 11.6), full perfect hashing
+  construction (CLRS 11.5), multiplication-method hash, Bloom
+  filters, cuckoo hashing, comparison-model lower-bound framing
+  (belongs in ch_3 anyway), direct-access-array bottom-up arc,
+  `notes.tex` ops-table direct-access row.
+  Headline: ~+95 lines (~+6%) — bigger than ch_4's +90 because
+  universal hashing is a substantial new subsection, not just a
+  callout. Still smallest chapter in the lectures arc post-Step-3
+  (~1650 lines projected). Awaiting user approval before Step 3.
+- **Updated memory** `feedback_chapter_review_scope.md` — reinforced
+  with user direction (2026-04-23 at ch_5 Step 1): ch_1–ch_6 are
+  the SNHU-required core, real DSA learning happens via *better
+  context while reading those 6 chapters* plus the optional
+  chapters covered in the post-build audit phase. Don't conflate
+  "user wants real mastery" with "add everything in CLRS now."
+- **Added** `design_docs/chapter_reviews/ch_5.md` — Step-1 as-is
+  inventory of `chapters/ch_5/lectures.tex` (1554 lines, 9 sections
+  + 1 stub at §5.10, 62 callout boxes — less than half the size of
+  ch_4) and `chapters/ch_5/notes.tex` (136 lines). Section-by-section
+  catalogue of §5.1–§5.9 (Big Idea, Chaining, Linear/Quadratic/Double
+  probing, Resizing, Hash Functions, Direct Hashing, Cryptographic
+  Hashing). Notable findings:
+  (a) **§5.10 is a stub** — drop per ch_2/ch_3 precedent.
+  (b) **All cross-chapter refs correct** (Ch 6 BSTs, ch_4 LL-as-chaining
+      callback, opt ch_10 graphs).
+  (c) **Title subtitle omits cryptography** despite §5.9 covering it
+      substantively — Step-2 decision: extend subtitle or leave as-is.
+  (d) **`notes.tex` well-aligned** with `lectures.tex` — no obvious
+      mirror gaps.
+  (e) **Step-2 candidates**: uniform-hashing-assumption derivation
+      for chaining/probing costs (CLRS Ch 11.2), universal hashing
+      (CLRS Ch 11.3), `std::unordered_set` mention to pair with the
+      Sequence/Set ADT framing added to ch_4 §4.1.
+  Headline: **structurally clean chapter, smaller and less dense than
+  ch_3/ch_4** — leaves room for a focused Step-2 add list (~2–3 adds
+  expected per the bounded-additions rule).
+
+---
+
+## 2026-04-22
+
+- **Changed** `chapters/ch_4/notes.tex` — compact reference mirror of
+  Step-3 lectures.tex additions: array `append` row in decision matrix
+  re-flagged with `$^\ast$` (was `$1^\ast$` in cell — confusing) and
+  one-line footnote added under the table: *"Array append is amortized
+  $O(1)$ via doubling --- single operations can be $O(n)$ on the resize
+  step."* Net +4 lines (was 133, now 137). Build verified: `pdflatex`
+  produces 2-page PDF.
+- **Changed** `chapters/ch_4/lectures.tex` — Step-3 ch_4 revisions per
+  approved gap analysis. **Title fix:** subtitle *"Lists, Stacks, and
+  Queues"* → *"Lists, Stacks, Queues, and Deques"*. **Cross-ref fix:**
+  §4.10 opening now back-refs §3.15 for insertion sort's first
+  appearance on arrays. **Three new callouts:**
+  - §4.1 `notebox` *"Two interface families: Sequence and Set"* —
+    OCW 6.006 lec2's framing. Names extrinsic-vs-intrinsic order;
+    explains why ch_4 (Sequence) and ch_5–ch_6 (Set) are separate
+    chapters; pre-empts the `\subsection{List is the root ADT}`
+    discussion with the abstraction one level up.
+  - §4.11 `examplebox` *"std::list::splice: the operation only a
+    linked list can do in O(1)"* placed at the end of the
+    sentinel-discussion section. ~10-line C++ snippet showing
+    range-splice between two `std::list<int>` instances; one paragraph
+    explaining the four-pointer rewire and why `std::vector` cannot
+    match it. The canonical "why use std::list in modern C++" answer.
+  - §4.16 new subsection *"Implementing the ring buffer"* — extends
+    the existing "What about array-backed queues?" notebox with
+    concrete content per CLRS Ch 10.1. Includes: `defnbox` defining
+    head/tail wrap-around semantics; ~25-line C++ `examplebox` with
+    explicit size counter; `warnbox` on the `head==tail` full-vs-empty
+    ambiguity (size-counter fix vs leave-one-slot-unused fix);
+    closing `notebox` on why ring buffers dominate in low-latency /
+    lock-free producer-consumer code.
+  **Build verified:** `pdflatex` produces 51-page PDF, no errors.
+  **Net delta:** +135 lines (was 3232, now 3367), ~+4.2% growth — close
+  to the +90 estimate (the ring-buffer block ran longer because the
+  warnbox + closing notebox were warranted). Still smallest-delta
+  Step 3 of any chapter so far. `notes.tex` updated separately above.
+- **Added** `design_docs/chapter_reviews/ch_4_gaps.md` — Step-2 gap
+  analysis for ch_4 against CLRS Ch 10.1–10.2 (Stacks/Queues/Linked
+  Lists with array + circular-array implementations and formal
+  sentinel `L:nil`) and OCW 6.006 lec2 (Sequence vs Set interface
+  ADT framing, Sequence ops table comparing Array / Linked List /
+  Dynamic Array). Per the new "3–5 high-value adds, defer the rest
+  to post-build audit" rule, only **3 additions** proposed:
+  - **§4.1:** ADD Sequence-vs-Set ADT framing notebox from OCW lec2.
+    Frames why ch_4 (sequence) and ch_5–ch_6 (set) are different
+    chapters.
+  - **§4.16:** ADD ring-buffer / circular-array queue defnbox +
+    examplebox per CLRS 10.1. ch_4 currently *names* the ring buffer
+    in §4.15 and walks past it without showing the implementation.
+  - **§4.7 or §4.11:** ADD `std::list::splice` examplebox — modern-C++
+    idiom that is the actual production reason DLLs exist; cited only
+    indirectly in the existing `[Linked lists rarely win in modern
+    C++]` warnbox at line 836.
+  Plus 3 minor must-do fixes: title subtitle adds "and Deques" (§4.17);
+  §4.10 back-refs §3.15 for insertion sort; `notes.tex` footnote
+  explains `$^*$` on array append (amortized).
+  **Explicitly deferred to post-build audit**: `unique_ptr`-based LLs,
+  tail-call optimization in §4.12, formal CLRS sentinel `L:nil`,
+  two-stacks-queue / two-queues-stack puzzles, block-based deque
+  internals, OCW Set-interface details (belong in ch_5/ch_6),
+  shrink-policy $1+\varepsilon$ derivation (already touched in ch_3).
+  Headline: smallest-delta gap report so far — ~+90 lines (~+2.6%,
+  lands ch_4 at ~3320, smaller than ch_3's post-Step-3 3437) — matches
+  inventory's "ch_4 is the cleanest chapter" finding. Awaiting user
+  approval before Step 3.
+- **Added** `design_docs/chapter_reviews/ch_4.md` — Step-1 as-is
+  inventory of `chapters/ch_4/lectures.tex` (3232 lines, 18 sections,
+  148 callout boxes — the densest of any chapter so far) and
+  `chapters/ch_4/notes.tex` (133 lines). Section-by-section catalogue
+  of §4.1–§4.18 (List ADT, SLL/DLL implementations, Search, Traversal,
+  Sorting, Sentinels, Recursion, Stack/Queue/Deque ADTs + their LL
+  implementations, Array-Based Lists). Notable findings:
+  (a) **Cleanest chapter in the repo so far** — clean numbering, no
+      stubs, all cross-chapter refs correct (Ch 5 hash tables, Ch 6
+      trees, optional ch_10 graphs), every algorithm has a worked C++
+      `lstlisting` example.
+  (b) **Stale companion-materials line** at lines 3227–3230 — same
+      pattern as other chapters, already deferred to Phase 2 globally.
+  (c) **Title subtitle omits "Deques"** despite §4.17 covering them —
+      one-line fix in Step 3.
+  (d) **Minor cross-ref opportunities**: §4.10 (insertion sort on LL)
+      could back-ref §3.15; `notes.tex` decision matrix has an
+      unexplained `$^*$` on array append.
+  (e) **Step-2 candidates**: `std::list::splice`, tail-call discussion
+      in §4.12 recursion section, `unique_ptr`-based LL ownership.
+      All bounded by the new "3–5 high-value adds; defer rest to
+      post-build audit" rule.
+  Step-2 gap analysis to follow.
+- **Saved memory** `feedback_chapter_review_scope.md` — per user
+  direction at end of ch_3 Step 3: per-chapter Step-2 reports propose
+  3–5 high-value additions max; everything else missing relative to
+  CLRS/OCW gets deferred to a post-main-build optional-content audit.
+  Avoids bloating chapters and slowing the main app build.
+- **Changed** `chapters/ch_3/notes.tex` — compact reference mirror of
+  Step-3 lectures.tex additions: (1) bubble-sort row asterisked with
+  footnote pointing to ch\_13.1 (per gap report — discoverability fix);
+  (2) counting-sort row added ($O(n+k)$, stable, not in-place) since
+  counting sort is now a full §3.20 subsection; (3) bucket-sort row
+  added with $\dagger$ footnote noting uniform-distribution assumption
+  and ch\_13.3 pointer. Net +5 lines (was 137, now 142). Build verified:
+  `pdflatex` produces 2-page PDF.
+- **Changed** `chapters/ch_3/lectures.tex` — Step-3 ch_3 revisions per
+  approved gap analysis. **Removals/fixes:**
+  - Dropped §3.22 stub (`\section{3.22 \textit{(next section -- ready
+    to scrape)}}`) per ch_2 precedent; chapter now ends at §3.21.
+  - Fixed 2 single-line wrong cross-refs ("Big-O is in Chapter 4" →
+    "Big-O in \textsection 3.10"; "Big-O notation, the core
+    vocabulary of Chapter 4" → "formalized in the next section,
+    \textsection 3.10").
+  - Fixed §3.6 closer notebox: replaced Chapter-4 forward-ref with
+    correct §3.10/§3.8 forward-refs.
+  - Fixed §3.14 intro: replaced Chapter-5 reference with rest-of-chapter
+    list + bubble-sort/heap-sort pointers (ch\_13.1 / ch\_7).
+  - Fixed §3.20 closer ideabox: replaced "next chapter (4) is
+    complexity analysis proper" with §3.10 + ch_4 forward-ref.
+  - Added bubble-sort discoverability pointer in §3.10 halfway-recap
+    "Incremental:" bullet, naming ch\_13 extras as the home.
+  **Additions (5 new callouts):**
+  - §3.10 `notebox` — *Little-oh and little-omega: strict versions of O
+    and Ω.* Formal definitions of $o$ and $\omega$ + analogy table
+    (O ↔ ≤, Ω ↔ ≥, Θ ↔ =, o ↔ <, ω ↔ >). Per CLRS Ch 3.1–3.2.
+  - §3.15 `notebox` — *Loop invariants: how to prove insertion sort
+    correct.* CLRS Ch 2.1's init/maintenance/termination structure
+    applied to insertion sort.
+  - §3.19 `notebox` — *The Master Theorem: a recipe for divide-and-
+    conquer recurrences.* CLRS Ch 4 — three cases for $T(n) = aT(n/b)
+    + f(n)$ with applications (merge sort, binary search, quicksort
+    average) and recurrence cheatsheet.
+  - §3.20 promoted to full subsection — counting sort with `defnbox`
+    + cumulative-sum C++ implementation + walk-backward stability
+    `warnbox` + when-to-use `ideabox`. Per CLRS 8.2 + OCW lec5.
+    (Was previously just a closing notebox in radix sort.)
+  - §3.21 `notebox` — *Bucket sort: counting sort's distribution-aware
+    cousin.* Average $O(n)$ assuming uniform distribution; degrades to
+    $O(n^2)$ otherwise. Pointer to ch\_13.3 for full treatment.
+  **Build verified:** `pdflatex` produces 53-page PDF, no errors. Two
+  in-flight LaTeX-syntax fixes (escape `_` in `ch_13` / `ch_7` / `ch_3`
+  references → `ch\_13` etc., to prevent unintended math-mode subscript)
+  applied at lines 1768, 1792–1793, 2850.
+  **Net delta:** +194 lines (was 3243, now 3437), ~6% growth — bigger
+  than my +90 estimate (multi-paragraph noteboxes ran longer than
+  guessed, same pattern as ch_2). Still within the "don't make it
+  impossibly long" filter. Compact reference (`notes.tex`) updated
+  separately above.
+- **Added** `design_docs/chapter_reviews/ch_3_gaps.md` — Step-2 gap
+  analysis for ch_3 against OCW 6.006 lec3/lec5 (sorting/linear sorting)
+  + r03/r05 (recitations), and CLRS 3rd-ed Ch 2.1–2.3 (insertion sort
+  + loop invariants + merge sort), Ch 3.1–3.2 (full asymptotic
+  notation + standard functions), Ch 8.2–8.4 (counting/radix/bucket
+  sort). Per-section verdicts:
+  - **§3.10:** ADD little-oh + little-omega notation + the asymptotic
+    analogy with real numbers (O ↔ ≤, Ω ↔ ≥, Θ ↔ =, o ↔ <, ω ↔ >).
+  - **§3.15:** ADD loop-invariants notebox (init / maintenance /
+    termination), CLRS Ch 2.1's canonical correctness-proof
+    technique, demoed on insertion sort.
+  - **§3.19:** ADD Master Theorem preview notebox (3 cases for
+    $T(n) = aT(n/b) + f(n)$, applied to merge sort) — makes the
+    informal recurrence-tree arguments rigorous.
+  - **§3.20:** ADD counting sort as a standalone subsection (not
+    just a closing notebox in radix sort) with cumulative-sum
+    implementation + stability proof. Per CLRS 8.2 + OCW lec5.
+  - **§3.21:** ADD bucket-sort pointer to ch_13.3 (same
+    discoverability pattern as bubble sort).
+  - **FIX 5 critical pre-existing wrong cross-refs** (lines 1041,
+    1183, 1501, 1755, 3013) where ch_3 says "Big-O is in Chapter 4"
+    or "sorting is in Chapter 5" — both belong in this chapter per
+    cs-300's structure.
+  - **DROP §3.22 stub** per ch_2 precedent.
+  - **Bubble sort discoverability fixes**: pointer to ch_13.1 in
+    §3.10 halfway recap, line 1755 ref, and notes.tex sorting table
+    (per user direction — bubble sort coverage is in ch_13, just
+    needs to be findable).
+  Headline: ch_3 is already strong (3243 lines, 175 callouts).
+  CLRS/OCW add 4 modest improvements (~90 lines) plus must-do fixes.
+  Out of scope: full master-theorem proof, sentinel-based merge,
+  Stirling's approximation, randomized quicksort analysis (too deep),
+  heap sort (lives in ch_7), full bucket-sort analysis (pointer
+  enough). Net delta if approved: ~+90 added, −3 removed (~3% growth).
+  Awaiting user approval before drafting Step-3 revisions.
+- **Added** `design_docs/chapter_reviews/ch_3.md` — Step-1 as-is
+  inventory of `chapters/ch_3/lectures.tex` (3243 lines) and
+  `chapters/ch_3/notes.tex` (137 lines). Section-by-section catalogue
+  (18 sections with content + 1 stub at §3.22, plus numbering gaps at
+  §3.7 and §3.11–§3.13, 70+ subsections, **175 callout boxes**) with
+  topics, depth markers, callout counts, cross-references, stylistic
+  patterns, and flagged issues. Notable findings:
+  (a) **5 critical pre-existing wrong cross-refs** (lines 1041, 1183,
+      1501, 1755, 3013) say "Big-O is in Chapter 4" or "sorting is in
+      Chapter 5," but Big-O is in §3.10 and 6 sorts are in §3.15–§3.20
+      OF THIS CHAPTER. Author appears to have written ch_3 with a
+      different chapter mapping in mind than cs-300's actual structure.
+  (b) **§3.22 is a stub** (drop per ch_2 precedent).
+  (c) **Numbering gaps** (§3.7 missing, §3.11–§3.13 missing).
+      Recommend leaving as-is — renumbering 22 sections is churn.
+  (d) **Bubble sort: mentioned in `notes.tex` table and line 1755 ref,
+      but never covered** by any §3.X. Decision needed during Step 3.
+  (e) **Heap sort: correctly deferred to ch_7** (optional) but ch_3
+      references treat it ambiguously.
+  (f) **Stylistic divergence from ch_2**: ch_3 uses `lstlisting` (21
+      blocks) extensively; ch_2 uses `verbatim`. Three chapters,
+      three styles.
+- **Changed** `chapters/ch_2/notes.tex` — added 3 compact-reference
+  updates per gap analysis: (1) renamed "DP: the template" subsection
+  to "DP: the template (SRTBOT)" with the OCW SRTBOT mnemonic and
+  guess+brute-force pattern; (2) new `\subsection*{``LCS'' is
+  ambiguous}` with the substring-vs-subsequence comparison table;
+  (3) new 5th "Top gotcha" bullet on knapsack DP being pseudopolynomial.
+  Net +20 lines.
+- **Changed** `chapters/ch_2/lectures.tex` — Step-3 ch_2 revisions per
+  approved gap analysis. **Removals/fixes:**
+  - Dropped §2.11 stub (`\section{2.11 \textit{(next section -- ready
+    to scrape)}}`) per user direction; chapter now ends at §2.10.
+  - Fixed 4 broken cross-chapter refs to ch_1 (side-effect of ch_1
+    Step 3 renumbering): `\textsection 1.12` → `1.10`,
+    `\textsection 1.11` (×2) → `1.9`, `\textsection 1.9` → `1.5`
+    (the last was already pre-existing wrong).
+  - Fixed §2.1 closer pre-existing wrong cross-ref ("big-O, which
+    starts in §2.2" → "which is formalized in chapter 3").
+  **Additions (six new callouts):**
+  - §2.2 `notebox` — *Two paths to an algorithm: reduce, or design.*
+    OCW lec1's two-prong recipe (reduce-to-known vs design-recursive),
+    framing §2.4–§2.10 strategies as the design fallback.
+  - §2.4 `defnbox` — *SRTBOT: a fuller version of the template.* OCW's
+    6-step recursive-design recipe (Subproblem / Relate / Topo /
+    Base / Original / Time) introduced alongside cs-300's existing
+    3-part template.
+  - §2.4 `notebox` — *Recursive strategies, classified by call-graph
+    shape.* OCW's classification (brute force = star, decrease &
+    conquer = chain, divide & conquer = tree, DP = DAG, greedy =
+    subgraph), unifying §2.4–§2.10.
+  - §2.8 `notebox` — *"DP solves knapsack" is true — but only
+    pseudopolynomially.* Resolves latent confusion: O(nW) DP for
+    knapsack is not strongly polynomial since W can be exponential
+    in input bits. Defines pseudopolynomial vs strongly polynomial.
+  - §2.9 `examplebox` — *Why earliest-finish is optimal: a sketch.*
+    Worked greedy-correctness proof for activity selection: exchange
+    argument for greedy-choice property + same-shape argument for
+    optimal substructure. Concretizes the abstract template cs-300
+    already mentions but doesn't demonstrate.
+  - §2.10 `notebox` — *"LCS" usually means subsequence, not substring.*
+    Caught a real terminology bug: cs-300 uses "LCS" for the
+    contiguous-substring variant, but every standard textbook (CLRS
+    15.4, OCW lec16) uses "LCS" for the non-contiguous-subsequence
+    variant. Comparison table of the two recurrences. Per option (B):
+    keep cs-300's content, add clarifying notebox.
+  **Build verified:** `pdflatex` produces 34-page PDF, no errors.
+  Net delta: +184 lines (was 2045, now 2229), ~9% growth — bigger than
+  my ~+70 estimate in the gap report (multi-paragraph noteboxes ran
+  longer than guessed). Still well within the "don't make it
+  impossibly long" filter. `notes.tex` (compact reference) not yet
+  updated; awaiting user direction on whether to mirror.
+- **Added** `design_docs/chapter_reviews/ch_2_gaps.md` — Step-2 gap
+  analysis for ch_2 against OCW 6.006 lec15–18 (DP/recursive algorithms)
+  + lec1 (algorithm framing) and CLRS 3rd-ed Ch 15.3 (Elements of DP),
+  Ch 15.4 (LCS = subsequence), Ch 16.3 (Huffman / greedy correctness
+  proof template). Per-section verdicts:
+  - **§2.1:** FIX one pre-existing wrong cross-ref ("Big-O starts in
+    §2.2" → "Big-O is in ch_3").
+  - **§2.2:** ADD reduce-vs-design recipe notebox from OCW lec1/lec15.
+  - **§2.4:** ADD SRTBOT framework defnbox + DAG-shape recursion-class
+    notebox (unifies §2.4–§2.10).
+  - **§2.8:** ADD pseudopolynomial notebox (resolves "DP solves
+    knapsack but it's still NP-hard" cognitive dissonance).
+  - **§2.9:** ADD activity-selection correctness sketch (greedy-choice
+    + optimal substructure → optimal). Skipping Huffman to avoid
+    bloating ch_2 with priority-queue dependency.
+  - **§2.10:** ADD LCS terminology clarification — cs-300's "LCS"
+    is longest common SUBSTRING (contiguous); textbook LCS is
+    SUBSEQUENCE (non-contiguous). Different problem, different
+    recurrence. Caught this comparing cs-300 §2.10 to CLRS 15.4 and
+    OCW lec16.
+  - **DROP §2.11** stub per user direction.
+  - **FIX 4 broken cross-chapter refs** to ch_1 (side-effect of ch_1
+    Step 3 renumbering).
+  Headline: with the algorithm-strategies framing locked, OCW adds
+  meaningful depth (SRTBOT, DAG classification, pseudopolynomial)
+  while CLRS Ch 15.3/16.3 add formal greedy-correctness template.
+  Most CLRS depth (master method, amortized methods, insertion sort,
+  approximation algorithms, NP-completeness) belongs elsewhere in
+  cs-300 (mostly ch_3) or is too advanced. Net delta if approved:
+  ~+70 added lines, −3 removed, chapter grows ~3.5%. Awaiting user
+  approval before drafting Step-3 revisions.
+- **Added** `design_docs/chapter_reviews/ch_2.md` — Step-1 as-is
+  inventory of `chapters/ch_2/lectures.tex` (2045 lines) and
+  `chapters/ch_2/notes.tex` (152 lines). Section-by-section catalogue
+  (10 sections with content + 1 stub, 56 subsections, 111 callout boxes)
+  with topics, depth markers, callout counts, cross-references, and
+  flagged issues. Notable findings:
+  (a) **§2.11 is a stub** — explicit "ready to scrape" placeholder,
+      no content. Decision needed in Step 2/3 on how to resolve.
+  (b) **§2.6 Data Privacy and §2.7 Ethical Guidelines are
+      SNHU-specific** — CLRS/OCW won't augment them (~390 lines,
+      ~19% of the chapter).
+  (c) **Cross-chapter refs to ch_1 are broken** as a side-effect of
+      the ch_1 renumbering done in this same session: `\textsection
+      1.12` → should be 1.10, `\textsection 1.11` (×2) → should be 1.9,
+      `\textsection 1.9` → likely was already wrong (referred to
+      Multiple Vectors / linear search) → should be 1.5. Will fix in
+      ch_2 Step 3.
+  (d) ch_2 uses `\begin{verbatim}` for code blocks instead of
+      `lstlisting` — a stylistic divergence from ch_1.
+- **Changed** `chapters/ch_1/notes.tex` — added 6th "Top gotcha"
+  bullet documenting that `std::vector` doesn't auto-shrink and the
+  `vector<T>().swap(v)` force-release idiom. Mirrors the new
+  `shrink_to_fit` warnbox in `chapters/ch_1/lectures.tex` §1.6 but
+  in compact-reference form. Word-RAM and amortized-cost additions
+  intentionally not mirrored to notes.tex (pedagogical content, not
+  reference data).
+- **Changed** `chapters/ch_1/lectures.tex` — Step-3 ch_1 revisions
+  per approved gap analysis. **Removals:** old §1.1 (Programming
+  Basics) and old §1.2 (Code and Pseudocode) cut entirely (273 lines)
+  per option (A) — Coral framing dropped, chapter reframed as pure
+  C++ refresher. **Renumbering:** §1.3–§1.17 → §1.1–§1.15
+  (15 sections, all internal cross-references updated). **Additions:**
+  - `notebox [The model has a name: Word-RAM]` in new §1.1 (formerly
+    §1.3) — names the underlying model, forward-refs ch_3.
+  - `defnbox [Amortized cost]` in new §1.6 (formerly §1.8) —
+    formalizes the amortization that was previously hand-waved.
+  - `warnbox [shrink_to_fit() and the no-auto-shrink policy]` in new
+    §1.6 — covers a real C++-specific gap (vector grows but doesn't
+    auto-shrink; `shrink_to_fit` is non-binding; force release via
+    swap-with-empty trick).
+  - One-line cross-reference bullet in new §1.8 (formerly §1.10)
+    "backing memory" subsection pointing at the new shrink_to_fit
+    warnbox.
+  **Title subtitle** updated: "Review: Flowcharts, Pseudocode, and
+  Arrays and Vectors" → "C++ Refresher: Arrays, Vectors, and Strings".
+  **Net delta:** ~−250 lines (Coral cut) + ~+45 lines (additions).
+  File now 2274 lines (was 2508). Build verified: `pdflatex` produces
+  36-page PDF, no errors (only pre-existing harmless font warnings).
+  Mastery checklist (7 items) and chapter-end "What this connects to"
+  notebox unchanged — neither references removed sections by number.
+- **Added** `design_docs/chapter_reviews/ch_1_gaps.md` — Step-2 gap
+  analysis for ch_1 against MIT OCW 6.006 lec1/lec2/r01/r02 and CLRS
+  3rd-ed Ch 1 / Ch 2 / Ch 17.4. Per-section verdicts: **ADD** small
+  Word-RAM forward-ref notebox in §1.3, **ADD** formal amortized-cost
+  defnbox + `shrink_to_fit` warnbox in §1.8, **DECIDE** whether to
+  cut/compress/port §1.1 + §1.2 (Coral content removed regardless),
+  **SKIP** the rest. Headline finding: with the C++-refresher framing
+  locked, OCW/CLRS add very little — both are pseudocode/Python and
+  language-agnostic. Net delta if all recommendations approved: roughly
+  -250 lines (Coral cut) and +25 lines (additions). Awaiting user
+  approval/edits before drafting Step-3 revisions.
+- **Decided** ch_1 is a **C++ refresher chapter**. User direction:
+  Coral pseudocode/flowchart framing in §1.1–1.2 gets dropped in the
+  revision pass; chapter narrows to C++ competency on top of the
+  SNHU-derived core. Algorithm-theory content from CLRS/OCW that
+  doesn't directly serve C++ competency is **out of scope for ch_1**
+  and belongs in ch_2/ch_3.
+- **Added** `design_docs/phase2_issues.md` — punch list for items
+  deferred to the Phase 2 (Jekyll → Astro) redesign. Seeded with
+  the stale companion-materials line in `chapters/*/lectures.tex`
+  and the `\section{Big-O Cheatsheet}` heading in
+  `resources/week_2.tex`.
+- **Added** `design_docs/chapter_reviews/ch_1.md` — Step-1 as-is
+  inventory of `chapters/ch_1/lectures.tex` (2508 lines) and
+  `chapters/ch_1/notes.tex` (143 lines). Section-by-section
+  catalogue (17 sections, 70 subsections, 161 callout boxes) with
+  topics, depth markers, callout counts, cross-references, and
+  flagged terminology/structural issues. **No augmentation
+  suggestions** — input for the Step-2 CLRS + OCW gap analysis.
+- **Changed** Chapter file naming convention (atomic global rename):
+  - **`notes.{tex,pdf}` → `lectures.{tex,pdf}`** in every chapter
+    folder. The "long-form chapter" file is now called Lectures.
+  - **`cheat.{tex,pdf}` → `notes.{tex,pdf}`** in every chapter folder.
+    The "compact two-page reference" file is now called Notes.
+  - **Top-level Jekyll viewer dirs:** `notes/` → `lectures/`,
+    `cheats/` → `notes/`. Wrapper `ch_N.md` files moved with their
+    parent dirs and updated to point at the new PDF paths and use
+    new permalinks (`/lectures/ch_N/`, `/notes/ch_N/`).
+  - **Display labels:** updated `_includes/nav.html` (dropdown
+    summaries: "Notes" → "Lectures", "Personal Notes" → "Notes"),
+    `index.md` (table headers and link text), `_data/chapters.yml`
+    (`notes_pdf` key → `lectures_pdf`, `cheat_pdf` key → `notes_pdf`).
+  - **Internal `\title{...}` lines:** updated all 12
+    `chapters/ch_N/lectures.tex` (now say "Chapter N Lectures") and
+    all 12 `chapters/ch_N/notes.tex` (now say "Ch.~N Notes").
+  - **Doc references** updated in `README.md` (build commands, file
+    descriptions, layout block, conventions, license),
+    `design_docs/architecture.md` (system-shape diagram, source
+    layout, planned Astro content collections layout, static-mode
+    feature description, pandoc probe reference),
+    `design_docs/roadmap_addenda.md` (pandoc probe), this
+    `CHANGELOG.md` (pandoc probe), `notes-style.tex` (preamble
+    comment), `_config.yml` (description).
+  - All file moves done with `git mv` so rename history is
+    preserved.
+  - **Caught and fixed in-flight:** initial `sed` pass on
+    `index.md` and `_includes/nav.html` used overlapping patterns
+    (e.g. `notes/` → `lectures/` ran after `cheats/` → `notes/`,
+    transitively converting the new `notes/` to `lectures/`).
+    Files were rewritten via `Write` to the correct target state.
+- **Decided** Per-chapter content review/augmentation loop. User
+  directive (2026-04-22): all course content (lectures, notes,
+  quizzes) will be updated by augmenting SNHU-derived core material
+  with MIT OCW + CLRS, **one chapter at a time**. Before any
+  augmentation work on a chapter, the existing chapter content must
+  be **fully reviewed** first. Hard constraint: don't make the
+  course so long it becomes impossible to finish.
+- **Decided** `chapters/*/practice.md` is **out of scope** for
+  per-chapter content augmentation. OCW practice problems and
+  assignments will instead feed Phase 4 (LLM question generation
+  via ai-workflows), where the user has ideas for using OCW + other
+  reference sources to improve both the prompt corpus and generated
+  question quality. Recorded in
+  `memory/project_practice_md_phase4_link.md`.
+- **Deferred (to per-chapter review)** In-chapter prose references
+  to "cheat sheet" companion material in
+  `chapters/ch_{1,2,3,4,5,6}/lectures.tex` (e.g. lines like
+  `One-page cheat sheet: cheat_sheets/ch_N.tex`). Path was already
+  stale (no `cheat_sheets/` dir ever existed) and the terminology
+  is now inconsistent with the new "Notes" name. Will fix during
+  the per-chapter review pass for each affected chapter.
+- **Deferred** `resources/week_2.tex` `\section{Big-O Cheatsheet}`
+  heading and surrounding prose. Sidecar week-level file, not a
+  chapter file; "cheatsheet" used as a content genre rather than a
+  filename. Decide whether to align terminology when we touch
+  Week 2 material.
+- **Added** `reference/clrs/clrs.pdf` (5.5 MB) — CLRS textbook PDF,
+  pulled from
+  <https://www.cs.mcgill.ca/~akroit/math/compsci/Cormen%20Introduction%20to%20Algorithms.pdf>.
+  Per memory, treat as personal study reference (third-party host of
+  copyrighted textbook); paraphrase/build-on for chapter content,
+  don't wholesale reproduce.
+- **Added** MIT OCW 6.006 Spring 2020 course archive contents,
+  extracted from `https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/6.006-spring-2020.zip`
+  (39 MB ZIP, ~26 MB extracted PDFs+ZIPs). License: CC BY-NC-SA 4.0.
+  Sorted into:
+  - `reference/mit_ocw/lecture_notes/` — 21 PDFs (lec1–lec20; **lec18
+    shipped in two distinct revisions** — different hashes and sizes,
+    320K and 367K — both kept, decision deferred).
+  - `reference/mit_ocw/recitations/` — 19 PDFs (r01–r19; r20 absent
+    from archive, matching gap in OCW lecture-notes index).
+  - `reference/mit_ocw/practice_problems/` — 18 PDFs (prob1–prob9 +
+    prob1sol–prob9sol).
+  - `reference/mit_ocw/assignments/` — 27 files (ps0–ps8: questions
+    PDF + solutions PDF + template ZIP each).
+  - `reference/mit_ocw/quizzes/` — 14 PDFs (q1–q3, q1_sol–q3_sol,
+    review1–review3, review1_sol–review3_sol, final, final_sol).
+    OCW filename inconsistency: q3 uses lowercase `s20` while q1/q2
+    use uppercase `S20`. Left as-is.
+  - `reference/mit_ocw/transcripts/` — 35 PDFs (lecture/recitation
+    video transcripts named by YouTube/Drive ID, plus three problem
+    session transcripts named by date).
+- **Changed** scope vs. earlier "drop zone" intent: `recitations/`,
+  `quizzes/`, and `transcripts/` directories were added beyond the
+  user's original 3-category list (lecture notes / practice problems
+  / assignments), because the OCW archive includes them and the
+  marginal storage cost is negligible. User can prune any of these
+  if not wanted.
+- **Added** `reference/mit_ocw/video_lectures.md` — index of MIT OCW
+  6.006 Spring 2020 lecture videos (21 lectures), problem sessions
+  (PS1–PS9, PS6 unavailable per COVID note), quiz reviews (Q1–Q3),
+  and the original course calendar. Pulled from the OCW lecture-videos
+  gallery and calendar pages. Pure reference — no chapter mapping
+  yet; that decision is deferred per user direction ("thinking we
+  might use that to augment content not sure yet").
+- **Added** `reference/mit_ocw/{lecture_notes,practice_problems,assignments}/`
+  (each with `.gitkeep`) — drop zones matching MIT OCW 6.006 index
+  pages. User pulling content from
+  <https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/>.
+- **Added** `reference/clrs/` (with `.gitkeep`) — drop zone for CLRS
+  (Cormen, Leiserson, Rivest, Stein — *Introduction to Algorithms*).
+  Designated by user as the **primary** reference book to enhance
+  the SNHU curriculum. Source link provided:
+  <https://www.cs.mcgill.ca/~akroit/math/compsci/Cormen%20Introduction%20to%20Algorithms.pdf>.
+- **Decided** MIT OCW 6.006 Spring 2020 is the augmenting course;
+  CLRS is the primary augmenting textbook. Together they form the
+  rigor substitute the SNHU curriculum lacks (per
+  `memory/project_target_audience.md`).
+- **Added** `reference/mit_ocw/` (with `.gitkeep`) — drop zone for
+  MIT OpenCourseWare DSA course material. User will signal when
+  reference files are in place. Treated as the gating input for
+  Phase 1 chapter revisions: without OCW augmentation, the rest of
+  Phase 1 has no source material to draw on. Commit-vs-gitignore
+  decision deferred until file types and sizes are known.
+- **Added** `CHANGELOG.md` (this file). Convention: log everything,
+  no matter how small.
+- **Changed** `README.md` — rewrote as portfolio-framed draft.
+  Previous README only described the LaTeX/Jekyll setup. New draft
+  adds: pre-Phase-1 status callout, two-purpose framing (course notes
+  + reference integration for `ai-workflows`), pointer to
+  `design_docs/architecture.md`, settled-tech summary, and dual
+  license declaration. Existing build/conventions/layout content
+  preserved. Layout updated to include `coding_practice/`,
+  `design_docs/`, and `tools/`.
+- **Added** `design_docs/architecture.md` — first-cut architecture
+  document. Gating artifact for Phase 1. Covers static content
+  pipeline (pandoc + Lua filter, component library, Astro content
+  collections, audio file layout pinned for Phase 7), data model
+  (Drizzle + SQLite schema with type-dispatched payloads for
+  `mc` / `short` / `llm_graded` / `code` questions), dynamic surfaces
+  (MCP bridge contract, eval dispatch, code execution, FSRS loop),
+  local-vs-public mode (single `detectMode()` flag, two state-service
+  hosting paths), and an open-decisions table. Awaiting user review;
+  has not been pressure-tested.
+- **Added** `design_docs/roadmap_addenda.md` — local supplement to
+  the Drive roadmap (`interactive_notes_roadmap.md`, file id
+  `1SJHI76hibJ6aJqvtMuJbE1dhzVLZlWcOpitofrziWC8`). Captures: the
+  `architecture.md → README → Phase 1` sequence, deferral of Phase 1
+  acceptance criteria, the Phase-1-idle pandoc probe, and the
+  decision to keep `coding_practice/`.
+- **Decided** Dual license: content under CC BY-NC-SA 4.0 (matches
+  MIT OCW), code under MIT. Declared in README; LICENSE files not
+  yet created.
+- **Decided** Sequence to Phase 1 is `architecture.md → README →
+  Phase 1`. README intentionally drafted before Phase 1 starts but
+  after the architecture doc exists.
+- **Decided** Question persistence model is accumulating (not
+  per-session ephemeral). Confirmed in `architecture.md §5`.
+- **Decided** Audio file layout pinned to
+  `public/audio/ch_N.{mp3,timestamps.json}` to avoid a Phase 7
+  unwind. (`architecture.md §1`.)
+- **Deferred** Phase 1 acceptance criteria — explicitly postponed
+  until `architecture.md` is settled. Will be a major focus at that
+  point. (See `roadmap_addenda.md`.)
+- **Deferred** Pandoc Lua filter vs. manual port — decide after the
+  Phase-1-idle probe on `chapters/ch_1/lectures.tex`.
+- **Deferred** State-service hosting (Astro server vs. client-side
+  SQLite WASM) — decide at Phase 3 start; lean is Astro server.
+- **Deferred** Whether `coding_practice/` prompts are persisted as
+  files or generated dynamically by the workflow — decide at Phase 4
+  design.
+
+---
+
+## Pre-2026-04-22
+
+Repository state before this changelog began. Reconstructable from
+git history (`git log --oneline`). Highlights:
+
+- `e027f57` — Add optional-chapter materials and restructure into
+  `chapters/`.
+- `3ad6ba0` — Add GitHub Pages site (Jekyll).
+- `3f01901` — Initial commit.

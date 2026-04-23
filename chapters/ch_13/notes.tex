@@ -1,377 +1,149 @@
-\documentclass[11pt]{article}
+\documentclass[10pt]{article}
 \input{../../notes-style.tex}
 
-\title{CS 300 -- Chapter 13 Notes\\\large Additional Material}
-\author{Jose de Lima}
-\date{\today}
+\usepackage{multicol}
+\usepackage{array}
+
+\title{Ch.~13 Notes\\\large Additional Algorithms and List Forms}
+\author{}
+\date{}
 
 \begin{document}
 \maketitle
+\vspace{-2em}
 
-\begin{ideabox}
-Chapter 13 is a grab-bag: three sorting algorithms (one pedagogical, one selection-only, one non-comparison) followed by two linked-list variants (the list-container idiom and the circular list). Each topic is self-contained; there's no unifying narrative. The common thread is ``useful ideas that didn't fit anywhere else.''
-\end{ideabox}
+\begin{multicols}{2}
 
-\section{13.1 Bubble Sort}
-
-\subsection*{The algorithm}
-
-\begin{defnbox}
-\textbf{Bubble sort.} Repeatedly walk the array, comparing adjacent pairs and swapping if out of order. After each pass, the largest remaining unsorted element ``bubbles'' to the end.
-\end{defnbox}
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-void bubbleSort(std::vector<int>& a) {
-    int n = a.size();
-    for (int i = 0; i < n - 1; ++i) {
-        for (int j = 0; j < n - i - 1; ++j) {
-            if (a[j] > a[j + 1])
-                std::swap(a[j], a[j + 1]);
+\subsection*{Bubble sort}
+Repeatedly pass through the array swapping adjacent
+out-of-order pairs.
+\begin{lstlisting}[language=C++]
+for (int i = 0; i < n - 1; ++i) {
+    bool swapped = false;
+    for (int j = 0; j + 1 < n - i; ++j)
+        if (a[j] > a[j+1]) {
+            std::swap(a[j], a[j+1]);
+            swapped = true;
         }
-    }
+    if (!swapped) break;   // early exit if sorted
 }
 \end{lstlisting}
+$O(n^2)$ worst, $O(n)$ best (sorted). Stable, in place.
+\textbf{Never use in production} -- insertion sort beats it in
+every dimension. Useful only as a teaching example and as a
+simple way to ``almost-sort'' partially-sorted data.
 
-The inner loop shrinks each pass because the last $i$ elements are already in their final position.
-
-\subsection*{Cost}
-
-\begin{itemize}[leftmargin=*]
-    \item Best case (already sorted): still $O(n^2)$ comparisons in the plain version. An optimization: short-circuit when an entire pass made no swaps, giving $O(n)$ best case.
-    \item Average: $O(n^2)$.
-    \item Worst case (reverse sorted): $O(n^2)$ comparisons, $O(n^2)$ swaps.
-    \item Space: $O(1)$.
-    \item Stable: yes (equal elements never swap past each other).
-\end{itemize}
-
-\subsection*{Why you'll never use bubble sort}
-
-\begin{warnbox}
-Bubble sort is a \textbf{teaching tool}, nothing more. For any real data: \texttt{std::sort} (introsort), \texttt{std::stable\_sort} (merge sort), or a radix/bucket sort for integers. Bubble sort's $O(n^2)$ worst case on large inputs is not just slow -- it's catastrophically slow. $n = 10^6$ is $10^{12}$ operations, roughly an hour of CPU time. A real sort does the same job in milliseconds.
-\end{warnbox}
-
-\begin{notebox}
-The one defense of bubble sort: its best case with the short-circuit optimization is $O(n)$, matching insertion sort. For nearly-sorted data, it's not terrible. But insertion sort is better on the same workload and easier to reason about, so even that niche has a better answer.
-\end{notebox}
-
-\subsection*{What bubble sort is good for}
-
-\begin{itemize}[leftmargin=*]
-    \item Teaching the concept of an in-place comparison sort.
-    \item Interview questions about algorithmic complexity.
-    \item Tiny inputs ($n \leq 20$) where the constant factor is irrelevant.
-    \item Hardware sorting networks, where adjacent-pair compare-and-swap is the primitive operation.
-\end{itemize}
-
-\section{13.2 Quickselect}
-
-\subsection*{The problem}
-
-\begin{defnbox}
-\textbf{$k$-th smallest element.} Given an array and an integer $k$, return the $k$-th smallest value. For $k=0$, the minimum; for $k = n-1$, the maximum; for $k = n/2$, the median.
-\end{defnbox}
-
-The naive solution: sort, return \texttt{a[k]}. That's $O(n \log n)$. Quickselect does it in $O(n)$ average time \emph{without} fully sorting.
-
-\subsection*{The insight}
-
-Quickselect borrows Quicksort's partition routine -- the one that picks a pivot, puts smaller elements to the left, larger to the right, and returns the pivot's final position.
-
-\begin{ideabox}
-\textbf{Quicksort recurses on both sides; quickselect recurses on only the side that contains the $k$-th element.} That cuts the total work from $O(n \log n)$ to $O(n)$ on average, because the unused half of each partition is discarded.
-\end{ideabox}
-
-\subsection*{Algorithm}
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-int partition(std::vector<int>& a, int lo, int hi) {
-    int pivot = a[(lo + hi) / 2];
-    int i = lo - 1, j = hi + 1;
-    while (true) {
-        do { ++i; } while (a[i] < pivot);
-        do { --j; } while (a[j] > pivot);
-        if (i >= j) return j;
-        std::swap(a[i], a[j]);
-    }
-}
-
-int quickselect(std::vector<int>& a, int lo, int hi, int k) {
-    if (lo >= hi) return a[lo];
-    int p = partition(a, lo, hi);
-    if (k <= p) return quickselect(a, lo, p, k);
-    return quickselect(a, p + 1, hi, k);
+\subsection*{Quickselect (find the $k$-th smallest)}
+Quicksort, but only recurse into the partition that contains $k$.
+\begin{lstlisting}[language=C++]
+int quickselect(vector<int>& a, int lo, int hi, int k) {
+    int p = lomutoPartition(a, lo, hi);
+    if (p == k) return a[p];
+    if (k < p) return quickselect(a, lo,    p-1, k);
+    else       return quickselect(a, p+1, hi,    k);
 }
 \end{lstlisting}
+Expected $O(n)$; worst $O(n^2)$ (bad pivot). C++:
+\texttt{std::nth\_element(first, nth, last)} -- $O(n)$ expected,
+puts the $n$-th smallest at the \texttt{nth} position, with
+everything smaller before and larger after.
 
-\subsection*{Cost}
+\subsection*{Applications of quickselect}
+Median, top-$k$, percentile queries without a full sort. For
+streaming / huge $n$: combine with a heap of size $k$.
 
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Average}: $O(n)$. Partition costs $n$; the next recursion is on $n/2$; then $n/4$; \ldots total $n + n/2 + n/4 + \ldots = O(n)$ by geometric sum.
-    \item \textbf{Worst}: $O(n^2)$, same as naive quicksort, when pivots are consistently bad.
-    \item \textbf{Median-of-medians} gives $O(n)$ worst-case selection, but the constant is large; in practice quickselect with a random or median-of-three pivot is faster.
-\end{itemize}
-
-\subsection*{C++ standard library}
-
-You don't have to write quickselect yourself -- C++ gives it to you:
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-#include <algorithm>
-// Rearranges [begin, end) so nth is the element that would be at
-// position n in a fully sorted range. Everything before nth is <=,
-// everything after is >=. Average O(n).
-std::nth_element(a.begin(), a.begin() + k, a.end());
-int kthSmallest = a[k];
-\end{lstlisting}
-
-\begin{ideabox}
-\texttt{std::nth\_element} is the correct answer to ``what's the median / top-$k$ / $k$-th percentile'' in any interview or real codebase. It's linear time, in place, and a single line of code. Reach for it before thinking harder.
-\end{ideabox}
-
-\subsection*{Applications}
-
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Median / percentile computation.}
-    \item \textbf{Top-$k$ queries.} After \texttt{nth\_element}, the first $k$ entries are the top-$k$ (unsorted). If you need them sorted, sort just that prefix.
-    \item \textbf{Machine learning}: quickselect-based k-nearest-neighbor scoring.
-    \item \textbf{Streaming statistics}: approximate quantiles via repeated quickselect.
-\end{itemize}
-
-\section{13.3 Bucket Sort}
-
-\subsection*{The idea}
-
-\begin{defnbox}
-\textbf{Bucket sort.} Distribute values into $K$ buckets based on a range partition, sort each bucket with another algorithm, concatenate. $O(n)$ average when values are uniformly distributed.
-\end{defnbox}
-
-This is a \textbf{non-comparison sort} -- it exploits numerical structure of the values to beat the $\Omega(n \log n)$ comparison-sort lower bound.
-
-\subsection*{Algorithm}
-
-Given non-negative numbers up to some max value $M$:
-
-\begin{enumerate}[leftmargin=*]
-    \item Create $K$ buckets. Bucket $i$ holds values in $[i \cdot M/K, (i+1) \cdot M/K)$.
-    \item For each element $x$, compute \texttt{bucket = floor(x * K / (M + 1))} and append $x$ to that bucket.
-    \item Sort each bucket (insertion sort or any other; each bucket is small).
-    \item Concatenate buckets in order.
+\subsection*{Bucket sort}
+Assumes a roughly uniform distribution over a bounded range.
+\begin{enumerate}
+    \item Split the range into $k$ buckets.
+    \item Distribute items into buckets by a key function.
+    \item Sort each bucket (insertion / \texttt{std::sort}).
+    \item Concatenate.
 \end{enumerate}
+Average $O(n + k)$ if items distribute uniformly;
+worst $O(n^2)$ (all into one bucket).
 
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-void bucketSort(std::vector<int>& a, int K) {
-    if (a.empty()) return;
-    int maxV = *std::max_element(a.begin(), a.end());
-    std::vector<std::vector<int>> buckets(K);
-
-    for (int x : a) {
-        int idx = (long long)x * K / (maxV + 1);
-        buckets[idx].push_back(x);
-    }
-
-    a.clear();
-    for (auto& b : buckets) {
-        std::sort(b.begin(), b.end());
-        a.insert(a.end(), b.begin(), b.end());
-    }
-}
-\end{lstlisting}
-
-\subsection*{Cost}
-
-Let $n$ be the array size and $K$ the bucket count.
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Distribution pass}: $O(n)$.
-    \item \textbf{Per-bucket sort}: if values are uniform, each bucket has $\approx n/K$ elements. Sorting each with $O(m^2)$ insertion sort gives total $K \cdot (n/K)^2 = n^2/K$. With $K = n$, this is $O(n)$.
-    \item \textbf{Concatenate}: $O(n + K)$.
-    \item \textbf{Total (uniform distribution, $K = n$)}: $O(n)$.
-    \item \textbf{Worst case (all elements in one bucket)}: $O(n^2)$.
-\end{itemize}
-
-\begin{warnbox}
-Bucket sort's $O(n)$ is \emph{contingent on distribution}. If all your values cluster in a narrow range (e.g., 100 random integers between 1 and $10^9$), bucket sort degenerates: 99 empty buckets, one bucket with everything. You're paying for $K$ buckets to do nothing. Use bucket sort only when you know the data is roughly uniform over a known range.
-\end{warnbox}
-
-\subsection*{Related algorithms}
-
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Counting sort}: degenerate bucket sort where each bucket holds exactly one value. $O(n + M)$ time, $O(M)$ space. Perfect for small-range integers.
-    \item \textbf{Radix sort}: iterate bucket sort on each digit. $O(n \cdot d)$ for $d$-digit numbers. Used in database sorts, GPU sorts, and networking.
-    \item \textbf{Pigeonhole sort}: counting sort by another name, when value range $=$ number of elements.
-\end{itemize}
-
-\begin{ideabox}
-\textbf{The $n \log n$ barrier only applies to comparison sorts.} Any sort that uses numeric / string structure of its inputs -- bucket, radix, counting -- can beat it for suitable data. Production string sorting (timsort in Python, dpqsort in Java) is comparison-based; production integer sorting (std::sort in libstdc++ at large sizes) can fall through to radix for speed.
-\end{ideabox}
-
-\section{13.4 List Data Structure}
-
-\subsection*{The idiom}
-
-A linked list can be represented in two ways:
-
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Just a head pointer} (and maybe a tail pointer), held in local variables or as member fields.
-    \item \textbf{A wrapper container} -- a \texttt{List} struct that owns \texttt{head}, \texttt{tail}, and maybe \texttt{size}. Functions take a \texttt{List*} instead of a raw head pointer.
-\end{itemize}
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-// Approach 1: just nodes.
-struct Node { int data; Node* next; };
-Node* head = nullptr;
-Node* tail = nullptr;
-int size = 0;
-
-// Approach 2: list wrapper.
-struct List {
-    Node* head = nullptr;
-    Node* tail = nullptr;
-    int size = 0;
-};
-
-void listPushBack(List* lst, int data) {
-    Node* n = new Node{data, nullptr};
-    if (!lst->head) lst->head = n;
-    else            lst->tail->next = n;
-    lst->tail = n;
-    ++lst->size;
-}
-\end{lstlisting}
-
-\subsection*{Why wrap?}
-
-\begin{ideabox}
-The wrapper exists so that list-manipulating functions take \emph{one} parameter instead of three (head, tail, size). More importantly, operations like ``insert at tail'' or ``get length'' become $O(1)$ because the struct already knows what the naked-node version would have to recompute.
-\end{ideabox}
-
-\begin{center}
-\begin{tabular}{lll}
+\subsection*{Bucket / counting / radix family}
+\begin{tabular}{@{}l|l@{}}
+\textbf{use when} & \textbf{algo}\\
 \hline
-Operation & Head-only list & Wrapped list \\
-\hline
-Insert at head & $O(1)$ & $O(1)$ \\
-Insert at tail & $O(n)$ (walk to end) & $O(1)$ (tail ptr) \\
-Get size & $O(n)$ or maintained externally & $O(1)$ (cached) \\
-Pass to function & 3 args (head, tail, size) & 1 arg (\texttt{List*}) \\
-\hline
+small integer range & counting sort\\
+uniform over $[0,1)$ or similar & bucket sort\\
+multi-digit / multi-byte keys  & radix (LSD / MSD)\\
+general / comparisons only     & merge / quick / heap
 \end{tabular}
-\end{center}
 
-\subsection*{Why not just use \texttt{std::list}?}
+\columnbreak
 
-\begin{warnbox}
-In C++, \texttt{std::list} is the wrapper-style doubly-linked list and you should use it unless you have a specific reason not to. Writing your own list is a pedagogical exercise; in production, \texttt{std::list} (or \texttt{std::forward\_list} for singly-linked) is tested, debuggers know how to render it, and you don't leak memory on exception. The ``list data structure'' the textbook describes is reinventing \texttt{std::list}.
-\end{warnbox}
+\subsection*{List ADT vs.\ linked list}
+\textbf{List} = sequential positional collection ADT. One
+\emph{implementation} is a linked list. Wrap the raw node-pointer
+code in a class with invariants (head, tail, size, no cycles).
 
-\subsection*{When linked lists are the wrong answer}
-
-Even with a nice wrapper, linked lists are frequently worse than \texttt{std::vector} (dynamic array):
-
-\begin{itemize}[leftmargin=*]
-    \item Cache locality: array elements are contiguous, list nodes scattered across the heap.
-    \item Memory overhead: each node has a \texttt{next} pointer, often doubling memory vs.\ raw values.
-    \item Random access: $O(n)$ for list, $O(1)$ for array.
-    \item Iteration: much slower on a list due to cache misses on every \texttt{next}.
-\end{itemize}
-
-Use a linked list when you need cheap insertion/deletion at interior points with existing iterators, or when you're building something that requires pointer stability (e.g., an LRU cache with external references). Otherwise, default to \texttt{std::vector}.
-
-\section{13.5 Circular Lists}
-
-\subsection*{The definition}
-
-\begin{defnbox}
-\textbf{Circular linked list.} A linked list where the tail's \texttt{next} pointer points back to the head, not \texttt{nullptr}. Traversal wraps forever unless explicitly bounded.
-\end{defnbox}
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-// Singly-linked circular
-struct Node { int data; Node* next; };
-// Last node's next points back to head.
-
-// Doubly-linked circular (most common in practice)
-struct DNode { int data; DNode* prev; DNode* next; };
-// Last node's next -> head; head's prev -> last node.
-\end{lstlisting}
-
-\subsection*{Traversal}
-
-The key trick: stop when you come back to the start, not when you hit \texttt{nullptr}.
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-void traverseCircular(Node* head) {
-    if (!head) return;
-    Node* cur = head;
-    do {
-        visit(cur);
-        cur = cur->next;
-    } while (cur != head);
-}
-\end{lstlisting}
-
-\begin{warnbox}
-\textbf{Use do-while, not while.} A regular \texttt{while (cur != head)} skips the head on the first iteration because we start at head and the condition fails immediately. The do-while runs the body first, then checks the condition.
-\end{warnbox}
-
-\subsection*{Why circular lists exist}
-
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Round-robin scheduling.} OS schedulers cycle through ready processes; each yield pops one and reappends it at the end. A circular list gives O(1) ``next process'' and O(1) append.
-    \item \textbf{Music players on ``repeat all.''} Queue is a circular list of tracks.
-    \item \textbf{Ring buffers} (logically circular, though usually array-based for cache locality).
-    \item \textbf{Josephus problem} and other classic cyclic-elimination algorithms -- naturally circular.
-    \item \textbf{Token-passing networks.} Token Ring Ethernet was literally a circular list of nodes; each station had one successor.
-    \item \textbf{Doubly-linked circular lists with a sentinel} give branch-free insert/delete at any position.
-\end{itemize}
-
-\subsection*{Sentinel trick for doubly-linked circular lists}
-
-A \emph{sentinel} node -- a dummy that's never ``real'' data but completes the circle -- removes the ``is this node the head / tail'' special cases:
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-struct DNode { int data; DNode* prev; DNode* next; };
-
-struct CircularList {
-    DNode sentinel;   // sentinel.next = head, sentinel.prev = tail
-    CircularList() { sentinel.prev = sentinel.next = &sentinel; }
+\begin{lstlisting}[language=C++]
+template <class T>
+class List {
+    struct Node { T val; Node* next; };
+    Node* head_ = nullptr;
+    Node* tail_ = nullptr;
+    std::size_t size_ = 0;
+public:
+    void push_front(T); void push_back(T);
+    void pop_front();   void pop_back();
+    std::size_t size() const { return size_; }
+    // iterators, destructor, rule of 5 ...
 };
-
-// Insert n before 'where' -- no null checks needed.
-void insertBefore(DNode* where, DNode* n) {
-    n->next = where;
-    n->prev = where->prev;
-    where->prev->next = n;
-    where->prev = n;
-}
-
-// Remove n -- no null checks needed.
-void remove(DNode* n) {
-    n->prev->next = n->next;
-    n->next->prev = n->prev;
-}
 \end{lstlisting}
 
-\begin{ideabox}
-The sentinel technique eliminates all ``empty list'' and ``at the head'' edge cases. Insert/remove are six pointer writes with no branching. The Linux kernel's \texttt{list\_head} uses exactly this structure, and the design has been copied into countless production codebases -- it's one of the most elegant tricks in systems programming.
-\end{ideabox}
+\subsection*{Why wrap, why not just \texttt{std::list}}
+\textbf{Wrap own} when learning, when teaching, or when you need
+a special invariant (XOR list, intrusive list, lock-free).
+\textbf{Prefer \texttt{std::list}} in real code -- it's been tuned,
+supports iterators, has the rule of 5 right. \textbf{But usually}:
+prefer \texttt{std::vector} unless profiling proves otherwise.
+Linked lists lose on cache locality, most of the time.
 
-\subsection*{Traversal in reverse (doubly-linked)}
+\subsection*{Circular lists}
+Tail's \texttt{next} points to head (singly); plus head's
+\texttt{prev} points to tail (doubly).
+\begin{itemize}
+    \item No null end -- termination is \textbf{``came back to the start''}.
+    \item Natural for round-robin schedulers, ring buffers,
+    infinite playlists, Josephus problem.
+    \item Traversal trap: forgetting the terminator and looping
+    forever.
+\end{itemize}
 
-Mirror of the forward case -- walk \texttt{prev} pointers from any starting point until you return:
+\subsection*{Sentinel DLL (the clean variant)}
+Allocate a dummy \texttt{head} and \texttt{tail} (or a single
+sentinel that points to itself). Real nodes sit between.
+\begin{itemize}
+    \item No empty-list special case.
+    \item Insert / remove: always 4 pointer writes, never a nullptr check.
+    \item Matches \texttt{std::list}'s internal shape.
+\end{itemize}
 
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-void traverseReverseCircular(DNode* tail) {
-    if (!tail) return;
-    DNode* cur = tail;
-    do {
-        visit(cur);
-        cur = cur->prev;
-    } while (cur != tail);
-}
-\end{lstlisting}
+\subsection*{When \emph{not} to reach for a linked list}
+\begin{itemize}
+    \item Random access / indexing by position (vector wins).
+    \item Dense numeric data with tight loops (cache murder).
+    \item Tiny elements where the pointer overhead dominates.
+    \item When you need \texttt{sort} / \texttt{binary\_search} --
+    no random access, no \texttt{std::sort}.
+\end{itemize}
 
-\begin{ideabox}
-\textbf{Chapter takeaway.} Bubble sort is useful as a pedagogical example of why most sorting algorithms are $O(n \log n)$. Quickselect solves a narrower problem (``find the $k$-th element'') faster than sorting and is what \texttt{std::nth\_element} uses internally. Bucket sort shows that when the $\Omega(n \log n)$ comparison barrier doesn't apply, you can sort in linear time. The list-container idiom is about encapsulating bookkeeping; circular lists are about cyclic problem domains. Nothing in this chapter changes how you think; each piece just adds one more specialized tool to the bag.
-\end{ideabox}
+\subsection*{Top gotchas}
+\begin{itemize}
+    \item Using bubble sort in anything that ships.
+    \item Quickselect with first-element pivot on sorted data --
+    quadratic; shuffle or use random pivot.
+    \item Bucket sort with skewed data -- degenerates to one
+    bucket's sort.
+    \item Forgetting the rule of 5 in a hand-rolled \texttt{List}
+    (copy / move / destructor leaks).
+    \item Circular-list traversal with \texttt{while (n)} instead
+    of \texttt{do \{...\} while (n != start)}.
+\end{itemize}
 
+\end{multicols}
 \end{document}

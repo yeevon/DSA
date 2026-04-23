@@ -2,6 +2,19 @@
   <a class="brand" href="{{ '/' | relative_url }}">CS 300</a>
 
   <details class="nav-dd">
+    <summary>Lectures</summary>
+    <ul>
+      {% for ch in site.data.chapters.required %}
+      <li><a href="{{ '/lectures/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
+      {% endfor %}
+      <li class="sep">Optional</li>
+      {% for ch in site.data.chapters.optional %}
+      <li><a href="{{ '/lectures/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </details>
+
+  <details class="nav-dd">
     <summary>Notes</summary>
     <ul>
       {% for ch in site.data.chapters.required %}
@@ -10,19 +23,6 @@
       <li class="sep">Optional</li>
       {% for ch in site.data.chapters.optional %}
       <li><a href="{{ '/notes/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
-      {% endfor %}
-    </ul>
-  </details>
-
-  <details class="nav-dd">
-    <summary>Personal Notes</summary>
-    <ul>
-      {% for ch in site.data.chapters.required %}
-      <li><a href="{{ '/cheats/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
-      {% endfor %}
-      <li class="sep">Optional</li>
-      {% for ch in site.data.chapters.optional %}
-      <li><a href="{{ '/cheats/' | append: ch.id | append: '/' | relative_url }}">{{ ch.title }}</a></li>
       {% endfor %}
     </ul>
   </details>

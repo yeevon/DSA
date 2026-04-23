@@ -1,300 +1,139 @@
-\documentclass[11pt]{article}
+\documentclass[10pt]{article}
 \input{../../notes-style.tex}
 
-\title{CS 300 -- Chapter 12 Notes\\\large Sets}
-\author{Jose de Lima}
-\date{\today}
+\usepackage{multicol}
+\usepackage{array}
+
+\title{Ch.~12 Notes\\\large Sets}
+\author{}
+\date{}
 
 \begin{document}
 \maketitle
+\vspace{-2em}
 
-\begin{ideabox}
-\textbf{The set ADT in one sentence.} A set is a collection of distinct elements with fast membership queries. It's the data structure you reach for any time you care about ``have I seen this before'' or ``how do these two collections compare,'' and almost nothing else. Everything in this chapter is about the operations that make sense on top of that single primitive.
-\end{ideabox}
+\begin{multicols}{2}
 
-\section{12.1 The Set ADT}
-
-\subsection*{What a set is}
-
-\begin{defnbox}
-\textbf{Set.} An unordered collection of distinct elements. No duplicates, no position. $\{3, 7, 9\} = \{9, 7, 3\}$.
-\end{defnbox}
-
-The three things a set gives you:
-\begin{itemize}[leftmargin=*]
-    \item \texttt{add(x)}: insert $x$ if not already present; no-op otherwise.
-    \item \texttt{remove(x)}: remove $x$ if present.
-    \item \texttt{contains(x)}: membership query.
+\subsection*{The Set ADT}
+An unordered collection of \textbf{distinct} elements. Core ops:
+\begin{itemize}
+    \item \texttt{contains(x)} -- membership.
+    \item \texttt{add(x)} -- insert; no-op if already present.
+    \item \texttt{remove(x)} -- delete; no-op if absent.
 \end{itemize}
-
-That's it. Everything else (union, intersection, filter, map, subset) is built on top of these three.
+Derived: \texttt{size}, \texttt{empty}, iteration. Everything else
+(union, intersection, subset, filter, map) is built from these.
 
 \subsection*{Keys vs.\ elements}
-
-When the elements are primitives (ints, strings), each element is its own key. When the elements are objects -- a \texttt{Student} with \texttt{name}, \texttt{phone}, \texttt{id} -- the set uses one field as the key and compares elements by that. The rest of the object is just cargo.
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-// C++ lets you choose: the element type IS the key, or you supply
-// a hash/comparator that extracts a key.
-std::unordered_set<int> primes;
-std::unordered_set<Student, StudentHash, StudentEq> roster;
-
-// Or use a map if you need key/value separation.
-std::unordered_map<int, Student> rosterById;
-\end{lstlisting}
-
-\begin{notebox}
-In Python, sets use \texttt{\_\_hash\_\_} and \texttt{\_\_eq\_\_}; in Java, it's \texttt{hashCode()} and \texttt{equals()}. The contract is always the same: equal elements must hash equal. If you break that contract, the set is not a set -- it's a corrupt data structure waiting to lose an element.
-\end{notebox}
+The set stores elements $x$ compared by some \emph{key} -- often the
+element itself. When elements are complex (structs), you pass a
+comparator (ordered set) or a hash + equality (unordered).
 
 \subsection*{Subset testing}
+$A \subseteq B$ iff $\forall x \in A : x \in B$. Iterate the smaller
+side, probe the larger. $O(|A|)$ for hashed $B$, $O(|A| \log |B|)$
+for tree-based.
 
-$X \subseteq Y$ iff every element of $X$ is in $Y$. Trivial algorithm:
+\subsection*{Set operations}
+\[
+A \cup B,\ A \cap B,\ A \setminus B.
+\]
+Union / intersection commute; difference does not.
 
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-bool isSubset(const std::unordered_set<int>& sub,
-              const std::unordered_set<int>& sup) {
-    for (int x : sub)
-        if (!sup.count(x)) return false;
-    return true;
-}
+\begin{lstlisting}[language=C++]
+// Hashed: iterate one, probe the other
+for (auto& x : A)
+    if (B.contains(x)) out.insert(x);
+
+// Sorted (std::set): use STL merge-style
+std::set_intersection(
+    A.begin(), A.end(),
+    B.begin(), B.end(),
+    std::inserter(out, out.end()));
 \end{lstlisting}
 
-Cost: $O(|X|)$ if \texttt{contains} is $O(1)$ (hash set). If \texttt{sup} is a sorted structure (tree set), it's $O(|X| \log |Y|)$.
+\subsection*{Always iterate the smaller set}
+Intersection cost drops to $O(\min(|A|,|B|))$.
+Single biggest micro-optimization in set-heavy code.
 
-\section{12.2 Set Operations}
-
-\subsection*{Union, intersection, difference}
-
-\begin{defnbox}
-$X \cup Y$: everything in either set.
-$X \cap Y$: everything in both sets.
-$X \setminus Y$: everything in $X$ but not in $Y$.
-\end{defnbox}
-
-Union and intersection are commutative ($X \cup Y = Y \cup X$). Difference is not.
-
-\begin{examplebox}
-$\{54, 19, 75\} \cup \{75, 12\} = \{12, 19, 54, 75\}$ \\
-$\{54, 19, 75\} \cap \{75, 12\} = \{75\}$ \\
-$\{54, 19, 75\} \setminus \{75, 12\} = \{19, 54\}$ \\
-$\{75, 12\} \setminus \{54, 19, 75\} = \{12\}$
-\end{examplebox}
-
-\subsection*{C++ implementations}
-
-The \texttt{<algorithm>} header provides set operations on \emph{sorted ranges}, which means any sorted container:
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-#include <set>
-#include <algorithm>
-#include <iterator>
-
-std::set<int> a{54, 19, 75}, b{75, 12}, out;
-
-std::set_union(a.begin(), a.end(), b.begin(), b.end(),
-               std::inserter(out, out.end()));
-// out = {12, 19, 54, 75}
-
-out.clear();
-std::set_intersection(a.begin(), a.end(), b.begin(), b.end(),
-                      std::inserter(out, out.end()));
-// out = {75}
-
-out.clear();
-std::set_difference(a.begin(), a.end(), b.begin(), b.end(),
-                    std::inserter(out, out.end()));
-// out = {19, 54}
-\end{lstlisting}
-
-For \texttt{std::unordered\_set}, you write the loops explicitly:
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-std::unordered_set<int> setUnion(const std::unordered_set<int>& a,
-                                 const std::unordered_set<int>& b) {
-    std::unordered_set<int> r(a);
-    r.insert(b.begin(), b.end());
-    return r;
-}
-
-std::unordered_set<int> setIntersect(const std::unordered_set<int>& a,
-                                     const std::unordered_set<int>& b) {
-    // Iterate the smaller one -- saves time.
-    const auto& smaller = a.size() <= b.size() ? a : b;
-    const auto& larger  = a.size() <= b.size() ? b : a;
-    std::unordered_set<int> r;
-    for (int x : smaller)
-        if (larger.count(x)) r.insert(x);
-    return r;
-}
-
-std::unordered_set<int> setDiff(const std::unordered_set<int>& a,
-                                const std::unordered_set<int>& b) {
-    std::unordered_set<int> r;
-    for (int x : a)
-        if (!b.count(x)) r.insert(x);
-    return r;
-}
-\end{lstlisting}
-
-\begin{warnbox}
-\textbf{Always iterate the smaller set.} For intersection, this shaves the cost from $O(|A|)$ to $O(\min(|A|, |B|))$ -- a huge win when one side is tiny. It's the single most common optimization in real set-heavy code.
-\end{warnbox}
-
-\subsection*{Cost analysis}
-
-Assume hash-based sets with $O(1)$ expected insert and lookup.
-
-\begin{center}
-\begin{tabular}{lll}
+\subsection*{Cost table}
+\begin{tabular}{@{}l|ll@{}}
+                  & \textbf{hashed}        & \textbf{sorted (tree)}\\
 \hline
-Operation & Cost & Why \\
-\hline
-Union $|A| + |B|$ & $O(|A| + |B|)$ & insert all \\
-Intersection & $O(\min(|A|, |B|))$ & scan smaller, probe larger \\
-Difference $A \setminus B$ & $O(|A|)$ & scan $A$, probe $B$ \\
-Subset $A \subseteq B$ & $O(|A|)$ & scan $A$, probe $B$ \\
-\hline
+contains          & $O(1)^*$               & $O(\log n)$\\
+add / remove      & $O(1)^*$               & $O(\log n)$\\
+union / inters.   & $O(|A| + |B|)$         & $O(|A| + |B|)$\\
+sorted iter       & $O(n \log n)$          & $O(n)$\\
+\texttt{lower\_bound} & --                 & $O(\log n)$
 \end{tabular}
-\end{center}
+$^*$ expected.
 
-For sorted (tree) sets, add a $\log n$ factor for each membership probe.
+\columnbreak
 
-\begin{ideabox}
-\textbf{Sorted vs.\ hashed, revisited.} With sorted sets, the two-pointer merge algorithm computes union/intersection/difference in $O(|A| + |B|)$, matching the hashed version without any per-element hash. On small sets that fit in cache, the sorted version can actually be \emph{faster}, because hashing has nontrivial constant overhead. For large sets with large element types, hashed wins. Benchmark before picking.
-\end{ideabox}
+\subsection*{Static vs.\ dynamic}
+\textbf{Static set}: fixed membership after construction; supports
+read-only + new-producing ops. Allows compact encodings (sorted
+array, bitset, perfect hash, Bloom filter).
+\textbf{Dynamic}: supports \texttt{add} / \texttt{remove}. Pay more
+per element for that flexibility.
 
-\subsection*{Filter and map}
-
-Two higher-order operations borrowed from functional programming:
-
-\begin{defnbox}
-\textbf{Filter.} Given a predicate $p$, return the subset of elements for which $p$ is true.
-
-\textbf{Map.} Given a function $f$, return the set $\{f(x) : x \in X\}$. The result may be smaller than the input if $f$ is not injective (multiple inputs can map to the same output).
-\end{defnbox}
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-#include <unordered_set>
-#include <functional>
-
-template<typename T, typename Pred>
-std::unordered_set<T> setFilter(const std::unordered_set<T>& s, Pred p) {
-    std::unordered_set<T> r;
-    for (const auto& x : s) if (p(x)) r.insert(x);
-    return r;
-}
-
-template<typename T, typename U, typename Fn>
-std::unordered_set<U> setMap(const std::unordered_set<T>& s, Fn f) {
-    std::unordered_set<U> r;
-    for (const auto& x : s) r.insert(f(x));
-    return r;
-}
-
-// Usage:
-auto evens = setFilter(nums, [](int x){ return x % 2 == 0; });
-auto lengths = setMap<std::string, size_t>(words,
-                   [](const std::string& w){ return w.size(); });
-\end{lstlisting}
-
-Python / JavaScript / Rust / Haskell / Scala all have these as first-class methods on their set (and collection) types. C++ got closer in C++20 with \texttt{std::ranges::filter\_view} and \texttt{std::ranges::transform\_view}, but the syntax is still clunky compared to \texttt{xs.filter(...).map(...)} in better-styled languages.
-
-\begin{notebox}
-\textbf{Filter is a subset; map is not always.} Filter always returns a subset of the original. Map can shrink the set if collisions occur under $f$: $\{1, -1\} \to \{1\}$ via $f(x) = x^2$. If you need one-to-one semantics, use a list or multiset and track duplicates explicitly.
-\end{notebox}
-
-\section{12.3 Static vs.\ Dynamic Sets}
-
-\begin{defnbox}
-\textbf{Dynamic set.} Can be modified after construction -- supports add and remove.
-\textbf{Static set.} Fixed at construction time. Supports read-only and new-set-producing operations (union, intersection, filter, \ldots), but not in-place add or remove.
-\end{defnbox}
-
-\begin{center}
-\begin{tabular}{lll}
+\begin{tabular}{@{}l|l|l@{}}
+\textbf{need}       & \textbf{static}       & \textbf{dynamic}\\
 \hline
-Operation & Dynamic & Static \\
-\hline
-Construct from collection & yes & yes \\
-Count elements & yes & yes \\
-Search / contains & yes & yes \\
-\textbf{Add} & yes & no \\
-\textbf{Remove} & yes & no \\
-Union / intersection / difference (return new) & yes & yes \\
-Filter / map (return new) & yes & yes \\
-\hline
+build once, query  & yes                   & overkill\\
+small memory       & yes                   & harder\\
+mutate at runtime  & no                    & yes\\
+tuned lookup       & perfect hash, bitset  & hash / tree
 \end{tabular}
-\end{center}
 
-\subsection*{Why would you ever want a static set?}
+\subsection*{Containers you'll actually use}
+\begin{tabular}{@{}l|l|l@{}}
+\textbf{container}               & \textbf{order}  & \textbf{impl.}\\
+\hline
+\texttt{std::set}                & sorted          & red-black tree\\
+\texttt{std::multiset}           & sorted, dups    & red-black tree\\
+\texttt{std::unordered\_set}     & hash order      & open-addr.\ hash\\
+Python \texttt{set}              & hash            & open-addr.\ hash\\
+Python \texttt{frozenset}        & hash, immutable & open-addr.\ hash\\
+Rust \texttt{HashSet} / \texttt{BTreeSet} & -- / sorted & hash / B-tree
+\end{tabular}
 
-\begin{ideabox}
-A static set is \emph{immutable}. That buys you several things a mutable set can't:
-\begin{itemize}[leftmargin=*]
-    \item \textbf{Thread safety for free.} If nothing can change, no locks are needed.
-    \item \textbf{Aggressive optimization.} The implementation can use a perfect hash (no collisions), a sorted array (cache-friendly, no per-bucket pointers), or compile-time constants.
-    \item \textbf{Safe sharing.} Hand the same set to a dozen consumers and no one can break it.
-    \item \textbf{Hashability.} An immutable set can itself be a key in another set or map. (Python's \texttt{frozenset} exists for exactly this.)
+\subsection*{Picking the implementation}
+\begin{itemize}
+    \item Just need $O(1)$ membership, order doesn't matter:
+    \texttt{unordered\_set}.
+    \item Need sorted iteration, range queries, or
+    \texttt{lower\_bound}: \texttt{set}.
+    \item Fixed membership, lookup-only: sorted array +
+    \texttt{std::binary\_search}, bitset, or perfect hash.
+    \item Extremely tight memory, ``probably in set'' OK:
+    Bloom filter (approximate).
 \end{itemize}
-\end{ideabox}
 
-\subsection*{Choosing in practice}
+\subsection*{Common patterns}
+\begin{itemize}
+    \item \textbf{Dedup}: \texttt{std::set<int> s(v.begin(), v.end())}
+    or \texttt{sort + unique + erase}.
+    \item \textbf{Seen-set} during traversal: avoid cycles in BFS / DFS.
+    \item \textbf{Set as filter}: keep only items whose key is in a
+    whitelist / not in a blacklist.
+\end{itemize}
 
-\begin{center}
-\begin{tabular}{ll}
-\hline
-Use case & Choice \\
-\hline
-Allowed-country codes loaded at startup & Static -- set once, read forever \\
-Stop-words for a search engine & Static -- fixed per language \\
-Users currently online & Dynamic -- changes constantly \\
-Session IDs issued today & Dynamic -- grows over time \\
-Finalized vote tallies (after the election) & Static -- sealed after a deadline \\
-Shopping cart contents & Dynamic -- user modifies it \\
-\hline
-\end{tabular}
-\end{center}
+\subsection*{Top gotchas}
+\begin{itemize}
+    \item Relying on iteration order in \texttt{unordered\_set} --
+    implementation-defined and libc-version-dependent.
+    \item Mutating elements in a sorted set in a way that changes
+    their sort key -- invalidates the invariant silently.
+    \item Using \texttt{set\_intersection} / \texttt{set\_union} from
+    \texttt{<algorithm>} on \emph{unsorted} ranges -- requires
+    sorted input.
+    \item Writing $A \setminus B$ as $A - B$ in math then forgetting
+    which STL algorithm corresponds
+    (\texttt{set\_difference}).
+    \item Assuming ``const'' means truly immutable in C++ -- someone
+    can \texttt{const\_cast} it away.
+\end{itemize}
 
-\subsection*{C++ idioms for static sets}
-
-C++ doesn't have a built-in frozen set. Common workarounds:
-
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-// 1. Wrap in const.
-const std::unordered_set<std::string> STOP_WORDS{"a", "an", "the", "of"};
-
-// 2. C++17 initializer at static scope.
-constexpr std::array<int, 4> ALLOWED_CODES{200, 301, 302, 404};
-// Binary-search in a sorted array -- cache-friendly, no dynamic allocation.
-
-// 3. Compile-time perfect hash via gperf, for pathological performance.
-\end{lstlisting}
-
-\begin{notebox}
-\textbf{Immutability is a spectrum.} ``Const'' in C++ is syntactic -- someone can still \texttt{const\_cast} it away. Python's \texttt{frozenset} is structurally immutable. Rust and Haskell make the distinction first-class. If your codebase has a convention that ``const means truly immutable,'' lean into static sets; if not, you're one \texttt{const\_cast} from heisenbugs.
-\end{notebox}
-
-\subsection*{Sets you'll actually use}
-
-\begin{center}
-\begin{tabular}{lll}
-\hline
-Container & Order & Typical implementation \\
-\hline
-\texttt{std::set} & sorted & red-black tree (ch.\ 9) \\
-\texttt{std::unordered\_set} & hash order & open-addressed hash table \\
-\texttt{std::multiset} & sorted, allows dups & red-black tree \\
-Python \texttt{set} & hash order & open-addressed hash table \\
-Python \texttt{frozenset} & hash order & immutable hash table \\
-Java \texttt{HashSet} / \texttt{TreeSet} & -- & hash / red-black \\
-Rust \texttt{HashSet} / \texttt{BTreeSet} & -- & hash / B-tree \\
-\hline
-\end{tabular}
-\end{center}
-
-\begin{ideabox}
-\textbf{Chapter takeaway.} Sets are the deduplicating, order-free, membership-query-oriented sibling of lists. Once you can think of a problem as ``this is a collection where I only care about distinct membership,'' half the algorithm writes itself: iterate one side, probe the other. Pick hash-based when order doesn't matter and you want $O(1)$ membership; pick tree-based when you want sorted iteration or \texttt{lower\_bound}; pick static/frozen when no one should be adding or removing elements. The ADT is simple; the engineering choices it unlocks are not.
-\end{ideabox}
-
+\end{multicols}
 \end{document}
