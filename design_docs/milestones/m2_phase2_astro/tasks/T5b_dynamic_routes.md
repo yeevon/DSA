@@ -1,6 +1,6 @@
 # T5b — Dynamic chapter routes + pandoc → MDX safety bridge
 
-**Status:** todo
+**Status:** ✅ done 2026-04-23 (1 cycle — see [`../issues/T5b_issue.md`](../issues/T5b_issue.md))
 **Depends on:** T5a (chapter index + chapters.json migration); T2 (filter); T3 (callout components); T4 (build pipeline)
 **Blocks:** T6 (deploy needs functional chapter routes), T8
 

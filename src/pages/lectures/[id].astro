@@ -1,0 +1,38 @@
+---
+// src/pages/lectures/[id].astro
+//
+// M2 Task T5b — dynamic route for chapter lectures.
+// Renders src/content/lectures/ch_N.mdx through Astro's MDX
+// integration, resolving the embedded <Definition>, <KeyIdea>,
+// <Gotcha>, <Example>, <Aside>, <CodeBlock> JSX tags through T3's
+// callout component library via the `components` prop on <Content />.
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Definition from '../../components/callouts/Definition.astro';
+import KeyIdea from '../../components/callouts/KeyIdea.astro';
+import Gotcha from '../../components/callouts/Gotcha.astro';
+import Example from '../../components/callouts/Example.astro';
+import Aside from '../../components/callouts/Aside.astro';
+import CodeBlock from '../../components/callouts/CodeBlock.astro';
+
+export async function getStaticPaths() {
+  const lectures = await getCollection('lectures');
+  return lectures.map((entry) => ({
+    params: { id: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<Base title={`${entry.data.title} — Lectures`}>
+  <header>
+    <h1>{entry.data.title} — Lectures</h1>
+    <p><em>{entry.data.subtitle}</em></p>
+  </header>
+  <article>
+    <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock }} />
+  </article>
+</Base>

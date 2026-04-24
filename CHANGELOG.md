@@ -14,6 +14,56 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Added** **M2 Task T5b — Dynamic chapter routes + pandoc → MDX
+  safety bridge.** Closes out the original T5 scope after the T5
+  decompose. Three deliverables:
+  (1) Extended `mdxSafetyRewrite()` in `scripts/build-content.mjs`
+  with a brace-escape pass: walks the document with a small state
+  machine (frontmatter / fenced-code / text), and inside text-mode
+  escapes literal `{` → `\{` and `}` → `\}` while skipping inline
+  code spans (backticks), inline math (`$…$`), display math
+  (`$$…$$`), JSX/HTML tags (`<Tag …>`), and existing MDX comments
+  (`{/* … */}`). Pandoc-emitted set-notation prose
+  (`{`if`, `else`, `for`, …}`), LaTeX-flavoured author notation
+  in practice files (`\emph{lazy-delete}`, `\texttt{dist[u]}`),
+  and math content like `${a, b}$` all parse cleanly under MDX
+  now. Practice files also routed through `mdxSafetyRewrite()`
+  (T4 originally only ran it on lectures + notes; practice was
+  copied verbatim).
+  (2) `scripts/pandoc-filter.lua` `CodeBlock` handler now strips
+  attributes + identifier and forces `classes = {"cpp"}`. Pandoc
+  was preserving the original `lstlisting` options
+  (`basicstyle="…"`, `frame="single"`, `language="C++"`) as fence
+  attributes — Shiki then read the attribute block `{.c++ basicstyle=…}`
+  as the language string and fell back to plaintext on every code
+  block. Stripping cleans the fence info to bare `cpp`.
+  (3) Three dynamic route files restored from parking + adapted to
+  Astro 6 API: `src/pages/lectures/[id].astro`,
+  `src/pages/notes/[id].astro`, `src/pages/practice/[id].astro`.
+  Each uses `getCollection()` + `render()` (the new Astro 6
+  separate-import API; the old `entry.render()` instance method
+  was removed). Each passes T3's six callout components via the
+  `<Content components={…}>` prop. Schema lifted from parking to
+  `src/content.config.ts`. `src/pages/index.astro` "T5b pending"
+  callout removed since chapter routes now resolve.
+  Smoke (auditor): clean-state `npm run build` exits 0 in 8.33 s,
+  produces **38 pages** (`/index.html`, `/callouts-test/index.html`,
+  + 12 lectures + 12 notes + 12 practice = 36 chapter routes —
+  ch_8 absent). `npm run preview` + `curl http://localhost:<port>/DSA/lectures/ch_1/`
+  returns 245 KB containing: 5 distinct callout class names
+  (callout-definition, callout-keyidea, callout-gotcha,
+  callout-example, callout-aside), 79 `id="ch_1-…"` anchors,
+  147 `class="katex"` math renders (remark-math + rehype-katex
+  pipeline), 76 syntax-highlighted Shiki code blocks. Spot-curls
+  of `/DSA/notes/ch_3/` (65 KB) and `/DSA/practice/ch_5/` (32 KB)
+  also resolve. Files added: `src/content.config.ts` (lifted from
+  parking), `src/pages/{lectures,notes,practice}/[id].astro`. Files
+  changed: `scripts/build-content.mjs` (+~90 lines for
+  `escapeBraces` + `escapeLineBraces` + practice rewrite path),
+  `scripts/pandoc-filter.lua` (CodeBlock handler), `src/pages/index.astro`
+  (drop pending callout). ACs from
+  `tasks/T5b_dynamic_routes.md`: 6/6 met; auditor smoke checks
+  cited above.
 - **Added** **M2 Task T5a — Chapter-listing index + chapters.json
   migration** (decomposed from original T5 — see Decided entry
   below). Three deliverables:

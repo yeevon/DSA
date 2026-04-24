@@ -93,15 +93,27 @@ function extractSections(mdx, chapterId) {
   return sections;
 }
 
-// MDX-safety pass over the pandoc output. Three cleanups:
+// MDX-safety pass over the pandoc output. T5b extended pass.
+// Cleanups:
 //   1. Header anchors: pandoc emits `## Title {#anchor-id}`. MDX's
 //      parser reads `{…}` as a JSX expression and chokes on the
 //      `#` prefix. Rewrite to a leading `<a id="…">` element.
 //   2. HTML comments: pandoc inserts `<!-- -->` to disambiguate
 //      adjacent markdown elements. MDX uses `{/* */}` for comments
 //      and rejects `<!--`. Convert.
-//   3. (Math is handled by remark-math at the integration layer,
-//      not here.)
+//   3. Brace escape: chapter prose and pandoc's math-as-text output
+//      both contain literal `{` and `}` (set notation, math like
+//      `${a, b}$`, etc.). MDX reads every `{` as a JSX expression
+//      opener and crashes on the contents. Walk the document with
+//      a small state machine that escapes braces in plain-text
+//      contexts but skips them inside:
+//        - YAML frontmatter at top of file
+//        - fenced code blocks (``` ... ```)
+//        - inline code spans (`...`)
+//        - inline math (`$...$`) and display math (`$$...$$`) — leave
+//          intact for remark-math to parse later
+//        - JSX/HTML tags emitted by step 1 above (`<a id=…>`,
+//          `<Definition title=…>`, etc. from the Lua filter)
 // Run AFTER section extraction (header rewrite drops the `{#…}`
 // syntax that extractSections() depends on).
 function mdxSafetyRewrite(mdx) {
@@ -110,7 +122,163 @@ function mdxSafetyRewrite(mdx) {
     '<a id="$3"></a>\n\n$1 $2',
   );
   out = out.replace(/<!--([\s\S]*?)-->/g, '{/*$1*/}');
+  out = escapeBraces(out);
   return out;
+}
+
+function escapeBraces(mdx) {
+  const lines = mdx.split('\n');
+  const result = [];
+  let inFrontmatter = false;
+  let frontmatterDone = false;
+  let inFence = false;
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+
+    // Frontmatter handling: top-of-file `---\n...\n---`. Pass through
+    // as-is — never escape inside YAML.
+    if (li === 0 && line === '---') {
+      inFrontmatter = true;
+      result.push(line);
+      continue;
+    }
+    if (inFrontmatter) {
+      result.push(line);
+      if (line === '---') {
+        inFrontmatter = false;
+        frontmatterDone = true;
+      }
+      continue;
+    }
+
+    // Fenced code blocks: opening / closing fence is `^```` (with or
+    // without language tag). Pass through code lines verbatim.
+    if (/^```/.test(line)) {
+      inFence = !inFence;
+      result.push(line);
+      continue;
+    }
+    if (inFence) {
+      result.push(line);
+      continue;
+    }
+
+    // Indented code blocks (4-space prefix). Markdown-strict rule;
+    // pandoc emits these for some constructs. Pass through.
+    if (/^    /.test(line) && !/^    [-*+]/.test(line)) {
+      result.push(line);
+      continue;
+    }
+
+    result.push(escapeLineBraces(line));
+  }
+  return result.join('\n');
+}
+
+function escapeLineBraces(line) {
+  let out = '';
+  let i = 0;
+  while (i < line.length) {
+    const c = line[i];
+
+    // Already-escaped brace: pass the backslash + brace through.
+    if (c === '\\' && i + 1 < line.length && (line[i + 1] === '{' || line[i + 1] === '}')) {
+      out += line.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+
+    // Inline code span: from one backtick to the next on the same line.
+    // Pass through verbatim so e.g. `vector<T>` and `{key: val}` in
+    // code don't get mangled.
+    if (c === '`') {
+      const end = line.indexOf('`', i + 1);
+      if (end < 0) {
+        // Unmatched backtick — treat the rest of the line as text.
+        out += escapeRest(line.slice(i));
+        return out;
+      }
+      out += line.slice(i, end + 1);
+      i = end + 1;
+      continue;
+    }
+
+    // Math: pass through `$...$` (inline) and `$$...$$` (display)
+    // verbatim so remark-math sees the original LaTeX. Display first.
+    if (c === '$' && line[i + 1] === '$') {
+      const end = line.indexOf('$$', i + 2);
+      if (end < 0) {
+        out += line.slice(i);
+        return out;
+      }
+      out += line.slice(i, end + 2);
+      i = end + 2;
+      continue;
+    }
+    if (c === '$') {
+      const end = line.indexOf('$', i + 1);
+      if (end < 0) {
+        // Unmatched $ — treat as literal $.
+        out += '$';
+        i += 1;
+        continue;
+      }
+      out += line.slice(i, end + 1);
+      i = end + 1;
+      continue;
+    }
+
+    // JSX / HTML tag: `<Name ...>` or `<Name>` or `<Name/>` or
+    // `</Name>` — pass through verbatim. Bracketed prose (`< 5`) is
+    // distinguished by the next char being non-alphabetic / non-slash.
+    if (c === '<' && /[A-Za-z\/]/.test(line[i + 1] || '')) {
+      const end = line.indexOf('>', i);
+      if (end < 0) {
+        // Tag spans multiple lines (rare in our output) — pass the
+        // rest through and continue without escape.
+        out += line.slice(i);
+        return out;
+      }
+      out += line.slice(i, end + 1);
+      i = end + 1;
+      continue;
+    }
+
+    // MDX comment: `{/* ... */}` — pass through verbatim.
+    if (c === '{' && line[i + 1] === '/' && line[i + 2] === '*') {
+      const end = line.indexOf('*/}', i);
+      if (end < 0) {
+        // Comment opens but doesn't close on this line; escape and
+        // bail (rare).
+        out += '\\{';
+        i += 1;
+        continue;
+      }
+      out += line.slice(i, end + 3);
+      i = end + 3;
+      continue;
+    }
+
+    if (c === '{') {
+      out += '\\{';
+      i += 1;
+      continue;
+    }
+    if (c === '}') {
+      out += '\\}';
+      i += 1;
+      continue;
+    }
+
+    out += c;
+    i += 1;
+  }
+  return out;
+}
+
+function escapeRest(text) {
+  return text.replace(/([{}])/g, '\\$1');
 }
 
 // Hand-roll YAML rather than pull a dep. Schema is small + stable
@@ -188,10 +356,14 @@ async function buildChapter(n) {
   // existing Jekyll frontmatter (`layout: default` / `permalink:`)
   // that would render as a stray `---` thematic-break block after
   // we prepend our own frontmatter; strip it before injecting.
+  // Also runs through mdxSafetyRewrite() so LaTeX-flavoured author
+  // notation (`\emph{lazy-delete}`, `\texttt{dist[u]}`, etc.) and
+  // any prose braces don't trip MDX's JSX expression parser.
   const practiceOut = resolve(REPO_ROOT, `src/content/practice/${chapterId}.mdx`);
   const practiceMd = await readFile(practiceSrc, 'utf8');
   const stripped = practiceMd.replace(/^---\n[\s\S]*?\n---\n/, '');
-  await writeFile(practiceOut, injectFrontmatter(stripped, baseMeta));
+  const practiceRewritten = mdxSafetyRewrite(stripped);
+  await writeFile(practiceOut, injectFrontmatter(practiceRewritten, baseMeta));
 
   return { chapterId, sections: sections.length };
 }

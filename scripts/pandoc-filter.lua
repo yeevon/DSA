@@ -132,14 +132,19 @@ local function Div(elem)
 end
 
 -- Force every CodeBlock (which is what pandoc emits for lstlisting,
--- verbatim, etc.) to carry an explicit language. Default cpp since
--- the chapter set targets C++17 and the only non-C++ blocks are
--- pseudo-code in ch_2 (treat as cpp for syntax highlighting; close
--- enough). Any existing class on the CodeBlock takes precedence.
+-- verbatim, etc.) to carry exactly the `cpp` class. Pandoc preserves
+-- the original lstlisting options (`basicstyle`, `frame`,
+-- `language="C++"`) as fence attributes — Shiki then sees the
+-- attribute block `{.c++ basicstyle=…}` as the language string and
+-- falls back to plaintext. Strip attrs + identifier; replace classes
+-- with just `{cpp}`. The chapter set targets C++17 uniformly; the
+-- only non-C++ blocks are pseudo-code in ch_2 which renders close
+-- enough as cpp. (T2 audit ISS for lang variety; revisit if a
+-- chapter ships non-C++ that needs distinct highlighting.)
 local function CodeBlock(elem)
-  if #elem.classes == 0 then
-    elem.classes = { "cpp" }
-  end
+  elem.classes = { "cpp" }
+  elem.attributes = {}
+  elem.identifier = ""
   return elem
 end
 

@@ -1,16 +1,12 @@
 ---
 // src/pages/index.astro
 //
-// M2 Task T5a — chapter-listing index. Replaces the T1 placeholder.
-// Reads scripts/chapters.json directly rather than going through
-// Astro content collections — T5a deliberately decouples the index
-// from MDX parsing because the .mdx bodies emitted by T4 trip MDX's
-// JSX expression parser on literal `{` / `<` characters in chapter
-// content (set notation, math). Wiring the schema and the
-// dynamic chapter routes that depend on parsed MDX bodies is T5b's
-// scope; the schema work is parked at
-// design_docs/milestones/m2_phase2_astro/parking/T5b-content.config.ts
-// for T5b to lift back into src/content.config.ts.
+// M2 Tasks T5a + T5b — chapter-listing index. Reads chapter
+// metadata from scripts/chapters.json directly (kept after T5b
+// because the index doesn't need to render MDX bodies — chapter
+// routes own that). The MDX-pandoc bridge work in T5b unblocked
+// the dynamic [id].astro routes; the chapter links here now
+// resolve to rendered chapter pages.
 import Base from '../layouts/Base.astro';
 import chapters from '../../scripts/chapters.json';
 
@@ -27,11 +23,6 @@ const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
     Source taught in pseudocode; this rewrite ports everything to C++17 and
     augments with CLRS + MIT OCW 6.006 material.
   </p>
-
-  <p><strong>Chapter routes pending M2 T5b.</strong> The links below resolve
-  once T5b lands the dynamic <code>[id].astro</code> routes for lectures /
-  notes / practice and resolves the pandoc → MDX bridge issues blocking
-  chapter-body rendering.</p>
 
   <h2>Required (SNHU CS 300 syllabus)</h2>
   <table>

@@ -51,7 +51,7 @@ Broken out into individual files under [`tasks/`](tasks/README.md).
 | T3  | [Callout component library](tasks/T3_callout_components.md)       | todo   |
 | T4  | [Pandoc → Astro build pipeline](tasks/T4_build_pipeline.md)       | todo   |
 | T5a | [Chapter-listing index + chapters.json migration](tasks/T5a_content_collections.md) | ✅ done 2026-04-23 |
-| T5b | [Dynamic chapter routes + pandoc → MDX safety bridge](tasks/T5b_dynamic_routes.md)  | todo |
+| T5b | [Dynamic chapter routes + pandoc → MDX safety bridge](tasks/T5b_dynamic_routes.md)  | ✅ done 2026-04-23 |
 | T6  | [Replace GitHub Pages workflow](tasks/T6_pages_workflow.md)       | todo   |
 | T7  | [Resolve `phase2_issues.md` items](tasks/T7_phase2_issues_cleanup.md) | todo |
 | T8  | [Delete Jekyll scaffolding](tasks/T8_delete_jekyll.md)            | todo   |
