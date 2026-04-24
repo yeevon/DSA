@@ -23,7 +23,7 @@ The chapter set is small (12 chapters total) so the rail is short. SSR-render th
 2. Implement `LeftRail.astro`:
    - Top-level partition: `required.filter(c => c.required)` and `required.filter(c => !c.required)`.
    - Render a `<nav aria-label="Chapter navigation">` with two `<section>`s, each with an `<h3>` heading ("Required" / "Optional") and a `<ul>` of chapter links.
-   - Each `<li>` = `<a href="/DSA/lectures/<id>/">ch_N — Title</a>`, with `aria-current="page"` when the slug matches.
+   - Each `<li>` = `` <a href={`${baseUrl}/lectures/${c.id}/`}>ch_N — Title</a> `` where `const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');` — matches the existing `src/pages/index.astro` convention (line 16). **Do not hardcode `/DSA/` in the produced HTML.** `astro.config.mjs` sets `base: '/DSA/'` today, but the project-wide convention is to read `BASE_URL` so a forked deploy at a different sub-path doesn't 404. (Resolves MUX-BO-ISS-02 / HIGH-2.) Set `aria-current="page"` when the slug matches.
 3. Implement `CompletionIndicator.astro`:
    - JS island with `client:visible` directive (don't load the script until the rail is visible).
    - On mount: parallel `fetch('/api/read_status?chapter_id=' + id)` for each chapter id in the rail.
@@ -38,6 +38,7 @@ The chapter set is small (12 chapters total) so the rail is short. SSR-render th
 - [ ] `src/components/chrome/LeftRail.astro` exists and renders in the `Base.astro` `left-rail` slot.
 - [ ] `LeftRail` reads `scripts/chapters.json`, partitions Required vs Optional, renders both groups with correct chapter counts (Required=6, Optional=6 — ch_7, ch_9–ch_13).
 - [ ] **Auditor opens** `/DSA/lectures/ch_1/` in `npm run preview`, confirms "Required" group lists ch_1–ch_6 with ch_1 highlighted (`aria-current="page"`).
+- [ ] **BASE_URL convention** (resolves MUX-BO-ISS-02 / HIGH-2 + MUX-BO-DA-1). Auditor `grep -nE '/DSA/' src/components/chrome/LeftRail.astro` returns no matches — links are constructed via `import.meta.env.BASE_URL`. The `-E` (or no `-F`) is deliberate: `grep -F '"/DSA/'` would only catch double-quoted hardcoding and miss template-literal regressions like `` `/DSA/lectures/${id}/` `` and single-quoted `'/DSA/...'` paths — which is exactly the regression class HIGH-2 was meant to prevent. View-source on a built page shows the resolved `/DSA/lectures/ch_1/` href (SSR resolution is fine — only source-code hardcoding is the regression).
 - [ ] **Auditor opens** `/DSA/lectures/ch_9/`, confirms "Optional" group lists ch_7 + ch_9–ch_13 with ch_9 highlighted.
 - [ ] `src/components/chrome/CompletionIndicator.astro` carries `data-interactive-only`. Auditor confirms in static mode (preview, no `/api/health` reachable) the checkmark slot is hidden — list items still visible, no broken JS in console.
 - [ ] **Auditor runs** `npm run dev`, opens a chapter, marks one section read via the M3 `MarkReadButton`, reloads — confirms the chapter's checkmark appears in the rail (whichever rule T2 picks; cite the rule in the audit issue file).

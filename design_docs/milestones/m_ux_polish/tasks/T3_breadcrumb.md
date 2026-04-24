@@ -28,6 +28,7 @@ Per [ADR-0002](../../../adr/0002_ux_layer_mdn_three_column.md), the top breadcru
 4. Render:
    - `<nav class="breadcrumb" aria-label="Chapter context">` outermost.
    - Inside: prev button | path links + current | collection switcher | next button. Use a flexbox row.
+   - **All chapter / collection links use `import.meta.env.BASE_URL`-prefixed paths, not hardcoded `/DSA/...`.** Use `const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');` then construct hrefs as `` `${baseUrl}/lectures/${id}/` `` etc. Matches the `src/pages/index.astro` convention. (Resolves MUX-BO-ISS-02 / HIGH-2.)
 5. Style: sticky `top: 0`, background colour from `chrome.css` to avoid see-through-on-scroll, subtle bottom border to separate from content. Collection switcher pills are simple buttons with active-state highlighting.
 6. Smoke (local): navigate `/DSA/lectures/ch_4/` — breadcrumb shows correct path, collection pill "Lectures" is active, "Notes" pill links to `/DSA/notes/ch_4/`. Prev button goes to ch_3, next to ch_5. Scroll the page — breadcrumb stays at top.
 
@@ -40,6 +41,7 @@ Per [ADR-0002](../../../adr/0002_ux_layer_mdn_three_column.md), the top breadcru
 - [ ] **Auditor opens** `/DSA/lectures/ch_13/`, confirms next button is disabled / hidden (no chapter after ch_13).
 - [ ] **Auditor opens** `/DSA/lectures/ch_7/`, confirms next button points at ch_9 (skipping the absent ch_8 — verifies the `n`-ordering, not slug-arithmetic).
 - [ ] **Auditor scrolls** any long chapter (ch_3 or ch_4 — both 50+ pages of LaTeX) and confirms the breadcrumb stays visible at the top of the viewport (sticky behaviour). Cite the scrolled-state observation in the audit issue file.
+- [ ] **BASE_URL convention** (resolves MUX-BO-ISS-02 / HIGH-2 + MUX-BO-DA-1). Auditor `grep -nE '/DSA/' src/components/chrome/Breadcrumb.astro` returns no matches — every chapter / collection link uses `import.meta.env.BASE_URL`. The `-E` is deliberate: a `-F '"/DSA/'` literal-string match would miss template-literal hardcoding like `` `/DSA/lectures/${id}/` `` (no leading double-quote). Smoke-test instructions referencing `/DSA/lectures/ch_4/` are fine (the auditor runs against the configured base) — only the source-code hrefs must be BASE_URL-prefixed.
 - [ ] All 37 prerendered pages still build (`npm run build` exit 0).
 
 ## Notes

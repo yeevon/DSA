@@ -30,7 +30,7 @@ This is "real entry point rather than chapter-listing table" from the parked nic
 1. Decide: separate `HomeLayout.astro` vs. `Base.astro` with a `variant="home"` prop. Lean: **separate `HomeLayout.astro`** that imports the same chrome primitives but composes them differently (no rails). Keeps `Base.astro`'s logic simple — chapter pages always have rails.
 2. Build `ChapterCard.astro`:
    - Props: `{id, n, title, subtitle, required}` from `chapters.json` row.
-   - Renders a card with chapter number prominent, title, subtitle, and three small links (Lectures / Notes / Practice → `/DSA/lectures/<id>/`, etc.).
+   - Renders a card with chapter number prominent, title, subtitle, and three small links (Lectures / Notes / Practice). Hrefs are `` `${baseUrl}/lectures/${id}/` ``, `` `${baseUrl}/notes/${id}/` ``, `` `${baseUrl}/practice/${id}/` `` where `const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');` — matches the existing `src/pages/index.astro` convention. **Do not hardcode `/DSA/` in the produced HTML.** (Resolves MUX-BO-ISS-02 / HIGH-2.)
    - `data-interactive-only` slot for an optional completion badge (M5 may surface "X of Y sections read").
 3. Build `DashboardSlot.astro`:
    - Props: `{heading, emptyState}` + a default slot.
@@ -49,6 +49,7 @@ This is "real entry point rather than chapter-listing table" from the parked nic
 - [ ] **Static mode** (preview, no `/api/health` reachable) — dashboard slots are hidden via `data-interactive-only`. Auditor cites the DOM observation.
 - [ ] **Interactive mode** (`npm run dev` with state service reachable) — dashboard slots show empty-state messages ("No recent activity yet", "Nothing due"). Auditor cites the DOM observation.
 - [ ] Chapter cards: 6 in Required group (ch_1–ch_6), 6 in Optional group (ch_7, ch_9–ch_13). Each card has working links to `/DSA/lectures/<id>/`, `/DSA/notes/<id>/`, `/DSA/practice/<id>/`. Auditor clicks one of each.
+- [ ] **BASE_URL convention** (resolves MUX-BO-ISS-02 / HIGH-2 + MUX-BO-DA-1). Auditor `grep -nE '/DSA/' src/components/chrome/ChapterCard.astro src/pages/index.astro` returns no matches — every chapter / collection link uses `import.meta.env.BASE_URL`. The `-E` is deliberate: a `-F '"/DSA/'` literal-string match would miss template-literal hardcoding like `` `/DSA/lectures/${id}/` `` (no leading double-quote) and single-quoted `'/DSA/...'` paths. View-source on `dist/client/index.html` shows the SSR-resolved `/DSA/...` hrefs (SSR resolution is fine — only source-code hardcoding is the regression).
 - [ ] All 37 prerendered pages still build (`npm run build` exit 0). The index page itself prerenders correctly.
 
 ## Notes

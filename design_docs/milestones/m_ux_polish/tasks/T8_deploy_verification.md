@@ -20,10 +20,40 @@ M-UX touches every page on the site (new layout shell, new index, re-homed M3 su
 
 ## Steps
 
-1. Capture pre-M-UX baseline:
-   - Pre-M-UX commit was `bf9c773` (M3 close commit). Build that commit's tree (or read its dist/client size from prior records).
-   - Page count baseline: 37.
-   - `dist/client/` size baseline: ~1.6 MB (from M3 T8 verification report).
+0. **Capture baseline before T1 implementation work starts** (resolves MUX-BO-ISS-03 / HIGH-3 + MUX-BO-DA-4 + MUX-BO-DA-5). The `~1.6 MB` figure cited in [`design_docs/m3_deploy_verification.md`](../../../m3_deploy_verification.md) is environment-dependent (Node version, npm cache state) — using it directly against a freshly-built M-UX tree means the `<50KB` budget compares two numbers produced under different environments, which is noise. Instead, **before any T1 code lands**, the auditor (or whoever picks up T1) captures a same-environment baseline.
+
+   **Use a worktree, not a destructive checkout** (per MUX-BO-DA-5). `git checkout bf9c773` from the working branch is destructive — silently discards uncommitted changes that conflict with the target tree, and leaves you on a detached HEAD if you forget to switch back. Worktree avoids both:
+   ```bash
+   git worktree add /tmp/cs-300-baseline bf9c773
+   (cd /tmp/cs-300-baseline && npm ci && npm run build)
+   du -sh /tmp/cs-300-baseline/dist/client/                                        # bytes baseline
+   find /tmp/cs-300-baseline/dist/client -name '*.html' | wc -l                    # should print 37
+   du -cb /tmp/cs-300-baseline/dist/client/_astro/*.js | tail -1                   # JS bundle sum
+   git worktree remove /tmp/cs-300-baseline
+   ```
+   If a worktree isn't an option (e.g., the partition is small): `git stash --include-untracked` first, then `git checkout bf9c773`, then `git checkout -` and `git stash pop` after — and verify `git status` is clean before resuming.
+
+   **Where the baseline gets written** (per MUX-BO-DA-4). Create [`design_docs/milestones/m_ux_polish/issues/pre_m_ux_baseline.md`](../issues/pre_m_ux_baseline.md) (sibling to the breakout audit file). The breakout audit file is ✅ PASS (frozen), and T8's per-task issue file (`issues/T08_issue.md`) won't exist until T8's audit closes — neither is the right home. The dedicated `pre_m_ux_baseline.md` is created at baseline-capture time, holds the three pinned numbers + the exact command output + timestamp + Node/npm versions, and is referenced by Step 1 below + the audit-check bullet. Suggested structure:
+
+   ```markdown
+   # M-UX — pre-M-UX baseline
+   **Captured:** YYYY-MM-DD HH:MM
+   **Commit:** bf9c773 (M3 close)
+   **Environment:** Node X.Y.Z, npm A.B.C, OS …
+   ## Numbers
+   - `du -sh dist/client/`: <bytes>
+   - HTML page count: 37
+   - `_astro/*.js` sum: <bytes>
+   ## Command output
+   <verbatim shell output>
+   ```
+
+   This step is non-skippable — without a same-environment baseline, the `<50KB` budget is unenforceable.
+1. Read pre-M-UX baseline from [`issues/pre_m_ux_baseline.md`](../issues/pre_m_ux_baseline.md) (created in Step 0):
+   - Pre-M-UX commit: `bf9c773` (M3 close commit).
+   - Page count baseline: 37 (verified in Step 0).
+   - `dist/client/` size baseline: pinned figure from `pre_m_ux_baseline.md` (replace any `~1.6 MB` placeholder with the captured value).
+   - If `pre_m_ux_baseline.md` doesn't exist, **stop** — Step 0 was skipped. Re-run Step 0 before continuing.
 2. Build current tree: `npm run build`. Capture:
    - Page count: should still be 37.
    - `dist/client/` total size.
@@ -62,7 +92,9 @@ M-UX touches every page on the site (new layout shell, new index, re-homed M3 su
 ## Acceptance check (auditor smoke test — non-inferential)
 
 - [ ] `design_docs/m_ux_deploy_verification.md` exists with all 5 sections + cited numbers (size deltas, search-term counts, behavioural observations).
-- [ ] **Auditor runs** the build size comparison: pre-M-UX baseline vs current. Page count unchanged at 37. `dist/client/` size delta within budget (<50KB target — if exceeded, document why).
+- [ ] **Pre-M-UX baseline file exists at the pinned location** (resolves MUX-BO-ISS-03 / HIGH-3 + MUX-BO-DA-4) — file is `design_docs/milestones/m_ux_polish/issues/pre_m_ux_baseline.md`, sibling to the breakout audit file. It has the exact `du -sh dist/client/`, page-count, and `_astro/*.js` sum captured at `bf9c773` before T1 started, plus the command output, timestamp, and Node/npm versions. Auditor confirms the file exists and has real numbers (not the M3 T8 report's `~1.6 MB` placeholder).
+- [ ] **Worktree (not destructive checkout) used to capture baseline** (resolves MUX-BO-DA-5) — `pre_m_ux_baseline.md`'s "Command output" section shows `git worktree add` + `git worktree remove` (or, if a worktree was infeasible, an explicit stash-and-restore sequence with a clean `git status` verification). Naked `git checkout bf9c773` followed by `git checkout main` would have risked discarding uncommitted work; the audit-check confirms it didn't happen.
+- [ ] **Auditor runs** the build size comparison: pinned baseline (Step 0) vs current. Page count unchanged at 37. `dist/client/` size delta within budget (<50KB target — if exceeded, document why).
 - [ ] **Auditor runs** static-mode behavioural verification — opens a built chapter page in a browser at 1280px, confirms three-column layout. At 375px, confirms single-column with hamburger drawer. Cites screenshots or DevTools assertions.
 - [ ] **Auditor greps** `dist/client/_astro/*.js` for the 5 server-only terms — all return 0.
 - [ ] M3 T8 deploy contract still preserved: `.github/workflows/deploy.yml` path reads `./dist/client`, `dist/` splits into `client/` + `server/`, no `dist/api/`. Each prerendered page carries the Astro generator meta.
