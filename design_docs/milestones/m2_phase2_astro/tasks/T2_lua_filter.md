@@ -1,6 +1,6 @@
 # T2 — Build pandoc Lua filter (HYBRID per M1 T2 verdict)
 
-**Status:** todo
+**Status:** ✅ done 2026-04-23 (1 cycle — see [`../issues/T2_issue.md`](../issues/T2_issue.md))
 **Depends on:** —
 **Blocks:** T4 (build pipeline needs the filter); transitively T5, T6, T8
 

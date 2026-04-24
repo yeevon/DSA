@@ -1,6 +1,6 @@
 # T1 — Scaffold Astro project
 
-**Status:** todo
+**Status:** ✅ done 2026-04-23 (1 cycle — see [`../issues/T1_issue.md`](../issues/T1_issue.md))
 **Depends on:** —
 **Blocks:** T3, T4, T5, T6, T8 (and effectively the whole milestone)
 

@@ -1,6 +1,6 @@
 # T4 — Pandoc → Astro build pipeline
 
-**Status:** todo
+**Status:** ✅ done 2026-04-23 (1 cycle — see [`../issues/T4_issue.md`](../issues/T4_issue.md))
 **Depends on:** T1 (Astro scaffold), T2 (Lua filter)
 **Blocks:** T5, T6, T8
 

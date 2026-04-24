@@ -1,6 +1,6 @@
 # T3 — Callout component library
 
-**Status:** todo
+**Status:** ✅ done 2026-04-23 (2 cycles — see [`../issues/T3_issue.md`](../issues/T3_issue.md); option A picked on ISS-01)
 **Depends on:** T1
 **Blocks:** end-to-end content render; T6 deploy
 

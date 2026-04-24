@@ -58,7 +58,7 @@ One Lua filter, one pandoc invocation per `.tex` file. Filter responsibilities:
   - `warnbox` → `<Gotcha>`
   - `examplebox` → `<Example>`
   - `notebox` → `<Aside>`
-- Map `lstlisting` → `<CodeBlock lang="…">`. Preserve language hint.
+- Map `lstlisting` → `<CodeBlock lang="cpp">`. *(M2 T2/T5b implementation detail, 2026-04-23: the filter unconditionally sets `cpp` and clears any source-derived attrs because the chapter set is uniformly C++17 and pandoc preserves the lstlisting options as fence attributes that Shiki then mis-reads as the language hint. Per-class language detection — the original "preserve language hint" wording — is deferred until a non-C++ block lands; tracked at §6 below as a forward-work item against the post-build optional-content audit.)*
 - Strip preamble-only commands; pandoc's default LaTeX reader handles the rest.
 - Emit section anchors as `<a id="ch_N-section-slug">`. These are the stable refs used by SQLite `sections.anchor`, read-status tracking, and annotation targeting.
 
@@ -351,3 +351,4 @@ Not because unimportant — because already settled elsewhere or deferred to the
 - TTS provider choice (Phase 7 open question).
 - Question prompt corpus shape under `coding_practice/` (Phase 4 open question; see `roadmap_addenda.md`).
 - Phase 1 content acceptance criteria (deferred; see `roadmap_addenda.md`).
+- **Per-language `<CodeBlock>` syntax detection** (forward-work item, M2 T2/T5b implementation deferred). The Lua filter at `scripts/pandoc-filter.lua` currently maps every `CodeBlock` to `cpp` since the SNHU-required arc (ch_1–ch_6) is uniformly C++17; pseudo-code in ch_2 renders close enough as cpp. When the post-build optional-content audit augments ch_7 / ch_9–ch_13, any chapter that introduces a non-C++ block (Python, shell, SQL, etc. — none today) must reintroduce per-class language detection in the filter: read the source `\begin{lstlisting}[language=…]` opt-arg if present and set the `CodeBlock.classes` accordingly, falling back to `cpp` only when no hint exists. Trigger: first non-C++ chapter block. Owner: post-build content audit Builder. See `design_docs/m2_raw_passthrough_sweep.md` "Forward link" for the pandoc-side counterpart.

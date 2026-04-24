@@ -9,13 +9,13 @@ otherwise.
 
 | ID  | Task                                                              | Status | Depends on    | Est. session size |
 |-----|-------------------------------------------------------------------|--------|---------------|-------------------|
-| T1  | [Scaffold Astro project](T1_scaffold_astro.md)                    | todo   | —             | < 1 session       |
-| T2  | [Build pandoc Lua filter (HYBRID)](T2_lua_filter.md)              | todo   | —             | 1–2 sessions      |
-| T3  | [Callout component library](T3_callout_components.md)             | todo   | T1            | 1 focused session |
-| T4  | [Pandoc → Astro build pipeline](T4_build_pipeline.md)             | todo   | T1, T2        | 1 focused session |
+| T1  | [Scaffold Astro project](T1_scaffold_astro.md)                    | ✅ done 2026-04-23 | — | < 1 session  |
+| T2  | [Build pandoc Lua filter (HYBRID)](T2_lua_filter.md)              | ✅ done 2026-04-23 | — | 1–2 sessions |
+| T3  | [Callout component library](T3_callout_components.md)             | ✅ done 2026-04-23 (2 cycles) | T1 | 1 focused session |
+| T4  | [Pandoc → Astro build pipeline](T4_build_pipeline.md)             | ✅ done 2026-04-23 | T1, T2 | 1 focused session |
 | T5a | [Chapter-listing index + chapters.json migration](T5a_content_collections.md) | ✅ done 2026-04-23 | T1, T4 | 1 focused session |
 | T5b | [Dynamic chapter routes + pandoc → MDX safety bridge](T5b_dynamic_routes.md)  | ✅ done 2026-04-23 | T5a, T2, T3, T4 | 1–2 sessions      |
-| T6  | [Replace GitHub Pages workflow](T6_pages_workflow.md)             | todo   | T1, T3, T4, T5b | < 1 session      |
+| T6  | [Replace GitHub Pages workflow](T6_pages_workflow.md)             | 🚧 blocked on user | T1, T3, T4, T5b | < 1 session |
 | T7  | [Resolve `phase2_issues.md` items](T7_phase2_issues_cleanup.md)   | ✅ done 2026-04-23 | T2 (or T4) | < 1 session |
 | T8  | [Delete Jekyll scaffolding](T8_delete_jekyll.md)                  | blocked | T6 (one green cycle) | < 1 session |
 

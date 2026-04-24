@@ -14,6 +14,56 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Fixed** **M2 deep-analysis follow-ups (H1, H2, M1, M2, L3, L4).**
+  Outcome of the M2 deep-analysis audit; all locally-actionable
+  drift cleaned up.
+  **H1 — status flips:** T1, T2, T3, T4 per-task spec status lines
+  flipped from `todo` to `✅ done 2026-04-23` with cycle counts
+  + issue-file links; T8 spec status set to `🚧 blocked on T6`;
+  `tasks/README.md` index rows for T1, T2, T3, T4 set to done and
+  T6 set to blocked-on-user; same flips on `m2/README.md` task
+  table. Closes the meta-audit finding that the per-task
+  /clean-implement cycles only updated the audit issue files
+  (the audit's *output*) but never the spec/index status (the
+  human-scanned surface).
+  **H2 — Done-when checkboxes:** 6 of 9 M2 README "Done when"
+  bullets flipped from `[ ]` to `[x]` with citation parentheticals
+  pointing at the per-task issue files. The 2 remaining unchecked
+  bullets (T6 GitHub Pages deploy, T8 Jekyll removal) genuinely
+  block on user action and stay that way until T6+T8 land.
+  **M1 — architecture.md §1 amendment:** the lstlisting line now
+  reads `<CodeBlock lang="cpp">` (was `<CodeBlock lang="…">`) with
+  an inline parenthetical explaining the M2 T2/T5b implementation
+  choice (uniform cpp because chapters target C++17; Shiki
+  mis-reads pandoc's lstlisting attrs as the language string).
+  Aligns spec wording with the actual filter behaviour.
+  **L4 — architecture.md §6 forward-work item:** new bullet under
+  "Out of scope" naming per-language `<CodeBlock>` syntax detection
+  as a post-build content-audit Builder responsibility, triggered
+  by the first non-C++ chapter block landing. Cross-references
+  the M2 T2 sweep doc.
+  **M2 — `parking/` directory removed.** `design_docs/milestones/m2_phase2_astro/parking/`
+  emptied during T5b's schema lift; `rmdir` finishes the cleanup.
+  **L3 — "cheat sheet" → "compact notes" wording in lectures.tex
+  bookend.** All 6 SNHU-required chapters' "Companion materials"
+  blocks updated. ch_1 used a different phrasing
+  ("A one-page cheat sheet for this chapter lives at...") rewritten
+  to "A two-page compact notes reference for this chapter lives
+  at..."; ch_2–ch_6 used "One-page cheat sheet:" rewritten to
+  "Compact notes:". All 6 `lectures.pdf` rebuild clean
+  (`pdflatex -interaction=nonstopmode -halt-on-error` exit 0; page
+  counts unchanged from T7's rebuild: ch_1=36, ch_2=34, ch_3=53,
+  ch_4=51, ch_5=26, ch_6=31). Closes T7 ISS-01.
+  L1 (pandoc include-file warning) left as-is per user direction;
+  L2 (jekyll-polish memory) genuinely waits for T8 to execute.
+  Files changed: `design_docs/architecture.md`,
+  `design_docs/milestones/m2_phase2_astro/README.md`,
+  `design_docs/milestones/m2_phase2_astro/tasks/README.md`,
+  `design_docs/milestones/m2_phase2_astro/tasks/T1_scaffold_astro.md`,
+  `…/T2_lua_filter.md`, `…/T3_callout_components.md`,
+  `…/T4_build_pipeline.md`, `…/T8_delete_jekyll.md`,
+  `chapters/ch_{1,2,3,4,5,6}/lectures.tex` (+ matching `.pdf`
+  rebuilds). Files removed (rmdir): `design_docs/milestones/m2_phase2_astro/parking/`.
 - **Deferred** **M2 Task T8 — Delete Jekyll scaffolding.** Pre-flight
   cycle only — task NOT executed. T8 spec step 1 mandates a T6
   stability soak ("at least one full deploy cycle green") before
