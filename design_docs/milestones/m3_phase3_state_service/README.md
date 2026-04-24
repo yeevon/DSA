@@ -1,7 +1,7 @@
 # M3 — Phase 3: State service
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 3
-**Status:** todo
+**Status:** todo (8 tasks broken out 2026-04-24 — see [`tasks/`](tasks/))
 **Depends on:** M2 (Astro project + content collections must exist)
 **Unblocks:** M4 (question generation needs a place to persist
 questions), M5 (review loop reads/writes FSRS state), M6 (code
@@ -32,9 +32,11 @@ milestones fill in.
   - `POST /api/questions/bulk` (M4)
   - `PATCH /api/fsrs_state/:question_id` (M5)
 - [ ] Seeding works: on first boot, `chapters` and `sections`
-      tables are populated from `_data/chapters.yml` +
-      `src/content/notes/*.mdx` frontmatter (architecture.md §2
-      "Seeding"). Idempotent.
+      tables are populated from `scripts/chapters.json` (post-M2 T5a
+      migration; was `_data/chapters.yml` pre-M2) and
+      `src/content/lectures/*.mdx` frontmatter (post-M2 amendment
+      to architecture.md §2 — was `notes/*.mdx`, now `lectures/*.mdx`
+      because lectures owns the section structure). Idempotent.
 - [ ] `detectMode()` from architecture.md §4 implemented and
       wired to the page bootstrap; `interactive` UI elements
       (placeholders) only render when both adapter and state
@@ -48,28 +50,22 @@ milestones fill in.
 
 ## Tasks
 
-1. Confirm Path A vs Path B (architecture.md §4) — lean is Path A.
-   Document the call in this milestone's README.
-2. `npm install drizzle-orm drizzle-kit better-sqlite3`. Set up
-   `drizzle.config.ts` + initial migration matching architecture.md
-   §2's schema.
-3. Implement Astro API routes per architecture.md §3, stubbed
-   where downstream-milestone logic is missing. Each stub returns
-   `501 Not Implemented` with a clear error shape.
-4. Implement seeding (`src/lib/seed.ts`) that reads the content
-   collections + chapters.yml at first boot. Idempotent upserts.
-5. Implement `detectMode()` at `src/lib/mode.ts` per architecture.md
-   §4 listing.
-6. Build the **annotations** end-to-end: text selection captures
-   `(section_id, offset_start, offset_end, text)`; POST persists;
-   GET lists annotations for a section; render in a sidebar pane.
-7. Build the **read-status** indicator: a per-section "mark read"
-   action that POSTs to a new route (add to architecture.md §3 if
-   not present), and a green dot in the chapter nav for marked
-   sections.
-8. Verify the public deploy (M2) is unaffected: `detectMode()`
-   returns `'static'`, all interactive UI hidden, build artifact
-   identical.
+Broken out into individual files under [`tasks/`](tasks/README.md).
+
+| ID  | Task                                                              | Status |
+|-----|-------------------------------------------------------------------|--------|
+| T1  | [Hosting decision: Astro server vs client SQLite](tasks/T1_hosting_decision.md) | todo |
+| T2  | [Drizzle schema + initial migration](tasks/T2_drizzle_schema.md)  | todo   |
+| T3  | [Astro API route stubs](tasks/T3_api_routes.md)                   | todo   |
+| T4  | [Seeding: chapters + sections from MDX](tasks/T4_seeding.md)      | todo   |
+| T5  | [`detectMode()` + bootstrap mode flag](tasks/T5_mode_detection.md) | todo  |
+| T6  | [Annotations end-to-end (dogfood)](tasks/T6_annotations.md)       | todo   |
+| T7  | [Read-status: mark-read indicator](tasks/T7_read_status.md)       | todo   |
+| T8  | [Verify M2 public deploy unaffected](tasks/T8_deploy_verification.md) | todo |
+
+See [`tasks/README.md`](tasks/README.md) for ordering guidance, the
+critical path (T1 → T2 → T4 → T6 → T8), and status conventions.
+Mirror status changes between the per-task file and the table above.
 
 ## Open decisions resolved here
 
