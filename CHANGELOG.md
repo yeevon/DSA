@@ -14,6 +14,80 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-24
 
+- **Decided / Changed** **M4 architecture clarification — `aiw-mcp` is
+  the MCP server, cs-300 contributes workflow modules (no "FastMCP
+  adapter we build").** User confirmed (after pulling the actual
+  [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)
+  v0.1.3 docs into the conversation) that the framework ships
+  `aiw-mcp` as its FastMCP-based MCP server with streamable-HTTP
+  transport + CORS already wired (M14, 2026-04-22). cs-300's job at
+  M4 is to author its own workflow modules under `./workflows/`
+  (`question_gen`, `grade`, `assess` — built from the framework's
+  graph primitives `TieredNode` / `ValidatorNode` / `HumanGate` /
+  `RetryingEdge`) and run `aiw-mcp` against them. There is no
+  separate adapter to build.
+  **Doc rename + reframe sweep (this commit):**
+  - `design_docs/architecture.md` — §1 prose + ASCII diagram
+    rewritten (two-process topology now names `aiw-mcp` Python +
+    state service Node by-runtime; cross-language boundary called
+    out); §3.1 retitled "Question generation (`aiw-mcp` + cs-300
+    workflow modules)" with the new dispatch-via-MCP-tool
+    description; §4 Path A/B prose updated; §6 out-of-scope bullet
+    updated to point at jmdl-ai-workflows' framework docs.
+  - `design_docs/adr/0001_state_service_hosting.md` — Path A
+    rationale rewritten around the cross-language sibling-process
+    model (Astro Node owns persistence; `aiw-mcp` Python owns
+    workflow execution; browser bridges both); two open questions
+    resolved — `ADAPTER_URL` port pin (8080, matching
+    jmdl-ai-workflows README example) + external workflow
+    discovery (gated on upstream feature, see issue file).
+  - `design_docs/milestones/m4_phase4_question_gen/README.md` —
+    full rewrite: tier policy locked to Ollama-only (matches the
+    README "no cloud LLM APIs at runtime" non-negotiable); Done-when
+    bullets reframed around `aiw-mcp` + cs-300 workflow modules;
+    task list adds "Author cs-300 workflow modules under
+    `./workflows/`" + "Stand up `aiw-mcp` launch script"; new
+    Carry-over section noting the upstream gate.
+  - `design_docs/milestones/m3_phase3_state_service/tasks/T1_hosting_decision.md`
+    — Path A description updated (Astro Node + `aiw-mcp` Python).
+  - `design_docs/milestones/m3_phase3_state_service/tasks/T5_mode_detection.md`
+    — `ADAPTER_URL` port repinned 7700 → 8080; M4 forward-work note
+    added about confirming `aiw-mcp`'s actual liveness probe path
+    (`/health` is a placeholder; M14 smoke hit `/mcp/`).
+  - `src/lib/mode.ts` — port repinned 7700 → 8080; module docstring
+    rewritten to reference `aiw-mcp` instead of "the FastMCP adapter";
+    forward-work note added about probe path verification at M4.
+  - `README.md` — status callout, "What this is" #2, repository
+    layout caption, Architecture section (now lists the two
+    sibling processes by runtime + role), Settled-tech bullet
+    (`aiw-mcp` + version pin + transport).
+  - `CLAUDE.md` — code-vs-content rule list updated ("the FastMCP
+    adapter" → "cs-300 workflow modules under `./workflows/`").
+  - `design_docs/m3_deploy_verification.md` — one-line static-mode
+    description updated.
+  **New file (will be deleted when upstream ships):**
+  `aiw_workflow_discovery_issue.md` at the cs-300 root — a
+  self-contained feature-request spec for `jmdl-ai-workflows`
+  proposing `AIW_EXTRA_WORKFLOW_MODULES` env var + `--workflow-module`
+  CLI flag so downstream consumers like cs-300 can register
+  workflow modules outside the framework's source tree. Without
+  this, M4 can't proceed (the framework's lazy importer only
+  finds `ai_workflows.workflows.<name>`). User is also the
+  upstream maintainer; will implement and delete the file from
+  cs-300's root once shipped.
+  **Cloud-LLM constraint reaffirmed.** Question generation runs
+  against local Ollama only; the framework's `claude_code` (OAuth
+  subscription) and `gemini_flash` (LiteLLM) tiers are available
+  but not registered in cs-300's default tier registry. Constraint
+  may relax if the user later self-hosts Ollama on a cloud server,
+  at which point Claude Code's subscription tier could come back
+  into play. No cloud LLM API keys at runtime today.
+  **No cs-300 source code changes beyond `src/lib/mode.ts` port
+  repinning and docstring rewrite.** Files touched: see the
+  rename-and-reframe list above. **Dep audit: skipped — no
+  manifest changes** (no `package.json`, `package-lock.json`,
+  `pyproject.toml`, `.nvmrc`, `.pandoc-version` edits in this
+  commit).
 - **Fixed** **M3 T8 — Deploy verification + workflow path fix.**
   Audit caught a real M3-into-M2 regression: the `@astrojs/node`
   adapter (added by T3) splits `dist/` into `dist/client/`

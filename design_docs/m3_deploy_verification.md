@@ -32,7 +32,7 @@ Source of truth: the prerendered HTML at `dist/client/lectures/ch_1/index.html` 
 | `fetch('/api/annotations')` JS bundled in page                                       | ✅ |
 | `detectMode` script bundled in page                                                  | ✅ |
 
-In static mode (no local SQLite, no FastMCP adapter, no `/api/health` reachable):
+In static mode (no local SQLite, no `aiw-mcp` server, no `/api/health` reachable):
 
 - `detectMode()` resolves to `'static'` (both probes fail) → `<body data-mode="static">` stays.
 - T5 CSS rule `body[data-mode="static"] [data-interactive-only] { display: none !important }` hides all 4 M3 surfaces.

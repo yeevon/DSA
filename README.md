@@ -20,13 +20,16 @@ course-passing.
 > adapter; annotations + read-status surfaces ride a
 > `data-interactive-only` CSS contract that hides them on the
 > public deploy and lights them up in local mode (where the
-> companion FastMCP adapter from M4 will eventually run).
+> companion `aiw-mcp` server from M4 will eventually run).
 > Optional chapters (ch_7, ch_9–ch_13) ship as committed-but-
 > un-augmented; deeper review is deferred to the post-build
 > content audit. **M4 (question generation) is now active** —
-> ai-workflows-powered question gen via the FastMCP adapter; the
-> first surface that actually flips `detectMode()` to
-> `'interactive'`. Interactive features further out (M5–M7: FSRS
+> question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'s
+> `aiw-mcp` server running cs-300's workflow modules from
+> `./workflows/`; the first surface that actually flips
+> `detectMode()` to `'interactive'`. M4 is gated on an upstream
+> feature ([`aiw_workflow_discovery_issue.md`](aiw_workflow_discovery_issue.md))
+> for external workflow module discovery. Interactive features further out (M5–M7: FSRS
 > spaced repetition, in-browser code execution, narrated audio)
 > are designed but not built. UI/UX polish (Canvas-style left-nav +
 > structured chapter pane) is parked at
@@ -49,11 +52,13 @@ Two things in one repo:
    Six chapters (7, 9, 10, 11, 12, 13) extend beyond the official
    course path for depth.
 
-2. **Reference integration for `ai-workflows`.** The planned
-   interactive features — question generation, retry / validator
-   pairing, cost tracking, evals replay — all come from a separate
-   framework. cs-300 is the proving ground that demonstrates the
-   framework does useful work end-to-end.
+2. **Reference integration for [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/).**
+   The planned interactive features — question generation, retry /
+   validator pairing, cost tracking, evals replay — all come from a
+   separate framework. cs-300 contributes its domain-specific
+   workflow modules (under `./workflows/`) and runs them via the
+   framework's `aiw-mcp` MCP server. cs-300 is the proving ground
+   that demonstrates the framework does useful work end-to-end.
 
 ---
 
@@ -102,7 +107,8 @@ cs-300/
 │   ├── ch_12/                       # sets
 │   └── ch_13/                       # extra sorts and list idioms
 │
-├── coding_practice/                 # prompt corpus for ai-workflows question generation
+├── coding_practice/                 # prompt corpus consumed by cs-300 workflow modules
+│                                    # (./workflows/ when M4 lands)
 │   ├── cplusplus/
 │   ├── psuedo/
 │   └── python/
@@ -158,10 +164,15 @@ Every `chapters/ch_N/` holds:
 ## Architecture
 
 The system is static-by-default. Public deploy is just static HTML.
-Two local-only processes — a FastMCP adapter wrapping `ai-workflows`
-and a state service over local SQLite — light up the interactive
-features when present; if they're absent, the UI degrades cleanly to
-read-only.
+Two local-only sibling processes light up the interactive features
+when present; if they're absent, the UI degrades cleanly to read-only:
+
+- **`aiw-mcp`** (Python) — the MCP server shipped by
+  [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/),
+  orchestrating cs-300's workflow modules from `./workflows/` over
+  the local Ollama (Qwen) tier.
+- **State service** (Node) — Astro API routes under `src/pages/api/`
+  owning local SQLite via Drizzle.
 
 Full design in
 [`design_docs/architecture.md`](design_docs/architecture.md).
@@ -179,7 +190,7 @@ Settled tech worth flagging up front:
 - **Content build:** pandoc + a Lua filter, `chapters/*.tex` →
   `src/content/*.mdx`.
 - **State:** SQLite (Drizzle ORM), local-only.
-- **Bridge:** HTTP FastMCP adapter for browser ↔ ai-workflows.
+- **Bridge:** `aiw-mcp` (jmdl-ai-workflows ≥0.1.3, Python ≥3.12) over the streamable-HTTP transport on port 8080, browser ↔ cs-300 workflow modules.
 - **Scheduling:** FSRS via `ts-fsrs`.
 - **Audio:** pre-generated TTS MP3s + sentence-timestamp JSON.
 - **Question generation:** local Ollama; no cloud LLM APIs at

@@ -19,7 +19,7 @@ Two real constraints frame the decision:
 
 ### Path A — Astro server (recommended in arch.md)
 
-Run `astro dev` (or `astro preview`) locally. The state service lives as Astro API routes under `src/pages/api/` with `prerender: false`. SQLite is owned by the Node process via Drizzle ORM + `better-sqlite3`. Two processes in local mode: Astro server + the M4 FastMCP adapter (when it lands). For the public deploy, hybrid output mode lets prerendered chapter pages ship to GH Pages while the API routes stay server-only (and inert in prod — `detectMode()` returns `'static'` because `/api/health` 404s on the static host).
+Run `astro dev` (or `astro preview`) locally. The state service lives as Astro API routes under `src/pages/api/` with `prerender: false`. SQLite is owned by the Node process via Drizzle ORM + `better-sqlite3`. Two local-mode processes — **two language runtimes**: Astro server (Node, :4321) + the M4 `aiw-mcp` (Python, :8080) running cs-300's workflow modules from `./workflows/`. For the public deploy, hybrid output mode lets prerendered chapter pages ship to GH Pages while the API routes stay server-only (and inert in prod — `detectMode()` returns `'static'` because `/api/health` 404s on the static host).
 
 **Pros:**
 
@@ -27,16 +27,17 @@ Run `astro dev` (or `astro preview`) locally. The state service lives as Astro A
 - API routes are TypeScript files in the same project as the UI components that call them — single language, single tsconfig, single linter.
 - `better-sqlite3` is synchronous, single-file, zero-config. Backups = `cp data/cs-300.db backup.db`.
 - Public deploy is unchanged in shape: hybrid output mode prerenders all chapter routes; the API-route handlers are server-side and don't ship to GH Pages (verified in M3 T8 deploy-verification spec).
-- Aligns with M4+ architecture: the FastMCP adapter (M4) and code execution subprocess (M6) are both Node-side; co-locating SQLite there keeps the dynamic surfaces in one runtime boundary.
+- Aligns with M4+ architecture: code execution subprocess (M6) is Node-side; co-locating SQLite with the Node runtime keeps the deterministic state surfaces (questions, attempts, FSRS state, code-exec results) in one boundary. M4's `aiw-mcp` is the only cross-language sibling — it owns workflow execution + LLM dispatch, neither of which needs direct SQLite access (it returns generated artifacts to the browser, which POSTs them through to the state service).
 
 **Cons:**
 
-- Two local processes (Astro + adapter) — minor ops overhead. `npm run dev` only starts Astro; the adapter is a separate manual start in M4.
+- Two local processes (Astro Node + `aiw-mcp` Python) — minor ops overhead. `npm run dev` only starts Astro; `aiw-mcp` is a separate manual start in M4 (`uvx --from jmdl-ai-workflows aiw-mcp --transport http --port 8080 --cors-origin http://localhost:4321`).
+- Cross-language runtime — no shared in-memory data plane between the two processes. State sync happens through HTTP at the surface (browser bridges both). Acceptable: the state service owns persistence; `aiw-mcp` owns workflow execution. They have orthogonal jobs.
 - Schema migrations require running `drizzle-kit push` after a fresh clone — one extra setup step.
 
 ### Path B — Client-side SQLite (WASM)
 
-`@sqlite.org/sqlite-wasm` + OPFS (Origin Private File System) for persistence. SQLite runs entirely in the browser; no server, no Node runtime needed locally. One process in local mode (just the M4 FastMCP adapter, when it lands). GH Pages deploy unchanged — pure-static.
+`@sqlite.org/sqlite-wasm` + OPFS (Origin Private File System) for persistence. SQLite runs entirely in the browser; no server, no Node runtime needed locally. One process for state in local mode (just the M4 `aiw-mcp` running cs-300 workflows). GH Pages deploy unchanged — pure-static.
 
 **Pros:**
 
@@ -49,13 +50,13 @@ Run `astro dev` (or `astro preview`) locally. The state service lives as Astro A
 - Schema migrations run in the browser. A new schema means every reader's local DB needs upgrading on first visit — versioning + recovery-on-failure logic that doesn't exist in the SQLite WASM ecosystem yet.
 - OPFS browser support is not universal (Safari historically slow to ship). A reader in a non-supporting browser silently loses their state.
 - Drizzle support for sqlite-wasm exists but is less mature than for `better-sqlite3`. Migration-tooling story is less proven.
-- Co-locating DB with browser breaks the M4+ architecture: the FastMCP adapter (M4) and code-exec subprocess (M6) need server-side data access (validating questions before insert, persisting attempt state). Path B forces a sync layer between browser-DB and the M4 adapter, which is the WASM bundle weight + complication for nothing.
+- Co-locating DB with browser breaks the M4+ architecture: M4's `aiw-mcp` returns generated artifacts the browser needs to POST through to a server-side validator before insert; the M6 code-exec subprocess persists attempt state directly. Path B forces a sync layer between browser-DB and the Node-side validator/exec paths, which is the WASM bundle weight + complication for nothing.
 
 ## Decision
 
 **Path A — Astro server.** SQLite via `better-sqlite3` + Drizzle ORM, served from Astro API routes under `src/pages/api/`. Hybrid output mode for the build (per-page `prerender` flags) so prerendered chapter pages ship to GitHub Pages and the API routes stay server-side.
 
-Local dev: `npm run dev` runs Astro (which now serves the API routes too); a separate process starts the M4 FastMCP adapter (when it lands). Public deploy: static `dist/` to GH Pages exactly as today; `detectMode()` returns `'static'` because no local server is reachable.
+Local dev: `npm run dev` runs Astro (which now serves the API routes too); a separate process starts `aiw-mcp` from `jmdl-ai-workflows` over the streamable-HTTP transport on port 8080 (when M4 lands). Public deploy: static `dist/` to GH Pages exactly as today; `detectMode()` returns `'static'` because no local server is reachable.
 
 ## Consequences
 
@@ -64,14 +65,14 @@ Local dev: `npm run dev` runs Astro (which now serves the API routes too); a sep
 - M3 T2 implementation is direct: `npm install drizzle-orm drizzle-kit better-sqlite3` + `drizzle.config.ts` + the schema from architecture.md §2 + `drizzle-kit push` to a local DB file.
 - M3 T3 implementation matches Astro v6 conventions exactly: each file under `src/pages/api/` exports `prerender: false` + a verb handler.
 - M2 T6 deploy contract preserved: the same `actions/upload-pages-artifact@v3` workflow uploads `dist/`; nothing about the deploy chain changes.
-- M4+ adapter architecture (FastMCP, code execution) co-locates with the same Node runtime — no cross-process state sync.
+- M4 `aiw-mcp` runs as a sibling Python process; M6 code execution runs as a Node subprocess. The browser bridges both; no in-memory state sync needed.
 - `data/cs-300.db` is gitignored (per-dev state, not source).
 
 **Negative:**
 
 - One extra `drizzle-kit push` step on a fresh clone. Acceptable.
 - Hybrid output mode (T3) is new for the project — verify the GH Pages deploy still produces 37 prerendered chapter pages (T8 deploy-verification handles this).
-- Two processes in interactive local mode (Astro + adapter). Single-developer use; not a coordination problem.
+- Two processes in interactive local mode (Astro Node + `aiw-mcp` Python). Single-developer use; not a coordination problem. Both are short-lived dev processes.
 
 **Trade-offs accepted:**
 
@@ -87,5 +88,6 @@ Local dev: `npm run dev` runs Astro (which now serves the API routes too); a sep
 
 ## Open questions deferred to later tasks
 
-- **`ADAPTER_URL` port pin** (used by `detectMode()` to probe the FastMCP adapter). Architecture.md doesn't specify; M3 T5 documents the pick (default proposal: 7700, FastMCP convention). M4 inherits or overrides.
+- **`ADAPTER_URL` port pin** (used by `detectMode()` to probe `aiw-mcp`). Resolved 2026-04-24 to **8080** to match the [jmdl-ai-workflows README](https://pypi.org/project/jmdl-ai-workflows/) example invocation (`aiw-mcp --transport http --port 8080`). cs-300's `src/lib/mode.ts` constant pinned to `http://localhost:8080`. Override via the `aiw-mcp --port` flag at launch time.
+- **External workflow module discovery.** ai-workflows v0.1.3 has no documented mechanism for `aiw-mcp` to load workflows from outside its own source tree. M4 is gated on the upstream feature request at [`aiw_workflow_discovery_issue.md`](../../aiw_workflow_discovery_issue.md). Once the env-var loader (`AIW_EXTRA_WORKFLOW_MODULES`) ships, cs-300 launches `aiw-mcp` with that env var pointing at `cs300.workflows.question_gen` etc.
 - **`bun:sqlite` runtime fallback.** If `better-sqlite3` ever fails to install on a target platform, the Bun runtime + `bun:sqlite` is a fallback. Not in scope today; revisit only if install breaks.

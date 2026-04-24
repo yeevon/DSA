@@ -8,7 +8,7 @@
 
 [Architecture.md §4](../../../architecture.md) "State service hosting" defers a binary choice:
 
-- **Path A — Astro server.** Run `astro dev` or `astro preview` locally; SQLite owned by Astro API routes under `src/pages/api/`. Two processes in local mode (Astro + FastMCP adapter).
+- **Path A — Astro server.** Run `astro dev` or `astro preview` locally; SQLite owned by Astro API routes under `src/pages/api/`. Two processes in local mode (Astro Node + `aiw-mcp` Python from `jmdl-ai-workflows`).
 - **Path B — Client-side SQLite.** `@sqlite.org/sqlite-wasm` + OPFS for persistence. One process. WASM bundle ~2 MB, schema migrations run in browser, slightly awkward ops.
 
 The architecture's lean is **A**. T1 confirms that lean (or pivots) and writes the call into an ADR + amendment in architecture.md §5, so the rest of M3 builds against a settled contract.

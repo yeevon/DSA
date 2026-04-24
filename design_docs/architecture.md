@@ -2,7 +2,7 @@
 
 Gating artifact for Phase 1 of `interactive_notes_roadmap.md`. Defines the parts of the system that require deliberate design; leans on the roadmap for constraints and settled decisions rather than restating them.
 
-Scope is intentionally tight. The site is static by default. The only genuinely dynamic surfaces are: question generation (over the ai-workflows MCP adapter), question rendering and answer capture, code execution for coding questions, and the FSRS review loop over persisted attempt state. Everything else is a pandoc + Astro content pipeline that terminates in static HTML.
+Scope is intentionally tight. The site is static by default. The only genuinely dynamic surfaces are: question generation (over the local `aiw-mcp` server from `jmdl-ai-workflows`, running cs-300's workflow modules), question rendering and answer capture, code execution for coding questions, and the FSRS review loop over persisted attempt state. Everything else is a pandoc + Astro content pipeline that terminates in static HTML.
 
 ## System shape
 
@@ -18,18 +18,29 @@ Scope is intentionally tight. The site is static by default. The only genuinely 
 │  dist/  ── static HTML + React islands + client bundle ───▶ GH Pages      │
 │                                                                           │
 │  (local-only, runtime)                                                    │
-│  ┌───────────────┐   HTTP    ┌────────────────┐   stdio   ┌────────────┐  │
-│  │ browser       │◀─────────▶│ FastMCP adapter│◀─────────▶│ ai-workflows│  │
-│  │ (Astro bundle)│           │ (this repo)    │           │ (separate  │  │
-│  │               │           │                │           │  repo)     │  │
-│  │               │   HTTP    ┌────────────────┐           └────────────┘  │
-│  │               │◀─────────▶│ state service  │──▶ SQLite (local file)   │
-│  └───────────────┘           └────────────────┘                           │
+│  ┌───────────────┐   HTTP    ┌──────────────────────────────────────────┐ │
+│  │ browser       │◀─────────▶│ aiw-mcp (Python)                         │ │
+│  │ (Astro bundle)│           │   = jmdl-ai-workflows MCP server,        │ │
+│  │               │           │     orchestrating cs-300 workflow        │ │
+│  │               │           │     modules (./workflows/*.py) over      │ │
+│  │               │           │     local Ollama (Qwen) tier             │ │
+│  │               │           └──────────────────────────────────────────┘ │
+│  │               │   HTTP    ┌──────────────────────────────────────────┐ │
+│  │               │◀─────────▶│ state service (Node, Astro API routes)   │ │
+│  │               │           └──────────────────────────────────────────┘ │
+│  └───────────────┘                              │                         │
+│                                                 ▼                         │
+│                                        SQLite (local file)                │
 │                                                                           │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-Two local-only processes: the FastMCP adapter (wraps ai-workflows) and the state service (owns SQLite). The state service could be the Astro dev server itself via API routes; see §4.
+Two local-only processes — separate language runtimes, separate persistence:
+
+1. **`aiw-mcp` (Python).** The MCP server shipped by [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/) (≥0.1.3, FastMCP-based, KDR-008 in the upstream framework). cs-300 contributes workflow modules — `question_gen`, `grade`, `assess` — that register into the framework's workflow registry; ai-workflows' four-layer substrate (`primitives → graph → workflows → surfaces`) handles dispatch, retry, cost tracking, checkpointing, and the MCP transport. Browser reaches it over the streamable-HTTP transport added at jmdl-ai-workflows M14 (CORS-allowlisted to `http://localhost:4321`).
+2. **State service (Node).** The Astro dev server itself, via API routes under `src/pages/api/`. Owns SQLite via Drizzle (M3); see §4.
+
+There is no separate "FastMCP adapter we build." `aiw-mcp` IS the MCP server. cs-300 authors workflows + sets the agent (tier registry) per workflow + runs `aiw-mcp` against them. The framework abstracts the orchestration — see [ADR-0001](adr/0001_state_service_hosting.md) for the cross-language sibling-process rationale and [`aiw_workflow_discovery_issue.md`](../aiw_workflow_discovery_issue.md) for the upstream feature request gating M4 (external workflow module discovery).
 
 Public deploy is just `dist/`. No adapter, no state service. Feature detection at bootstrap toggles the interactive UI off.
 
@@ -139,7 +150,7 @@ CREATE TABLE questions (
   prompt_md TEXT NOT NULL,
   answer_schema_json TEXT NOT NULL, -- type-specific
   reference_json TEXT NOT NULL,     -- NEVER shipped to DOM for 'code'
-  source_run_id TEXT NOT NULL,      -- ai-workflows run id, for evals replay
+  source_run_id TEXT NOT NULL,      -- aiw-mcp / ai-workflows run id, for evals replay
   created_at INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'active'  -- 'active' | 'archived'
 );
@@ -194,7 +205,7 @@ CREATE TABLE annotations (
 
 ### Schema-per-type payloads
 
-`answer_schema_json`, `reference_json`, `response_json` are the shapes that vary by question type. Locked per type so validators (both the generation-time validator in ai-workflows and the submission-time eval in the app) can be type-dispatched.
+`answer_schema_json`, `reference_json`, `response_json` are the shapes that vary by question type. Locked per type so validators (both the generation-time `ValidatorNode` inside the cs-300 workflow module and the submission-time eval in the app) can be type-dispatched.
 
 | type         | answer_schema_json                              | reference_json                                  | response_json                |
 |--------------|-------------------------------------------------|-------------------------------------------------|------------------------------|
@@ -226,13 +237,17 @@ Seeding is idempotent. Questions and attempt state are never touched.
 
 Four dynamic surfaces, each with a clear contract. Everything else is static rendering.
 
-### 3.1 Question generation (ai-workflows bridge)
+### 3.1 Question generation (`aiw-mcp` + cs-300 workflow modules)
 
-Frontend calls `POST /mcp/run_workflow` on the FastMCP adapter with `{workflow: 'question_gen', inputs: {chapter_id, section_id?, count, types: [...]}}`. Adapter invokes ai-workflows, returns `{run_id}`.
+cs-300 contributes the `question_gen` workflow as a Python module under `./workflows/` that registers with ai-workflows' workflow registry on import. The module is a LangGraph `StateGraph` composed of `TieredNode` (Ollama Qwen tier) + `ValidatorNode` (KDR-004 in the upstream framework) + `RetryingEdge` (KDR-006). M4 owns authoring this module and the matching `grade` / `assess` modules.
 
-Frontend polls `GET /mcp/runs/:id` until `status == 'completed'` or `status == 'failed'`. Completed runs surface artifacts via `GET /mcp/runs/:id/artifacts` — the questions themselves.
+Frontend calls the `run_workflow` MCP tool on `aiw-mcp` with `{workflow_id: 'question_gen', inputs: {chapter_id, section_id?, count, types: [...]}}`. The MCP server returns `{run_id, status, ...}` per the `RunWorkflowOutput` schema; long-running runs come back as `status: 'pending'` with `awaiting: 'gate'` if a `HumanGate` is wired (cs-300's question_gen does not pause by default — generation is short and direct).
 
-Frontend POSTs artifacts to state service (`POST /api/questions/bulk`), which validates and inserts. **Validation happens twice**: once in ai-workflows (self-consistency, per roadmap), once at insert (schema conformance). Redundant on purpose; the adapter is external-to-this-repo surface.
+Frontend polls via `list_runs(workflow_id='question_gen')` or `get_run_status(run_id)` until `status == 'completed'`. Completed runs surface artifacts via the workflow's terminal state read.
+
+Frontend POSTs artifacts to the cs-300 state service (`POST /api/questions/bulk`), which validates and inserts. **Validation happens twice**: once inside the cs-300 workflow's `ValidatorNode` (LangGraph-level, per KDR-004 in the upstream framework), once at insert (schema conformance against `questions.answer_schema_json`). Redundant on purpose; the upstream framework is an external surface and could change shape.
+
+**Workflow discovery.** ai-workflows v0.1.3 has no documented mechanism for `aiw-mcp` to discover workflow modules outside its own source tree (the dispatch path lazily imports `ai_workflows.workflows.<name>`). M4 is gated on the upstream feature request at [`aiw_workflow_discovery_issue.md`](../aiw_workflow_discovery_issue.md) — once the env-var loader (`AIW_EXTRA_WORKFLOW_MODULES`) ships, cs-300 launches `aiw-mcp` with that env var pointing at `cs300.workflows.question_gen` etc.
 
 Error shape for MCP calls:
 ```ts
@@ -331,9 +346,9 @@ Build artifact is identical in both modes. No separate "local build" — the pub
 
 Two viable paths; deferred decision (see §5):
 
-**Path A — Astro server (recommended).** Run `astro dev` or `astro preview` locally. Astro API routes under `src/pages/api/` own SQLite via Drizzle. Two processes in local mode: Astro server + FastMCP adapter.
+**Path A — Astro server (recommended).** Run `astro dev` or `astro preview` locally. Astro API routes under `src/pages/api/` own SQLite via Drizzle. Two processes in local mode: Astro server (Node, :4321) + `aiw-mcp` (Python sibling process running cs-300's workflow modules over the streamable-HTTP transport, port 8080).
 
-**Path B — Client-side SQLite.** `@sqlite.org/sqlite-wasm` + OPFS for persistence. One process in local mode (just the FastMCP adapter). GH Pages deploy unchanged. Tradeoff: WASM bundle ~2MB, schema migrations run in browser, slightly awkward ops.
+**Path B — Client-side SQLite.** `@sqlite.org/sqlite-wasm` + OPFS for persistence. One process in local mode for state (just `aiw-mcp` running the cs-300 workflows). GH Pages deploy unchanged. Tradeoff: WASM bundle ~2MB, schema migrations run in browser, slightly awkward ops.
 
 Path A is cleaner for schema management and likely how we'll ship. Path B is a fallback if running a second process is too heavy.
 
@@ -364,7 +379,7 @@ Resolved here:
 
 Not because unimportant — because already settled elsewhere or deferred to their phase:
 
-- ai-workflows internals (closed surface from this repo's view; see `interactive_notes_roadmap.md` Phase 4 for the workflow spec location).
+- jmdl-ai-workflows internals (LangGraph substrate, FastMCP server, retry/cost primitives — closed surface from this repo's view; framework docs at <https://pypi.org/project/jmdl-ai-workflows/>; cs-300 is a downstream consumer that contributes workflow modules per §3.1).
 - TTS provider choice (Phase 7 open question).
 - Question prompt corpus shape under `coding_practice/` (Phase 4 open question; see `roadmap_addenda.md`).
 - Phase 1 content acceptance criteria (deferred; see `roadmap_addenda.md`).
