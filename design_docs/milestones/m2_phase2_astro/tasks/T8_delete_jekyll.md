@@ -94,6 +94,22 @@ is stable before T8.
       "post-M2 — historical only" header. The active rule no
       longer applies.
 
+## Carry-over from prior audits
+
+- [ ] **M2-T03-ISS-01 — Delete the T3 callout-component smoke page.**
+      Severity: 🟡 MEDIUM (origin) → ACCEPTED. T3 spec assumed Astro's
+      `_` filename prefix would exclude `_callouts-test.astro` from
+      production builds while keeping it routable in dev — Astro
+      actually excludes from routing entirely (both modes). T3
+      renamed the file to `callouts-test.astro` (no underscore) so
+      AC 3's dev-mode `curl` smoke would work; consequence is
+      `dist/callouts-test/index.html` ships in production until T8
+      cleans it up. Scope: `git rm src/pages/callouts-test.astro`
+      AND verify post-T6-redeploy that `dist/callouts-test/` is gone
+      (the next clean build won't regenerate it). Source:
+      [`../issues/T3_issue.md`](../issues/T3_issue.md) (option A
+      picked 2026-04-23).
+
 ## Notes
 
 - **`feedback_no_jekyll_polish.md` memory entry handling is now an

@@ -1,0 +1,97 @@
+---
+// CodeBlock.astro — Syntax-highlighted code with a copy-to-clipboard
+// button. Receives the code as either a `code` prop or via the slot.
+//
+// In M2 T2's Lua-filter output, code blocks ship as fenced markdown
+// with a `cpp` language hint. T4's MDX integration (next milestone
+// task) will configure Astro's `markdown.shikiConfig` so fenced
+// blocks pick up the right theme; a follow-up wiring step in
+// Astro's MDX `components` map can route `<pre><code class=…>` to
+// this component to attach the copy button. For T3, this component
+// is invokable directly from `.astro` pages (used by the
+// `_callouts-test.astro` smoke page).
+//
+// Static-mode only — the "send to editor" affordance lands in M6
+// (code execution).
+import { Code } from 'astro:components';
+
+interface Props {
+  /** Source language for syntax highlighting (e.g. "cpp", "ts"). */
+  lang?: string;
+  /** Code content. If omitted, the slot is used (raw, unhighlighted). */
+  code?: string;
+}
+
+const { lang = 'cpp', code } = Astro.props;
+---
+
+<div class="codeblock">
+  <button
+    class="copy-btn"
+    type="button"
+    aria-label="Copy code to clipboard"
+    data-code={code ?? ''}
+  >Copy</button>
+  {code
+    ? <Code code={code} lang={lang as any} theme="github-light" />
+    : <pre><code class={`language-${lang}`}><slot /></code></pre>
+  }
+</div>
+
+<script>
+  // Tiny client island: bind copy buttons. Works for both prop-driven
+  // (data-code carries the source) and slot-driven (read from <code>)
+  // CodeBlock instances.
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('.codeblock .copy-btn')) {
+    btn.addEventListener('click', async () => {
+      let code = btn.getAttribute('data-code') ?? '';
+      if (!code) {
+        const codeEl = btn.parentElement?.querySelector('code');
+        code = codeEl?.textContent ?? '';
+      }
+      try {
+        await navigator.clipboard.writeText(code);
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = original;
+        }, 1500);
+      } catch (err) {
+        console.error('CodeBlock copy failed:', err);
+      }
+    });
+  }
+</script>
+
+<style>
+  .codeblock {
+    position: relative;
+    margin: 1rem 0;
+  }
+  .codeblock pre {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: #f6f8fa;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .codeblock .copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .codeblock:hover .copy-btn,
+  .codeblock .copy-btn:focus {
+    opacity: 1;
+  }
+</style>

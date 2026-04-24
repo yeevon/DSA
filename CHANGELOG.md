@@ -14,6 +14,241 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Added** **M2 Task T5a — Chapter-listing index + chapters.json
+  migration** (decomposed from original T5 — see Decided entry
+  below). Three deliverables:
+  (1) `scripts/chapters.json` — 12-entry array (`id`, `n`, `title`,
+  `subtitle`, `required`) migrated from Jekyll's `_data/chapters.yml`
+  by flattening the yml's `required:` / `optional:` split into a
+  single `required: bool` flag. `_data/chapters.yml` is now
+  unreferenced by any code in `src/` or `scripts/`; T8's fail-loud
+  `grep -rn 'chapters\.yml' src/ scripts/` check returns zero hits
+  (verified). The yml file itself remains on disk as a Jekyll
+  artefact for T8's sweep to delete.
+  (2) `scripts/build-content.mjs` reads `scripts/chapters.json`,
+  builds a `META_BY_ID` lookup, and merges
+  `{chapter_id, n, title, subtitle, required}` into every generated
+  MDX's frontmatter (lectures, notes, practice — section-list array
+  stays lectures-only per Gap 1).
+  (3) `src/pages/index.astro` replaces the T1 placeholder with a
+  per-chapter listing page (required + optional tables, sorted by
+  `n`) populated by importing `scripts/chapters.json` directly —
+  **does not use `astro:content` `getCollection()`** because that
+  triggers MDX parsing of every entry at content-sync time, which
+  T5b owns making safe. Each chapter row links to
+  `/lectures/<id>/`, `/notes/<id>/`, `/practice/<id>/` (all 404
+  until T5b lands the dynamic routes). Smoke (auditor):
+  `npm run build` from clean state exits 0; `dist/index.html`
+  exists; lists all 12 chapters; emits the chapter route links.
+  Files added: `scripts/chapters.json`. Files changed:
+  `scripts/build-content.mjs` (+12 lines for metadata merge),
+  `src/pages/index.astro` (rewritten from T1 placeholder).
+  ACs from `tasks/T5a_content_collections.md`: 7/7 met. Auditor
+  smoke checks below.
+- **Decided** **Original M2 Task T5 decomposed into T5a + T5b.**
+  Per the original T5 spec's decompose trigger ("If the
+  chapters.yml→frontmatter migration ends up larger than expected,
+  split into T5a (schema + 3 dynamic routes + index page) and T5b
+  (yml migration + the fail-loud bridge to T8)"). The actual
+  decompose driver was different from the trigger's predicted
+  cause: pandoc-emitted MDX has multiple constructs MDX's JSX
+  parser rejects (`{#anchor}` header attrs — fixed in T4 cycle 2;
+  `<!--` HTML comments — fixed; literal `{` / `}` braces in
+  chapter prose like `{set}` notation — **not yet fixed**;
+  literal `<` / `>` outside math — likely not yet fixed). The
+  brace-escape work needed to bridge pandoc → MDX is its own
+  focused task; cramming it into T5 cycle 2 would have been
+  hours of iteration on a task that was supposed to fit in one
+  session. Decompose split:
+  • **T5a (closed today):** what works without MDX parsing —
+    chapter-listing index reading `scripts/chapters.json`
+    directly + the chapters.json migration + the metadata-merge
+    in build-content.mjs.
+  • **T5b (todo):** the schema (parked at
+    `design_docs/milestones/m2_phase2_astro/parking/T5b-content.config.ts`),
+    the 3 dynamic `[id].astro` routes, and an extended
+    `mdxSafetyRewrite()` in build-content.mjs that escapes
+    literal braces / handles other pandoc-MDX bridge issues.
+  Dependency updates: T6 now depends on T5b (was T5) for
+  "functional Astro build end-to-end". M2 task index +
+  per-task tables updated. Files added:
+  `tasks/T5b_dynamic_routes.md`, `parking/T5b-content.config.ts`.
+  Files renamed: `tasks/T5_content_collections.md` →
+  `tasks/T5a_content_collections.md`. Files changed:
+  `tasks/README.md`, `m2/README.md`, `tasks/T6_pages_workflow.md`.
+- **Added** **M2 Task T4 — Pandoc → Astro build pipeline.** Node ESM
+  script at `scripts/build-content.mjs` wired as `prebuild` + `predev`
+  in `package.json` (also exposed as `npm run build:content` for ad-hoc
+  invocation). Iterates the 12-chapter set
+  (`['1','2','3','4','5','6','7','9','10','11','12','13']` — explicit
+  list, no directory scan, so a missing chapter is a loud failure):
+  for each chapter (a) runs `pandoc --lua-filter scripts/pandoc-filter.lua`
+  on `lectures.tex` → `src/content/lectures/ch_N.mdx`, (b) same for
+  `notes.tex` → `src/content/notes/ch_N.mdx`, (c) strips the
+  pre-existing Jekyll frontmatter (`layout: default` / `permalink:…`)
+  from `practice.md` and copies → `src/content/practice/ch_N.mdx`.
+  **Per Gap 1 (M2 alignment review):** lectures/*.mdx get
+  `{chapter_id, sections: [{id, anchor, title, ord}, ...]}` frontmatter
+  parsed from the pandoc-emitted `ch_N-` prefixed header anchors —
+  this is the canonical section index M3's seeding contract reads
+  per `architecture.md` §2 (amended same-day to point at lectures/,
+  not notes/). notes/*.mdx and practice/*.mdx carry only
+  `{chapter_id}` — per-chapter metadata (title, subtitle, n,
+  required) lands later via M2 T5's chapters.yml migration.
+  `.gitignore` extended with `src/content/lectures/ch_*.mdx`,
+  `src/content/notes/ch_*.mdx`, `src/content/practice/ch_*.mdx`
+  (build artefacts, not source); the per-collection `.gitkeep`
+  files stay tracked. Smoke test (per CLAUDE.md "code-task
+  verification non-inferential"): `npm run build:content` exits 0
+  in 2.5s, generates 36 MDX files; `npm run build` (which fires the
+  `prebuild` hook) exits 0, building 2 pages from the existing
+  scaffold (`/index.html`, `/callouts-test/index.html`); `ch_1`
+  lectures.mdx contains 111/111 source callouts as
+  `<Definition>`/`<KeyIdea>`/`<Gotcha>`/`<Example>`/`<Aside>`,
+  91 `ch_1-` prefixed anchors, 0 raw passthrough blocks; lectures
+  frontmatter has an 80-entry `sections:` array (ch_1 lecture's
+  rich subsection structure) starting with
+  `id: ch_1-arrays-and-vectors-general-concept`; `notes/ch_1.mdx`
+  + `practice/ch_1.mdx` carry `chapter_id: "ch_1"` only, no
+  `sections:` key (lectures owns the structure). Per-chapter
+  section counts: ch_1=80, ch_2=58, ch_3=102, ch_4=68, ch_5=9,
+  ch_6=10, ch_7=5, ch_9=8, ch_10=13, ch_11=5, ch_12=2, ch_13=5.
+  Files added: `scripts/build-content.mjs` (172 lines),
+  `src/content/{lectures,notes,practice}/.gitkeep`. Files changed:
+  `package.json` (+3 scripts: `build:content`, `prebuild`, `predev`),
+  `.gitignore` (+5 lines for the generated ch_*.mdx + a section
+  header). ACs from
+  `design_docs/milestones/m2_phase2_astro/tasks/T4_build_pipeline.md`:
+  6/6 met; auditor smoke checks below.
+- **Added** **M2 Task T3 — Callout component library.** Six Astro
+  components under `src/components/callouts/`: `Definition.astro`
+  (← `defnbox`, blue accent), `KeyIdea.astro` (← `ideabox`, green),
+  `Gotcha.astro` (← `warnbox`, red), `Example.astro` (← `examplebox`,
+  purple), `Aside.astro` (← `notebox`, grey), and `CodeBlock.astro`
+  (Shiki syntax highlighting via `astro:components` `<Code />` plus
+  a tiny client-side island for the copy-to-clipboard button).
+  Each callout takes an optional `title` prop, slots its body, and
+  carries scoped CSS matching the LaTeX tcolorbox visual identity
+  in spirit (left accent rule + tinted background; pixel parity not
+  the goal). `CodeBlock` accepts code via either prop (`code={…}`,
+  routes through Shiki) or slot (raw text inside `<pre><code
+  class="language-cpp">`, useful when called from MDX without going
+  through pandoc's filter). Smoke page at
+  `src/pages/callouts-test.astro` renders one of each component
+  with sample content. Dev-server smoke (per CLAUDE.md "code-task
+  verification non-inferential"): `npm run dev` started on `:4321`;
+  `curl http://localhost:4321/DSA/callouts-test` returned a
+  13.5 KB page containing all 6 component class names
+  (`callout-definition`, `callout-keyidea`, `callout-gotcha`,
+  `callout-example`, `callout-aside`, `codeblock`), all 5 titles
+  preserved (Array, Why direct access, Off-by-one, C++ sequence,
+  Word-RAM), 3 copy buttons rendered, 1 Shiki syntax-highlighting
+  pass on the prop-form CodeBlock, 1 `language-cpp` class on the
+  slot-form CodeBlock. Production build (`npm run build`)
+  exit 0; `dist/index.html` rendered correctly. **Carry-over from
+  T1 audit ISS-02:** added `@astrojs/check@^0.9.8` and
+  `typescript@^5.9.3` as devDependencies so `astro check` runs
+  cleanly when T4/T5 introduce typed content collections; T1's
+  follow-up note is now satisfied. **Spec deviation: test page
+  underscore prefix.** T3 spec called for the test page at
+  `src/pages/_callouts-test.astro` (assuming Astro's `_` prefix
+  excludes from production builds *but* keeps it routable in dev).
+  Astro's actual `_` behaviour: excluded from routing entirely
+  (both dev and prod) — so an underscore-prefixed test page can't
+  be smoke-tested via `curl` in dev mode. Renamed to
+  `callouts-test.astro` (no underscore) to make the dev-mode smoke
+  test work; consequence is the test page WILL appear in production
+  builds until T6 / T8 add a build-time exclusion or it gets
+  deleted. Recorded as a T3 issue for T6/T8 follow-up.
+  Files added: `src/components/callouts/{Definition,KeyIdea,Gotcha,Example,Aside,CodeBlock}.astro`,
+  `src/pages/callouts-test.astro`. Files changed: `package.json`
+  (devDependencies + lockfile). ACs from
+  `design_docs/milestones/m2_phase2_astro/tasks/T3_callout_components.md`:
+  5/5 met; auditor smoke checks below.
+- **Added** **M2 Task T2 — Pandoc Lua filter (HYBRID).** Implements
+  the 3-job filter the M1 T2 probe verdict required: (1) reattach
+  callout `[Title]` args (pandoc drops them silently — filter
+  pre-scans the raw `.tex` for `\begin{<envname>}[Title]` patterns
+  in document order, then walks Divs of class `defnbox`/`ideabox`/
+  `warnbox`/`examplebox`/`notebox` and zips titles back in); (2)
+  give every `CodeBlock` an explicit `cpp` language class when none
+  survives (chapters target C++17; Shiki gets a usable highlight
+  hint); (3) prefix every `Header.identifier` with `ch_N-` from
+  pandoc metadata so anchors are unique across the 12 chapters per
+  architecture.md §2's `sections.anchor` contract. Filter uses
+  explicit two-pass ordering (`{ Meta = … }`, `{ Div = …, … }`)
+  so the Meta handler runs before element handlers — a single-table
+  filter visits Meta last and the Div pass would crash on
+  unscanned title queues. **Pandoc version pinned to 3.1.3** in
+  `.pandoc-version` (carry-over M1-T02-ISS-02); architecture.md §5
+  gains a "Resolved" entry citing the pin so future audits see it.
+  **Raw-passthrough sweep across all 24 chapter sources** documented
+  in `design_docs/m2_raw_passthrough_sweep.md` (carry-over
+  M1-T02-ISS-03): only 1 raw block found (ch_1 line 496 — pandoc's
+  HTML-comment disambiguation between a list item and an indented
+  code block — disposition ACCEPT, harmless under `-raw_attribute`
+  output). **One source-fix applied during the sweep:**
+  `chapters/ch_6/lectures.tex` lines 412-428 had a nested-tabular
+  pattern (a `tabular{cc}` containing two `tabular{c}` sub-cells
+  inside a `center`) that pdflatex compiles fine but pandoc's
+  stricter LaTeX reader rejected with `expecting \end{center}`.
+  Refactored to two side-by-side `minipage[t]{0.4\linewidth}`
+  blocks (one per BST visualization tree) — visual output identical
+  (`pdflatex` exit 0, lectures.pdf still 31 pages); pandoc parses
+  cleanly with zero raw passthroughs. Source comment in ch_6
+  points back at the sweep doc. Smoke tests (per CLAUDE.md
+  "code-task verification non-inferential"): `pandoc --lua-filter
+  scripts/pandoc-filter.lua --metadata chapter_id=ch_1 --metadata
+  source_path=chapters/ch_1/lectures.tex -t markdown-raw_attribute
+  chapters/ch_1/lectures.tex -o /tmp/ch_1.mdx` exits 0; output
+  contains 111/111 source callouts as `<Definition>`/`<KeyIdea>`/
+  `<Gotcha>`/`<Example>`/`<Aside>` with `[Title]` attributes
+  preserved (sample: `<Definition title="Array">`,
+  `<KeyIdea title="Why direct access is $O(1)$">`,
+  `<Aside title="Vectors are not linked lists">`); 91 section
+  anchors prefixed `ch_1-…`; 75 code blocks tagged `cpp` (more
+  than 36 source `lstlisting` envs because pandoc also emits
+  `CodeBlock` for indented code samples and the filter applies
+  cpp uniformly — acceptable for the C++ corpus); 0 raw passthrough
+  blocks in filter output. Files added: `scripts/pandoc-filter.lua`
+  (157 lines), `.pandoc-version` (`3.1.3`),
+  `design_docs/m2_raw_passthrough_sweep.md`. Files changed:
+  `chapters/ch_6/lectures.tex` (nested-tabular refactor; PDF
+  rebuilt as side effect), `design_docs/architecture.md` (§5
+  Resolved adds the pandoc 3.1.3 pin reference). ACs from
+  `design_docs/milestones/m2_phase2_astro/tasks/T2_lua_filter.md`:
+  7/7 met; auditor smoke checks below.
+- **Added** **M2 Task T1 — Astro scaffold.** First Astro project on
+  disk for cs-300, replacing nothing yet (Jekyll site keeps serving
+  until M2 T6/T8). Scaffolded via `npm create astro@latest --
+  --template minimal --typescript strict` into `/tmp/astro-scaffold`,
+  then copied core pieces (`src/`, `public/`, `astro.config.mjs`,
+  `tsconfig.json`, `package.json` with the `name` rewritten to
+  `cs-300`) into the repo root. Pinned Node 22 via `.nvmrc`
+  (resolves to local v22.22.2; npm 10.9.7). Astro version: 6.1.9.
+  Customisations against the bare scaffold: `astro.config.mjs`
+  sets `site: 'https://yeevon.github.io'`, `base: '/DSA/'`,
+  `output: 'static'` to match the existing GitHub Pages mount;
+  `src/pages/index.astro` replaced with a one-line placeholder
+  ("cs-300 — Astro scaffold (M2 T1)"); `src/layouts/Base.astro`
+  added as the minimal HTML shell every later page will extend.
+  **Per Gap 3 (M2 alignment review):** `public/audio/.gitkeep`
+  materialised so the architecture.md §1.4 audio file-layout pin
+  exists on disk now, not just in the spec — M7 fills the dir
+  with MP3s + sentence-timestamp JSON. `.gitignore` extended with
+  `node_modules/`, `dist/`, `.astro/`, `.env`, `.env.production`.
+  Smoke tests (per CLAUDE.md "code-task verification non-inferential"):
+  `npm install` exited 0 (252 packages, no vulns); `npm run build`
+  exited 0 producing `dist/index.html` containing the placeholder
+  text; `npm run dev` started on `:4321`, `curl
+  http://localhost:4321/DSA/` returned the placeholder text via
+  the dev server. Files added: `package.json`, `package-lock.json`,
+  `astro.config.mjs`, `tsconfig.json`, `.nvmrc`,
+  `src/pages/index.astro`, `src/layouts/Base.astro`,
+  `public/audio/.gitkeep`, `public/favicon.{ico,svg}`. Files
+  changed: `.gitignore`. ACs from
+  `design_docs/milestones/m2_phase2_astro/tasks/T1_scaffold_astro.md`:
+  4/4 met; auditor smoke checks below.
 - **Changed** **M2 task list — alignment-review fixes (4 gaps + 3 notes
   + 2 user-decided design picks).** Outcome of the M2 project-alignment
   review run after the initial breakout. All edits stay within the M2

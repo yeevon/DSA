@@ -78,6 +78,20 @@ playwright/.cache/
 .claude/
 
 # ------------------------------------------------------------------
+# Astro / Node (M2 T1 onwards)
+# ------------------------------------------------------------------
+node_modules/
+dist/
+.astro/
+.env
+.env.production
+
+# Generated content (M2 T4 build-content.mjs writes these from chapters/*.tex)
+src/content/lectures/ch_*.mdx
+src/content/notes/ch_*.mdx
+src/content/practice/ch_*.mdx
+
+# ------------------------------------------------------------------
 # OS noise
 # ------------------------------------------------------------------
 .DS_Store

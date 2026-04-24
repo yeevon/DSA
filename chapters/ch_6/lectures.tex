@@ -409,22 +409,27 @@ recursion is the key point.
 
 Here are two small trees with keys 10, 20, 30. Only one is a BST:
 
+% Two side-by-side trees. Refactored 2026-04-23 from nested tabular
+% (which pandoc's LaTeX reader couldn't parse) to side-by-side minipages.
+% pdflatex visual output is unchanged; pandoc parses cleanly. (M2 T2 sweep.)
 \begin{center}
-\begin{tabular}{cc}
+\begin{minipage}[t]{0.4\linewidth}\centering
 \begin{tabular}{c}
 \texttt{\ \ 20} \\
 \texttt{\ / \ \textbackslash{}\ } \\
 \texttt{10\ \ 30} \\
-\end{tabular}
-&
+\end{tabular}\\[0.3em]
+BST: left $\leq$ root $\leq$ right
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.4\linewidth}\centering
 \begin{tabular}{c}
 \texttt{\ \ 10} \\
 \texttt{\ / \ \textbackslash{}\ } \\
 \texttt{30\ \ 20} \\
-\end{tabular} \\
-BST: left $\leq$ root $\leq$ right & Not a BST: \\
- & 30 is in 10's left subtree but $> 10$ \\
-\end{tabular}
+\end{tabular}\\[0.3em]
+Not a BST: 30 is in 10's left subtree but $> 10$
+\end{minipage}
 \end{center}
 
 The property must hold \emph{recursively}. It's not enough to

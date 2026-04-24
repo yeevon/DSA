@@ -1,0 +1,69 @@
+---
+// _callouts-test.astro — Visual smoke page for the M2 T3 callout
+// component library. Underscore-prefixed so Astro excludes it from
+// the production build (per Astro's routing convention). Use:
+//
+//   npm run dev
+//   curl http://localhost:4321/DSA/_callouts-test
+//
+// All 6 components rendered with sample content; auditor visually
+// confirms each renders distinctly and the CodeBlock copy button
+// fires.
+import Base from '../layouts/Base.astro';
+import Definition from '../components/callouts/Definition.astro';
+import KeyIdea from '../components/callouts/KeyIdea.astro';
+import Gotcha from '../components/callouts/Gotcha.astro';
+import Example from '../components/callouts/Example.astro';
+import Aside from '../components/callouts/Aside.astro';
+import CodeBlock from '../components/callouts/CodeBlock.astro';
+---
+
+<Base title="cs-300 — callouts test">
+  <h1>M2 T3 — Callout component smoke page</h1>
+
+  <Definition title="Array">
+    A variable that holds a fixed-length, ordered sequence of values, all of the
+    same type, under a single name.
+  </Definition>
+
+  <KeyIdea title="Why direct access is O(1)">
+    Array elements are stored contiguously; element address = start + i × size.
+  </KeyIdea>
+
+  <Gotcha title="Off-by-one errors">
+    A four-element array has valid indices 0..3, not 1..4.
+  </Gotcha>
+
+  <Example title="C++ sequence containers">
+    <p>Three idiomatic choices for a fixed-element-count list:</p>
+    <ul>
+      <li><code>std::array&lt;T, N&gt;</code> — size known at compile time</li>
+      <li><code>std::vector&lt;T&gt;</code> — dynamic, contiguous, default choice</li>
+      <li><code>std::list&lt;T&gt;</code> — doubly-linked, O(1) splice/erase</li>
+    </ul>
+  </Example>
+
+  <Aside title="The model has a name: Word-RAM">
+    The picture used above has a formal name in algorithm analysis: the Word-RAM
+    model. Chapter 3 adopts this language when it makes Big-O analysis precise.
+  </Aside>
+
+  <h2>CodeBlock — prop form</h2>
+  <CodeBlock
+    lang="cpp"
+    code={`#include <vector>
+
+int main() {
+  std::vector<int> v;
+  v.resize(3);   // v is now {0, 0, 0}
+  return 0;
+}`}
+  />
+
+  <h2>CodeBlock — slot form</h2>
+  <CodeBlock lang="cpp">{`auto sum(const std::vector<int>& xs) {
+  long long s = 0;
+  for (int x : xs) s += x;
+  return s;
+}`}</CodeBlock>
+</Base>

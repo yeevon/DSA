@@ -13,10 +13,13 @@ otherwise.
 | T2  | [Build pandoc Lua filter (HYBRID)](T2_lua_filter.md)              | todo   | —             | 1–2 sessions      |
 | T3  | [Callout component library](T3_callout_components.md)             | todo   | T1            | 1 focused session |
 | T4  | [Pandoc → Astro build pipeline](T4_build_pipeline.md)             | todo   | T1, T2        | 1 focused session |
-| T5  | [Astro content collections + routes](T5_content_collections.md)   | todo   | T1, T4        | 1 focused session |
-| T6  | [Replace GitHub Pages workflow](T6_pages_workflow.md)             | todo   | T1, T3, T4, T5 | < 1 session      |
+| T5a | [Chapter-listing index + chapters.json migration](T5a_content_collections.md) | ✅ done 2026-04-23 | T1, T4 | 1 focused session |
+| T5b | [Dynamic chapter routes + pandoc → MDX safety bridge](T5b_dynamic_routes.md)  | todo               | T5a, T2, T3, T4 | 1–2 sessions      |
+| T6  | [Replace GitHub Pages workflow](T6_pages_workflow.md)             | todo   | T1, T3, T4, T5b | < 1 session      |
 | T7  | [Resolve `phase2_issues.md` items](T7_phase2_issues_cleanup.md)   | todo   | T2 (or T4)    | < 1 session       |
 | T8  | [Delete Jekyll scaffolding](T8_delete_jekyll.md)                  | todo   | T6 (one green cycle) | < 1 session |
+
+**T5 decompose note (2026-04-23):** original T5 was split into T5a (data/index, no MDX dependency) and T5b (schema + dynamic routes + pandoc → MDX brace-escape work) when the MDX parser surfaced multiple incompatibilities with pandoc-emitted markdown. Per the original T5 spec's decompose trigger.
 
 ## Task ordering note
 

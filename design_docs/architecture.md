@@ -339,6 +339,7 @@ Resolved here:
 - **Question persistence model:** accumulating (roadmap's "almost certainly" confirmed).
 - **Answer evaluation surface:** mixed — mc, short (exact/fuzzy/numeric), llm_graded, code. Schema in §2 carries all four.
 - **Audio file layout:** `public/audio/ch_N.{mp3,timestamps.json}`, pinned now to avoid Phase 7 unwind.
+- **Pandoc version pin:** **3.1.3** (recorded in [`../.pandoc-version`](../.pandoc-version), 2026-04-23 via M2 T2). The HYBRID verdict and the Lua filter at `scripts/pandoc-filter.lua` are calibrated against this version; major-version bumps require re-running the M2 T2 raw-passthrough sweep at [`m2_raw_passthrough_sweep.md`](m2_raw_passthrough_sweep.md) and re-verifying the filter's per-class behaviour.
 
 ---
 

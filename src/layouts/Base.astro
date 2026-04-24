@@ -1,0 +1,29 @@
+---
+// Base.astro — minimal HTML shell used by every page.
+// Styling lands in M2 T3 (callout components) and follow-on UI work;
+// this layout is intentionally bare so the scaffold has a single
+// place to grow from without committing to a design.
+interface Props {
+  title?: string;
+}
+
+const { title = 'cs-300' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header><strong>cs-300</strong></header>
+    <main>
+      <slot />
+    </main>
+    <footer></footer>
+  </body>
+</html>

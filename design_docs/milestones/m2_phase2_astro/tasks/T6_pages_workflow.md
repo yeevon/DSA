@@ -1,7 +1,7 @@
 # T6 — Replace GitHub Pages workflow
 
 **Status:** todo
-**Depends on:** T1, T3, T4, T5 (functional Astro build end-to-end)
+**Depends on:** T1, T3, T4, T5b (functional Astro build end-to-end — T5a alone gives a working index but no chapter routes; T6's deploy-verification curl needs T5b's chapter routes to land)
 **Blocks:** T8
 
 ## Why
