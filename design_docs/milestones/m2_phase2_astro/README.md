@@ -36,9 +36,11 @@ M3 wires the interactive surfaces.
 - [ ] Old Jekyll files removed: `_config.yml`, `_data/`,
       `_includes/`, `_layouts/`, top-level `lectures/`, `notes/`,
       `index.md`. Replaced by Astro equivalents.
-- [ ] Two `phase2_issues.md` items resolved (or deliberately
-      carried forward): stale companion-materials line in chapter
-      `lectures.tex`; `resources/week_2.tex` "Cheatsheet" heading.
+- [x] Two `phase2_issues.md` items resolved 2026-04-23 (M2 T7):
+      stale companion-materials line in chapter `lectures.tex`
+      rewired to the post-rename paths; `resources/` removed
+      entirely (the `week_2.tex` "Cheatsheet" heading is moot under
+      removal).
 
 ## Tasks
 
@@ -53,8 +55,8 @@ Broken out into individual files under [`tasks/`](tasks/README.md).
 | T5a | [Chapter-listing index + chapters.json migration](tasks/T5a_content_collections.md) | ✅ done 2026-04-23 |
 | T5b | [Dynamic chapter routes + pandoc → MDX safety bridge](tasks/T5b_dynamic_routes.md)  | ✅ done 2026-04-23 |
 | T6  | [Replace GitHub Pages workflow](tasks/T6_pages_workflow.md)       | todo   |
-| T7  | [Resolve `phase2_issues.md` items](tasks/T7_phase2_issues_cleanup.md) | todo |
-| T8  | [Delete Jekyll scaffolding](tasks/T8_delete_jekyll.md)            | todo   |
+| T7  | [Resolve `phase2_issues.md` items](tasks/T7_phase2_issues_cleanup.md) | ✅ done 2026-04-23 |
+| T8  | [Delete Jekyll scaffolding](tasks/T8_delete_jekyll.md)            | blocked on T6 |
 
 See [`tasks/README.md`](tasks/README.md) for ordering guidance, the
 infra-first vs content-first sequence, and status conventions.

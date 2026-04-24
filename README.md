@@ -93,9 +93,6 @@ cs-300/
 │   ├── psuedo/
 │   └── python/
 │
-├── resources/                       # week-level sidecar TeX
-│   └── week_{2,3,4,5}.{tex,pdf}
-│
 ├── design_docs/
 │   ├── architecture.md              # gating doc for Phase 1
 │   └── roadmap_addenda.md           # local supplement to the Drive roadmap

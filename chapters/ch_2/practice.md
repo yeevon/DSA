@@ -7,7 +7,7 @@ permalink: /practice/ch_2/
 
 Paste any drill into a fresh Claude session. Shape:
 **problem → pseudocode → C++ → critique**. Claude withholds answers until
-you submit. See `practice_prompts/ch_1.md` for the standard-wrapper prompt
+you submit. See `chapters/ch_1/practice.md` for the standard-wrapper prompt
 to prime Claude — reuse it verbatim here.
 
 ---

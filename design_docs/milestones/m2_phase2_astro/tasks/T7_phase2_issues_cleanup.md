@@ -1,6 +1,6 @@
 # T7 — Resolve `phase2_issues.md` items
 
-**Status:** todo
+**Status:** ✅ done 2026-04-23 (1 cycle — see [`../issues/T7_issue.md`](../issues/T7_issue.md))
 **Depends on:** T2 (filter exists, so source-vs-filter trade-off is decidable) — soft dep, can land independently
 **Blocks:** —
 

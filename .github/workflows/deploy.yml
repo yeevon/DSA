@@ -1,0 +1,83 @@
+# .github/workflows/deploy.yml
+#
+# M2 Task T6 — Astro build + deploy to GitHub Pages.
+#
+# Replaces the implicit Jekyll `pages-build-deployment` workflow.
+# Triggered on push to `main` and via `workflow_dispatch` for manual
+# reruns. Pandoc 3.1.3 is downloaded directly (apt's Ubuntu version
+# may lag behind the .pandoc-version pin); Node 22 from `actions/setup-node`
+# matches the local .nvmrc.
+#
+# ⚠️ ONE-TIME MANUAL SETUP STEP REQUIRED:
+#   In GitHub repo settings → Pages, switch source from
+#   "Deploy from a branch" to "GitHub Actions". Without this flip,
+#   the workflow will succeed but Pages will keep serving Jekyll
+#   from `main` (or 404 if the branch source was already cleared).
+#
+# T8 deletes the Jekyll source files only after T6 has been green
+# for one full deploy cycle.
+
+name: Deploy Astro to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pandoc 3.1.3 (pinned in .pandoc-version)
+        run: |
+          PINNED=$(cat .pandoc-version)
+          if [ "$PINNED" != "3.1.3" ]; then
+            echo "::error::.pandoc-version=$PINNED but workflow installs 3.1.3"
+            exit 1
+          fi
+          wget -q "https://github.com/jgm/pandoc/releases/download/${PINNED}/pandoc-${PINNED}-1-amd64.deb"
+          sudo dpkg -i "pandoc-${PINNED}-1-amd64.deb"
+          pandoc --version | head -1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check (astro check)
+        run: npm run check
+
+      - name: Build (prebuild → pandoc filter → astro build)
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

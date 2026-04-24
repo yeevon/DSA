@@ -7,7 +7,7 @@ permalink: /practice/ch_12/
 
 Paste any drill into a fresh Claude session. Shape:
 **problem → pseudocode → C++ → critique**. Reuse the standard wrapper
-from `practice_prompts/ch_1.md` if priming a fresh session.
+from `chapters/ch_1/practice.md` if priming a fresh session.
 
 ---
 

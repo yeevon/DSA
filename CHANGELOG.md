@@ -14,6 +14,108 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Deferred** **M2 Task T8 — Delete Jekyll scaffolding.** Pre-flight
+  cycle only — task NOT executed. T8 spec step 1 mandates a T6
+  stability soak ("at least one full deploy cycle green") before
+  deleting Jekyll source, since the Jekyll files are the rollback
+  path if T6's Astro deploy breaks. T6 itself is BLOCKED on user
+  (workflow file authored locally, but pushing + the Pages-source
+  settings flip + deployed-URL verification require GitHub-side
+  action). Pre-flight verification ran today and all preconditions
+  hold: T5a/T8 fail-loud contract `grep -rn 'chapters\.yml' src/
+  scripts/` returns zero hits (yml safe to delete); Jekyll source
+  inventory matches the delete list (`_config.yml`, `_data/chapters.yml`,
+  `_includes/nav.html`, `_layouts/{default,pdf}.html`, `index.md`,
+  top-level `lectures/` + `notes/` = 24 wrappers, `assets/style.css`);
+  Astro doesn't reference `assets/` (entire dir is Jekyll-only,
+  safe to remove); T3 carry-over (`src/pages/callouts-test.astro`)
+  still in scope. When unblocked, T8 executes as a single commit:
+  `git rm` the Jekyll source + the callouts-test page; update
+  `README.md` repo-layout, `CLAUDE.md` repo-layout, and the
+  `feedback_no_jekyll_polish.md` memory entry; verify `npm run
+  build` still green (38 → 37 pages after callouts-test removal).
+  See [`design_docs/milestones/m2_phase2_astro/issues/T8_issue.md`](design_docs/milestones/m2_phase2_astro/issues/T8_issue.md)
+  for the full pre-flight report and the executable command list.
+- **Deferred** **M2 Task T6 — GitHub Pages deploy workflow** (status
+  update). T6 deliverable (`.github/workflows/deploy.yml` + the new
+  `npm run check` script) landed locally and audited CLEAN for the
+  2 locally-verifiable ACs (file structure, type-check). The
+  remaining 4 ACs are spec-explicit user-gated steps: push the
+  workflow to GitHub, flip Pages source from "Deploy from a branch"
+  to "GitHub Actions" in repo settings, watch the run for green
+  status, curl the deployed URL to confirm the Astro generator
+  meta marker. Status: 🚧 BLOCKED on user. See
+  [`design_docs/milestones/m2_phase2_astro/issues/T6_issue.md`](design_docs/milestones/m2_phase2_astro/issues/T6_issue.md)
+  M2-T06-ISS-01 for the two execution paths (branch-first vs
+  direct-to-main) when ready.
+- **Changed** **M2 Task T7 — Resolve `phase2_issues.md` items + remove
+  `resources/`.** Closes both open phase2_issues entries. Item 1
+  (stale companion-materials line): all 6 SNHU-required chapter
+  `lectures.tex` files (ch_1–ch_6) had a "Companion materials"
+  bookend block referencing the pre-rename paths
+  `\texttt{cheat\_sheets/ch\_N.tex}` and `\texttt{practice\_prompts/ch\_N.md}`
+  (paths that never existed post the 2026-04-22 rename). Rewired
+  to the current paths `\texttt{chapters/ch\_N/notes.tex}` and
+  `\texttt{chapters/ch\_N/practice.md}`. Also fixed 11 chapters'
+  `practice.md` (ch_2–ch_13 except ch_1 which is the referent)
+  where the "standard wrapper" line referenced
+  `\` practice_prompts/ch_1.md\`` — updated to `\` chapters/ch_1/practice.md\``.
+  All 6 affected `lectures.pdf` rebuild clean
+  (`pdflatex -interaction=nonstopmode -halt-on-error` exit 0;
+  page counts unchanged from T5 sweep: ch_1=36, ch_2=34, ch_3=53,
+  ch_4=51, ch_5=26, ch_6=31). Item 2 (`resources/week_2.tex`
+  "Cheatsheet" heading) — `resources/` removed entirely
+  (`git rm -r resources/` dropped 8 files: `week_{2,3,4,5}.{tex,pdf}`),
+  per option B settled in the M2 alignment review (2026-04-23).
+  Ripple edits in the same change: `CLAUDE.md` repo-layout drops
+  the `resources/` line; `CLAUDE.md` auditor "Sequencing violation?"
+  rule no longer cites `resources/` (annotates the removal date);
+  `README.md` repo-layout drops the `resources/` block; M2 README
+  "Done when" item flipped to checked + cites T7;
+  `design_docs/phase2_issues.md` both items moved from "## Open"
+  to "## Resolved" with date + commit-link semantics.
+  `LICENSE` scope statement was already generic post the M1 dual→
+  single license consolidation — no edit needed. Files added:
+  none. Files changed: `chapters/ch_{1,2,3,4,5,6}/lectures.tex`
+  (companion-materials path rewire + PDF rebuild),
+  `chapters/ch_{2,3,4,5,6,7,9,10,11,12,13}/practice.md` (standard-
+  wrapper path rewire), `CLAUDE.md`, `README.md`,
+  `design_docs/phase2_issues.md`, `design_docs/milestones/m2_phase2_astro/README.md`.
+  Files deleted: `resources/week_{2,3,4,5}.{tex,pdf}` (8 files via
+  `git rm -r resources/`). ACs from
+  `tasks/T7_phase2_issues_cleanup.md`: 7/7 met; auditor smoke checks
+  below.
+- **Added** **M2 Task T6 — GitHub Pages deploy workflow (Astro,
+  replacing implicit Jekyll).** Authored
+  `.github/workflows/deploy.yml` (build + deploy jobs per the
+  Astro-on-Pages template). Build job: checkout → install pandoc
+  3.1.3 (downloaded from the pinned `.pandoc-version`; aborts
+  loudly if the pin doesn't match) → setup Node from `.nvmrc` →
+  `npm ci` → `npm run check` (astro check, the T5b-flagged ISS-02
+  carry-over) → `npm run build` (prebuild fires `build-content.mjs`
+  + the pandoc filter + Astro static build) → upload `dist/` as
+  Pages artefact. Deploy job: `actions/deploy-pages@v4`. Triggered
+  on push to `main` and `workflow_dispatch`. Concurrency group
+  pinned to `pages` so concurrent deploys cancel cleanly. Required
+  permissions (`contents: read`, `pages: write`, `id-token: write`)
+  declared at workflow level. Added `"check": "astro check"` to
+  `package.json` scripts (closes T5b ISS-02). Local smoke (the
+  parts a single-machine audit can verify): YAML structure parses
+  via `yaml`-lib (jobs: build, deploy; on: push + workflow_dispatch;
+  permissions correctly set); `npm run check` exits 0 (0 errors,
+  0 warnings, 14 hints — Astro 6's `z`-deprecation hint on
+  `src/content.config.ts:22` doesn't fail). **Workflow run +
+  deployed-URL verification require pushing to GitHub** — both ACs
+  4 + 6 of T6 are gated on the user-confirm step per the spec's
+  "stop and ask before merging" rule (live-site flip, destructive
+  on shared state). **One-time manual settings flip** also user-
+  owned: in repo settings → Pages, source from "Deploy from a
+  branch" → "GitHub Actions". The workflow's deploy job will
+  still execute without the flip but the live URL won't pick up
+  the artefact. Files added: `.github/workflows/deploy.yml`. Files
+  changed: `package.json` (+1 script). ACs from
+  `tasks/T6_pages_workflow.md`: 2/4 met locally; 2 pending user
+  action (covered in audit issue file).
 - **Added** **M2 Task T5b — Dynamic chapter routes + pandoc → MDX
   safety bridge.** Closes out the original T5 scope after the T5
   decompose. Three deliverables:

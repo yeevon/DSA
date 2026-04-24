@@ -10,17 +10,28 @@ resolved when Phase 2 work touches them.
 
 ## Open
 
-- **Stale companion-materials line in chapter `lectures.tex` files.**
-  Each chapter currently ends with a line referencing
-  `cheat_sheets/ch_N.tex` and `practice_prompts/ch_N.md` (paths that
-  never existed; "cheat sheet" terminology now stale post-rename).
-  Confirmed in `chapters/ch_{1,2,3,4,5,6}/lectures.tex`. The new
-  paths are `chapters/ch_N/notes.tex` and `chapters/ch_N/practice.md`.
-  When Phase 2 restructures content into Astro collections + MDX, the
-  cross-references between lectures / notes / practice get re-wired
-  anyway — fix as part of that.
+(none — both items below resolved 2026-04-23 by M2 T7)
 
-- **`resources/week_2.tex` `\section{Big-O Cheatsheet}` heading**
-  uses old "Cheatsheet" terminology. Decide during Phase 2 whether
-  to rename to align with the new Lectures/Notes convention or keep
-  as a content-genre label.
+## Resolved
+
+- ~~**Stale companion-materials line in chapter `lectures.tex` files.**~~
+  ✅ **RESOLVED 2026-04-23 (M2 T7).** All 6 SNHU-required chapters
+  (ch_1–ch_6) updated: `\texttt{cheat\_sheets/ch\_N.tex}` →
+  `\texttt{chapters/ch\_N/notes.tex}` and
+  `\texttt{practice\_prompts/ch\_N.md}` → `\texttt{chapters/ch\_N/practice.md}`
+  in each chapter's "Companion materials" bookend block. All 6 PDFs
+  rebuild clean (exit 0; page counts unchanged: ch_1=36, ch_2=34,
+  ch_3=53, ch_4=51, ch_5=26, ch_6=31). Also fixed in 11 chapters'
+  `practice.md` (`practice_prompts/ch_1.md` → `chapters/ch_1/practice.md`
+  in the "standard wrapper" reference).
+
+- ~~**`resources/week_2.tex` `\section{Big-O Cheatsheet}` heading.**~~
+  ✅ **RESOLVED-OBSOLETE 2026-04-23 (M2 T7, path B).** `resources/`
+  removed entirely. The week_2–5 sidecar TeX was orphaned by the
+  ch_1–ch_6 augmentation pass (week 2 sorting → ch_3; week 3 lists
+  → ch_4; week 4 hash tables → ch_5; week 5 trees → ch_6). Decision
+  was made during the M2 alignment review (2026-04-23, option B);
+  T7 executed the removal + propagated ripple edits to LICENSE
+  scope (already generic post-consolidation; nothing to change),
+  README.md repo-layout, CLAUDE.md repo-layout + auditor sequencing
+  rule.
