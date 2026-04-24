@@ -72,9 +72,11 @@ dist/
 
 **No `dist/api/` directory** — API routes are server-only (correct).
 
-## 5. Runtime push verification (post-deploy)
+## 5. Runtime push verification (post-deploy) — ✅ confirmed 2026-04-24
 
-Pending the user pushing the M3 commits and the workflow firing. Expected behaviour:
+User pushed `9b678ba..b618674` (5 commits) to `origin/main`; workflow fired on `b618674` and reported success. Site live at <https://yeevon.github.io/DSA/>. T8 AC 6 + M3-T08-ISS-03 closed.
+
+Original expected behaviour (now verified):
 
 - Build job pinpoints `pandoc 3.1.3` install + Node 22 + npm ci + `npm run check` (T6 + T7 may add astro-check warnings; should still exit 0) + `npm run build` (37 prerendered pages + server bundle).
 - Upload step now grabs `./dist/client` (the workflow fix).
