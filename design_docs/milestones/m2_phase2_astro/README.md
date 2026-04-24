@@ -30,11 +30,11 @@ M3 wires the interactive surfaces.
 - [x] Section anchors `<a id="ch_N-section-slug">` are emitted by
       the pipeline. These are the stable IDs M3's `sections.anchor`
       will reference. *(T2 + T4 — 91 `ch_1-` anchors in lectures/ch_1.mdx; verified per chapter.)*
-- [ ] GitHub Pages deploy from `dist/` works end-to-end (replace
-      the Jekyll workflow). *(T6 — workflow file authored locally; 🚧 blocked on user.)*
-- [ ] Old Jekyll files removed: `_config.yml`, `_data/`,
+- [x] GitHub Pages deploy from `dist/` works end-to-end (replace
+      the Jekyll workflow). *(T6 — workflow ran green 2026-04-23; deploy succeeded; site live at <https://yeevon.github.io/DSA/>; build: pandoc 3.1.3 install + `npm run check` + `npm run build` produced 38 pages in 19.7s; deploy: `actions/deploy-pages@v4` reported success for SHA `bdc1bac`. See [`issues/T6_issue.md`](issues/T6_issue.md).)*
+- [x] Old Jekyll files removed: `_config.yml`, `_data/`,
       `_includes/`, `_layouts/`, top-level `lectures/`, `notes/`,
-      `index.md`. Replaced by Astro equivalents. *(T8 — pre-flight clean; 🚧 blocked on T6 stability soak.)*
+      `index.md`, plus `assets/style.css`. Replaced by Astro equivalents. *(T8 — executed 2026-04-23 after T6 green; `npm run build` exits 0 with 37 pages. See [`issues/T8_issue.md`](issues/T8_issue.md). T3 carry-over also satisfied: `src/pages/callouts-test.astro` removed.)*
 - [x] Two `phase2_issues.md` items resolved 2026-04-23 (M2 T7):
       stale companion-materials line in chapter `lectures.tex`
       rewired to the post-rename paths; `resources/` removed
@@ -53,9 +53,9 @@ Broken out into individual files under [`tasks/`](tasks/README.md).
 | T4  | [Pandoc → Astro build pipeline](tasks/T4_build_pipeline.md)       | ✅ done 2026-04-23 |
 | T5a | [Chapter-listing index + chapters.json migration](tasks/T5a_content_collections.md) | ✅ done 2026-04-23 |
 | T5b | [Dynamic chapter routes + pandoc → MDX safety bridge](tasks/T5b_dynamic_routes.md)  | ✅ done 2026-04-23 |
-| T6  | [Replace GitHub Pages workflow](tasks/T6_pages_workflow.md)       | 🚧 blocked on user |
+| T6  | [Replace GitHub Pages workflow](tasks/T6_pages_workflow.md)       | ✅ done 2026-04-23 |
 | T7  | [Resolve `phase2_issues.md` items](tasks/T7_phase2_issues_cleanup.md) | ✅ done 2026-04-23 |
-| T8  | [Delete Jekyll scaffolding](tasks/T8_delete_jekyll.md)            | blocked on T6 |
+| T8  | [Delete Jekyll scaffolding](tasks/T8_delete_jekyll.md)            | ✅ done 2026-04-23 |
 
 See [`tasks/README.md`](tasks/README.md) for ordering guidance, the
 infra-first vs content-first sequence, and status conventions.

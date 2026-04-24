@@ -1,6 +1,6 @@
 # T6 — Replace GitHub Pages workflow
 
-**Status:** 🚧 blocked on user (workflow file authored locally 2026-04-23; 4 ACs require GitHub-side action — see [`../issues/T6_issue.md`](../issues/T6_issue.md) M2-T06-ISS-01)
+**Status:** ✅ done 2026-04-23 (workflow ran green; deploy succeeded; site live at https://yeevon.github.io/DSA/ — see [`../issues/T6_issue.md`](../issues/T6_issue.md))
 **Depends on:** T1, T3, T4, T5b (functional Astro build end-to-end — T5a alone gives a working index but no chapter routes; T6's deploy-verification curl needs T5b's chapter routes to land)
 **Blocks:** T8
 

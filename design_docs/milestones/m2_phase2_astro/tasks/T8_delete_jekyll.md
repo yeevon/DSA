@@ -1,6 +1,6 @@
 # T8 — Delete Jekyll scaffolding
 
-**Status:** 🚧 blocked on T6 stability soak (pre-flight cycle 2026-04-23 — see [`../issues/T8_issue.md`](../issues/T8_issue.md) M2-T08-ISS-01; ready to execute as a single commit when T6 unblocks)
+**Status:** ✅ done 2026-04-23 (1 cycle execution after T6 went green — see [`../issues/T8_issue.md`](../issues/T8_issue.md))
 **Depends on:** T6 (deploy green for one full cycle — see Notes)
 **Blocks:** declaring M2 done
 

@@ -14,6 +14,44 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Removed** **M2 Task T8 — Jekyll scaffolding deleted; M2 implementation
+  complete.** T6 ran green (workflow run `24872418871`, deploy SHA
+  `bdc1bac`, site live at <https://yeevon.github.io/DSA/>). User gave
+  the go signal; T8 deletion sweep executed in one commit per the
+  pre-flight plan (commit `4d9e1a9` issue file). Removed:
+  `_config.yml`, `_data/chapters.yml` (T5a/T8 fail-loud confirmed
+  unreferenced one final time before the rm), `_includes/nav.html`,
+  `_layouts/{default,pdf}.html`, top-level `lectures/` (12 wrappers)
+  + `notes/` (12 wrappers), `index.md` (Jekyll), `assets/style.css`,
+  and `src/pages/callouts-test.astro` (T3 ISS-01 carry-over). Doc
+  updates in the same commit: `README.md` repo-layout block
+  rewritten to show the Astro `src/` shape (replacing the Jekyll
+  one-liner); `CLAUDE.md` repo-layout block rewritten with `src/`,
+  `public/`, `scripts/`, `.github/workflows/`, `.nvmrc`,
+  `.pandoc-version`, `LICENSE` entries (Jekyll paragraph removed
+  entirely). Memory entry `feedback_no_jekyll_polish.md` deleted
+  outright (rule no longer load-bearing post-Jekyll-removal); index
+  entry pulled from `MEMORY.md`. Smoke (auditor): `npm run build`
+  from clean state exits 0 in 8.22 s; produces **37 pages** (38
+  prior − the deleted callouts-test smoke page); no broken imports
+  to any `_data/`, `_includes/`, or `_layouts/` paths in `src/` or
+  `scripts/`. T8 issue file flipped from BLOCKED → ✅ PASS;
+  M2-T08-ISS-01 RESOLVED. Files deleted: 30 (5 Jekyll config + 24
+  wrappers + 1 callouts-test). Files changed: `README.md`,
+  `CLAUDE.md`. Memory: `MEMORY.md` index updated;
+  `feedback_no_jekyll_polish.md` removed.
+- **Resolved** **M2 Task T6 — Pages workflow ran green; site live.**
+  User pushed local commits (5367f06 → bdc1bac), flipped repo
+  Pages settings → Source from "Deploy from a branch" to "GitHub
+  Actions". First workflow run on `bdc1bac`: build job 50 s
+  (pandoc 3.1.3 install + Node 22 + npm ci + `npm run check` +
+  `npm run build` → 38 pages in 19.7 s + artefact upload 498 KB);
+  deploy job 11 s (`actions/deploy-pages@v4` reported success).
+  Run URL: GitHub Actions workflow `24872418871`. Deployed URL:
+  <https://yeevon.github.io/DSA/>. T6 issue file flipped from OPEN
+  → ✅ PASS; M2-T06-ISS-01 RESOLVED. T6 spec status, tasks/README
+  index row, m2/README task table, and m2/README "Done when" item 7
+  all flipped to done with citation links.
 - **Fixed** **M2 deep-analysis follow-ups (H1, H2, M1, M2, L3, L4).**
   Outcome of the M2 deep-analysis audit; all locally-actionable
   drift cleaned up.

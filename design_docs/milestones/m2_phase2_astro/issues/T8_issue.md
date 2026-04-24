@@ -3,7 +3,7 @@
 **Source task:** [../tasks/T8_delete_jekyll.md](../tasks/T8_delete_jekyll.md)
 **Audited on:** 2026-04-23 (pre-flight cycle — task not executed; gated on T6)
 **Audit scope:** No file changes this cycle. Pre-flight checks only: T5a/T8 fail-loud contract (`grep -rn 'chapters\.yml' src/ scripts/`), Jekyll source inventory, `assets/` reachability scan, T3 carry-over confirmation. Cross-checked against [`../issues/T6_issue.md`](T6_issue.md) (T6 status), [`../tasks/T8_delete_jekyll.md`](../tasks/T8_delete_jekyll.md) (deletion list + carry-over from T3).
-**Status:** 🚧 BLOCKED on T6 stability soak. All pre-conditions for the deletion sweep are met; the actual `git rm`s wait for T6 to land + run green for one full deploy cycle (per T8 spec step 1: "Wait for T6 stability. … Confirm with the user before starting T8.").
+**Status:** ✅ PASS (cycle 2, 2026-04-23) — T6 ran green; user confirmed; deletion sweep executed. Jekyll source files removed; T3 callouts-test page removed; doc updates landed; `npm run build` produces 37 pages (38 − callouts-test) in 8.22 s. M2-T08-ISS-01 RESOLVED.
 
 ## Why T8 isn't running this cycle
 
@@ -76,10 +76,10 @@ None.
 
 ## 🟡 MEDIUM
 
-### M2-T08-ISS-01 — Cannot execute without T6 stability — MEDIUM (procedural, not a defect)
+### M2-T08-ISS-01 — Cannot execute without T6 stability — MEDIUM → RESOLVED
 
 **Severity:** 🟡 MEDIUM
-**Status:** 🚧 BLOCKED — gated on T6 (M2-T06-ISS-01)
+**Status:** ✅ RESOLVED (2026-04-23) — T6 ran green; user gave the go signal; deletion sweep executed in one commit per the pre-flight plan. `npm run build` exits 0 post-removal; 37 pages generated (one fewer than the prior 38 because the T3 callouts-test smoke page was deleted alongside the Jekyll source per the T3 carry-over).
 
 T8's spec step 1 mandates a T6 stability soak before deletion. The actual `git rm`s wait. Pre-flight is clean; execution is one focused session once unblocked.
 
@@ -110,7 +110,7 @@ None — pre-flight only.
 
 | ID            | Severity  | Status                | Owner / next touch point                              |
 | ------------- | --------- | --------------------- | ----------------------------------------------------- |
-| M2-T08-ISS-01 | 🟡 MEDIUM | 🚧 BLOCKED on T6     | User clears T6 → notify to run T8 → single commit deletes Jekyll + updates docs |
+| M2-T08-ISS-01 | 🟡 MEDIUM | ✅ RESOLVED 2026-04-23 | T6 green; sweep landed; build exits 0 with 37 pages |
 
 ## Propagation status
 

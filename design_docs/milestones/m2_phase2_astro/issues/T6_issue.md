@@ -3,7 +3,7 @@
 **Source task:** [../tasks/T6_pages_workflow.md](../tasks/T6_pages_workflow.md)
 **Audited on:** 2026-04-23
 **Audit scope:** New files (`.github/workflows/deploy.yml`); modified files (`package.json` +1 script, `CHANGELOG.md`). Cross-checked against [`../tasks/T5b_dynamic_routes.md`](../tasks/T5b_dynamic_routes.md) ISS-02 ("add `check` script when T6 lands"), [`../../../../CLAUDE.md`](../../../../CLAUDE.md) "Ask before destructive shared-state ops" + "Stop and ask before merging" rules, [`../../pandoc_probe.md`](../../pandoc_probe.md) (pandoc 3.1.3 pin honoured in CI). Local smoke checks executed by the auditor: YAML structural parse, `npm run check` invocation. **Workflow runtime + deployed-URL verification (ACs 4 + 6) cannot be executed locally** — they require pushing to GitHub, where T6's own spec mandates a user-confirm gate.
-**Status:** ⚠️ OPEN — 2/4 ACs PASS locally; 2 PENDING USER ACTION (workflow run + post-merge curl). The two pending items are spec-explicit user-gated steps, not findings.
+**Status:** ✅ PASS (cycle 2, 2026-04-23) — workflow ran green on `bdc1bac`; deploy succeeded; site live at <https://yeevon.github.io/DSA/>. Pages settings flipped to "GitHub Actions" source by user. All 5 ACs now met. M2-T06-ISS-01 RESOLVED.
 
 ## Design-drift check
 
@@ -39,10 +39,10 @@ None.
 
 ## 🟡 MEDIUM
 
-### M2-T06-ISS-01 — 4 ACs gated on user-only actions (workflow run, settings flip, deployed-URL verification, PR description) — MEDIUM
+### M2-T06-ISS-01 — 4 ACs gated on user-only actions — MEDIUM → RESOLVED
 
 **Severity:** 🟡 MEDIUM (procedural, not a code defect)
-**Status:** 🚧 BLOCKED on user
+**Status:** ✅ RESOLVED (2026-04-23) — user pushed local commits to GitHub, flipped Pages settings source from "Deploy from a branch" to "GitHub Actions", and the first workflow run on `bdc1bac` completed green. Build job: 50s (pandoc 3.1.3 install + Node 22 setup + `npm ci` + `npm run check` + `npm run build` → 38 pages in 19.7s + artifact upload 498816 bytes). Deploy job: 11s (`actions/deploy-pages@v4` reported success). Deployed URL: <https://yeevon.github.io/DSA/>. Run URL captured in deploy log: GitHub Actions workflow run `24872418871`.
 
 T6 cannot complete locally. Four ACs require:
 
@@ -101,7 +101,7 @@ The workflow downloads pandoc from `https://github.com/jgm/pandoc/releases/downl
 
 | ID            | Severity  | Status         | Owner / next touch point                                  |
 | ------------- | --------- | -------------- | --------------------------------------------------------- |
-| M2-T06-ISS-01 | 🟡 MEDIUM | 🚧 BLOCKED ON USER | User triggers the workflow + flips Pages settings        |
+| M2-T06-ISS-01 | 🟡 MEDIUM | ✅ RESOLVED 2026-04-23 | Workflow run green; site live at https://yeevon.github.io/DSA/ |
 | M2-T06-ISS-02 | 🟢 LOW    | ✅ ACCEPTED    | None — pandoc release artefacts are stable                |
 
 ## Propagation status
