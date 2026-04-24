@@ -12,6 +12,15 @@ non-decisions (a question raised and intentionally postponed).
 
 ---
 
+## 2026-04-24
+
+- **Fixed** Added `.nojekyll` at repo root. GitHub's implicit Jekyll
+  `pages-build-deployment` was still firing on push after T8 deleted
+  the Jekyll source, crashing on `src/pages/index.astro` (Jekyll
+  parsed Astro frontmatter as YAML). The marker file disables the
+  implicit Jekyll workflow entirely; `actions/deploy-pages@v4` from
+  M2 T6 is now the only deploy path.
+
 ## 2026-04-22
 
 - **Changed** `chapters/ch_4/notes.tex` — compact reference mirror of
