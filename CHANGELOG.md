@@ -14,6 +14,21 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Deferred** **Site UI/UX layer parked in `design_docs/nice_to_have.md`.**
+  First entry in the nice_to_have file (file didn't exist before today
+  — CLAUDE.md says it's created only when needed). User raised the
+  current site's plain visual layout as a real issue
+  ("UI layout is trash...should need to update it...maybe something
+  like this" + Canvas-LMS-style screenshot for reference). Three
+  framing options surfaced (new T9 in M2, new milestone M2.5,
+  defer to nice_to_have); user picked nice_to_have. Recorded as a
+  ~1–2 session chunk of work — Canvas-style left-nav + breadcrumb
+  + section-aware chapter pane + landing-page redesign — with three
+  triggers that would justify promotion (M3 chrome dependencies
+  surface, multi-user reports navigation friction, or external
+  presentation need). Per CLAUDE.md, adoption out of nice_to_have
+  requires an ADR + architecture.md amendment, not a task. Files
+  added: `design_docs/nice_to_have.md`.
 - **Removed** **M2 Task T8 — Jekyll scaffolding deleted; M2 implementation
   complete.** T6 ran green (workflow run `24872418871`, deploy SHA
   `bdc1bac`, site live at <https://yeevon.github.io/DSA/>). User gave
