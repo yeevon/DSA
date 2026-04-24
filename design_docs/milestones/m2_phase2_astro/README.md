@@ -1,7 +1,7 @@
 # M2 — Phase 2: Jekyll → Astro migration
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 2
-**Status:** todo
+**Status:** todo (8 tasks broken out 2026-04-23 — see [`tasks/`](tasks/))
 **Depends on:** M1 (Phase 1 close-out — pandoc verdict + acceptance criteria)
 **Unblocks:** M3 (state service hangs off Astro API routes), M7 (audio islands)
 
@@ -42,29 +42,22 @@ M3 wires the interactive surfaces.
 
 ## Tasks
 
-1. Scaffold Astro project: `npm create astro@latest` into a temp
-   dir; copy in the relevant pieces (config, `src/`,
-   `package.json`, `tsconfig.json`).
-2. Implement the Lua filter mapping LaTeX environments → MDX
-   components per architecture.md §1. (M1 T2 verdict: HYBRID — the
-   filter is required; pandoc native handling alone drops callout
-   titles, the `lstlisting language=…` hint, and section-anchor
-   chapter prefixing. See [`../../pandoc_probe.md`](../../pandoc_probe.md).)
-3. Build the callout component library (5 components, minimal
-   props per architecture.md).
-4. Wire pandoc invocation into the Astro build pipeline (probably
-   a `scripts/build-content.mjs` invoked before `astro build`).
-5. Set up Astro content collections per architecture.md §1
-   ("Astro content collections"), with frontmatter sourced from
-   `_data/chapters.yml` for now (port into collection frontmatter
-   at the end of M2).
-6. Replace the GitHub Pages workflow: build with Node, deploy
-   `dist/`. Verify the public URL still resolves.
-7. Resolve the two `phase2_issues.md` items: rewire the
-   companion-materials cross-references; rename or document the
-   "Cheatsheet" heading in `resources/week_2.tex`.
-8. Delete Jekyll scaffolding once the Astro deploy is green for
-   one full cycle.
+Broken out into individual files under [`tasks/`](tasks/README.md).
+
+| ID  | Task                                                              | Status |
+|-----|-------------------------------------------------------------------|--------|
+| T1  | [Scaffold Astro project](tasks/T1_scaffold_astro.md)              | todo   |
+| T2  | [Build pandoc Lua filter (HYBRID)](tasks/T2_lua_filter.md)        | todo   |
+| T3  | [Callout component library](tasks/T3_callout_components.md)       | todo   |
+| T4  | [Pandoc → Astro build pipeline](tasks/T4_build_pipeline.md)       | todo   |
+| T5  | [Astro content collections + routes](tasks/T5_content_collections.md) | todo |
+| T6  | [Replace GitHub Pages workflow](tasks/T6_pages_workflow.md)       | todo   |
+| T7  | [Resolve `phase2_issues.md` items](tasks/T7_phase2_issues_cleanup.md) | todo |
+| T8  | [Delete Jekyll scaffolding](tasks/T8_delete_jekyll.md)            | todo   |
+
+See [`tasks/README.md`](tasks/README.md) for ordering guidance, the
+infra-first vs content-first sequence, and status conventions.
+Mirror status changes between the per-task file and the table above.
 
 ## Open decisions resolved here
 
@@ -85,27 +78,12 @@ M3 wires the interactive surfaces.
 
 ---
 
-## Carry-over from prior audits (pre-task-breakout)
+## Carry-over from prior audits — redistributed 2026-04-23
 
-These items are forward-deferrals from M1 audits. Because M2's
-per-task specs don't exist yet, they live here on the milestone
-README. **When M2's task-breakout happens, the breakout author
-redistributes each item to the appropriate concrete task spec and
-removes this section.**
-
-- [ ] **M1-T02-ISS-02 — Pin the pandoc version.** Severity: 🟢 LOW.
-      The probe at [`../../pandoc_probe.md`](../../pandoc_probe.md)
-      ran against stock `apt`-installed pandoc; the verdict could
-      shift across pandoc majors (LaTeX reader behaviour evolves).
-      Whatever CI / build script invokes pandoc in M2 must pin a
-      specific minor version. Source:
-      [`../m1_phase1_closeout/issues/T2_issue.md`](../m1_phase1_closeout/issues/T2_issue.md).
-- [ ] **M1-T02-ISS-03 — Sweep all 12 chapters for raw-passthrough
-      blocks.** Severity: 🟢 LOW. The ch_1 probe surfaced one stray
-      `` ```{=html} `` block at line 496 of `/tmp/probe.md` from a
-      tcolorbox construct pandoc couldn't fully parse. Frequency
-      across the other 11 chapters is unknown. During filter
-      authoring, run pandoc against every `chapters/ch_*/lectures.tex`
-      and `notes.tex`, count occurrences, and decide per-occurrence
-      whether to fix the source or handle in the filter. Source:
-      [`../m1_phase1_closeout/issues/T2_issue.md`](../m1_phase1_closeout/issues/T2_issue.md).
+The two M1 forward-deferrals (M1-T02-ISS-02 pin pandoc version,
+M1-T02-ISS-03 raw-passthrough sweep across 12 chapters) have been
+absorbed into [`tasks/T2_lua_filter.md`](tasks/T2_lua_filter.md)
+(steps 1 + 3, plus matching acceptance checks). The originating
+issue file at
+[`../m1_phase1_closeout/issues/T2_issue.md`](../m1_phase1_closeout/issues/T2_issue.md)
+will flip both from `DEFERRED → RESOLVED` once T2 lands.

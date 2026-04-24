@@ -14,6 +14,21 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Added** **M2 task breakout — 8 task specs + index.** M2 (Phase 2
+  Jekyll → Astro migration) was a single milestone README with a
+  prose 8-item Tasks list and a "carry-over from prior audits"
+  section. Now broken out into per-task spec files following the M1
+  pattern: T1 scaffold-astro, T2 lua-filter (HYBRID per M1 verdict;
+  absorbs M1-T02-ISS-02 pandoc-version-pin and M1-T02-ISS-03 raw-
+  passthrough-sweep carry-overs), T3 callout-components, T4 build-
+  pipeline, T5 content-collections+routes, T6 pages-workflow, T7
+  phase2-issues-cleanup, T8 delete-jekyll. Each spec carries an
+  explicit smoke-test acceptance check per the CLAUDE.md
+  "code-task verification is non-inferential" non-negotiable.
+  M2 README's prose Tasks section converted to a status table
+  matching M1 README's shape; carry-over section collapsed to a
+  one-line pointer at T2. Files added: `design_docs/milestones/m2_phase2_astro/tasks/`
+  (README.md + T1–T8). Files changed: `design_docs/milestones/m2_phase2_astro/README.md`.
 - **Decided** **M1 (Phase 1 close-out) closed.** All 5 M1 tasks
   done; all 13 Phase 1 acceptance criteria in
   `design_docs/roadmap_addenda.md` verified end-to-end and ticked
