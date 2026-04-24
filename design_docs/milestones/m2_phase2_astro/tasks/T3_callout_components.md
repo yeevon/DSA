@@ -75,3 +75,9 @@ that renders one of each for visual verification.
 - **No `<AudioPlayer>` here.** That's M7. T3 is callouts only.
 - **No `"send to editor"` button on `<CodeBlock>`.** That's M6 (code
   execution). T3 ships the static-mode CodeBlock only.
+- **Decompose trigger.** If `<CodeBlock>`'s syntax-highlighting +
+  copy-button work alone takes more than ~30 minutes (Shiki theme
+  config, copy-button island wiring, dev-server smoke), split into
+  T3a (5 callouts) + T3b (CodeBlock). The 5 callouts are
+  near-identical templates; CodeBlock is the one with real moving
+  parts.

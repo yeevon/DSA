@@ -47,12 +47,17 @@ it for T8 or a post-T5 micro-task).
    - List all 12 chapters in a table: chapter number, title,
      [Lectures] [Notes] [Practice] links.
    - Mark optional chapters distinctly (visual cue).
-4. **Frontmatter sourcing.** Read `_data/chapters.yml` once at
-   build time (in `scripts/build-content.mjs` from T4 — extend
-   that script to inject frontmatter into each generated MDX
-   before T5's collections see them). Alternatively, write a small
-   `src/content/chapters.json` from yml → json at the same point.
-   Pick whichever is simpler.
+4. **Frontmatter sourcing — and migrate `_data/chapters.yml` into
+   per-MDX frontmatter as part of T5 (not deferred to T8).** The
+   per-chapter metadata (`title`, `subtitle`, `n`, `required`)
+   currently lives in Jekyll's `_data/chapters.yml`. T5 owns the
+   migration: extend `scripts/build-content.mjs` (T4) to read the
+   yml, merge it into each generated MDX's frontmatter alongside
+   T4's section-list output (see T4 step 1), and stop reading from
+   yml afterwards. By T5 close, the content collections are the
+   single source of truth for per-chapter metadata; `_data/chapters.yml`
+   is unreferenced and ready for T8 to delete with the rest of Jekyll.
+   T8 carries a fail-loud check that the file is in fact unreferenced.
 5. **Smoke**: `npm run dev`, navigate to:
    - `/` → index renders all 12 chapters.
    - `/lectures/ch_1/`, `/notes/ch_1/`, `/practice/ch_1/` → all 3
@@ -77,14 +82,22 @@ it for T8 or a post-T5 micro-task).
       [CLAUDE.md](../../../CLAUDE.md#auditor-conventions).
 - [ ] No `/lectures/ch_8/` or `/notes/ch_8/` route exists (ch_8
       isn't a chapter).
+- [ ] `_data/chapters.yml` is **not read** by any code in `src/` or
+      `scripts/` after T5 lands. *Verify:* `grep -rn 'chapters\.yml'
+      src/ scripts/` returns zero hits. (T8 then deletes the file.)
+- [ ] Each generated MDX in `src/content/lectures/`,
+      `src/content/notes/`, `src/content/practice/` has the
+      per-chapter metadata (`title`, `subtitle`, `n`, `required`)
+      in its frontmatter, sourced from the migrated yml.
 
 ## Notes
 
-- **`_data/chapters.yml` migration deferred.** Per architecture.md
-  §1: "migrate into content-collection frontmatter at Phase 2
-  cutover — trivial port." For T5, source from yml. For T8 (or a
-  post-T5 micro-task), migrate the yml content into per-MDX
-  frontmatter and delete the yml file with the rest of Jekyll.
+- **`_data/chapters.yml` migration owned by T5** (not T8). Reasoning:
+  T5 is where the content-collection schema lands; the yml→frontmatter
+  shape decision belongs with the schema decision, not with the
+  Jekyll-deletion task. T8 retains a fail-loud check that
+  `_data/chapters.yml` is unreferenced before removal — that's
+  T8's job, not the migration itself.
 - **No interactive surfaces.** Per
   [`../README.md`](../README.md) "Out of scope": no review queue,
   no editor, no annotations. Static-only. Mode detection
@@ -94,3 +107,9 @@ it for T8 or a post-T5 micro-task).
   ch_8 routes. This is also a `roadmap_addenda.md` Phase 1
   acceptance criterion that already passed; preserving it through
   M2 is automatic if `getCollection` enumerates only what exists.
+- **Decompose trigger.** If the chapters.yml→frontmatter migration
+  (step 4) ends up larger than expected (e.g. requires changing
+  yml schema or restructuring `_data/`), split into T5a (schema +
+  3 dynamic routes + index page) and T5b (yml migration + the
+  fail-loud bridge to T8). T5a alone gets to a renderable site;
+  T5b lets T8 proceed.

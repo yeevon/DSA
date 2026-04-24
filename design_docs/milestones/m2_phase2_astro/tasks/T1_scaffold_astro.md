@@ -32,7 +32,12 @@ directories present and committed:
 - `src/pages/index.astro` — hello-world placeholder.
 - `src/layouts/Base.astro` — minimal HTML shell (header, main, footer
   slots — actual styling in T3 / later).
-- `public/` — empty for now; `public/audio/` added by T7/M7, not T1.
+- `public/` — empty for now, **except** `public/audio/.gitkeep`. The
+  audio file layout is pinned by
+  [`../../architecture.md`](../../architecture.md) §1.4 (`public/audio/ch_N.{mp3,timestamps.json}`)
+  to avoid M7 having to unwind a different choice. Materialising the
+  empty dir at T1 is the cheapest way to honour the pin. Actual MP3s
+  / JSON ship in M7.
 - `.gitignore` updates: `node_modules/`, `dist/`, `.astro/`.
 
 ## Steps
@@ -53,7 +58,10 @@ directories present and committed:
    something concrete to render.
 6. Add a `Base.astro` layout under `src/layouts/` — empty shell, no
    styling yet.
-7. **Do not** wire pandoc, content collections, or callout components
+7. `mkdir -p public/audio && touch public/audio/.gitkeep` — pins the
+   M7 audio file layout per architecture.md §1.4 without shipping any
+   audio yet.
+8. **Do not** wire pandoc, content collections, or callout components
    in this task. Those are T2, T4, T5, T3 respectively.
 
 ## Acceptance check (auditor smoke test — non-inferential)
@@ -68,6 +76,8 @@ directories present and committed:
       [CLAUDE.md](../../../CLAUDE.md#auditor-conventions).)
 - [ ] `git status` shows `node_modules/` and `dist/` are untracked
       (gitignored).
+- [ ] `public/audio/.gitkeep` exists and is tracked (the dir is
+      materialised per architecture.md §1.4 even though M7 fills it).
 
 ## Notes
 

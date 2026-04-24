@@ -21,7 +21,7 @@ is stable before T8.
 ## Deliverable
 
 - Remove: `_config.yml`, `_data/`, `_includes/`, `_layouts/`,
-  top-level `lectures/`, `top-level `notes/`, `index.md` (the
+  top-level `lectures/`, top-level `notes/`, `index.md` (the
   Jekyll one — Astro replaces with `src/pages/index.astro`),
   Jekyll-specific subset of `assets/` (anything Astro doesn't use).
 - Update `README.md` "Repository layout" section: remove the
@@ -43,22 +43,33 @@ is stable before T8.
    Astro pages (`src/`); only delete the Jekyll-specific ones. Run
    `grep -rn 'assets/' src/ | sort -u` to see what Astro actually
    uses.
-3. **Remove Jekyll files** in one commit (so the diff is reviewable):
+3. **Pre-removal fail-loud check (per T5 contract).** Before any
+   `git rm`, verify `_data/chapters.yml` is unreferenced anywhere
+   in `src/` and `scripts/`:
+   `grep -rn 'chapters\.yml' src/ scripts/` MUST return zero hits.
+   If the grep finds anything, T5 didn't complete its migration —
+   stop, fix T5, then resume T8. **Do not** delete the yml while
+   any code still reads from it.
+4. **Remove Jekyll files** in one commit (so the diff is reviewable):
    - `git rm _config.yml`
    - `git rm -r _data/ _includes/ _layouts/`
    - `git rm -r lectures/ notes/`
    - `git rm index.md`
    - `git rm -r assets/<jekyll-only-subdirs>`
-4. **Update docs** in the same commit:
+5. **Update docs** in the same commit:
    - `README.md` repo-layout section.
    - `CLAUDE.md` repo-layout section + drop the Jekyll
      "placeholder infrastructure" paragraph.
    - `LICENSE` scope-statement header.
-5. **Smoke**: re-run `npm run build` from a clean state, push,
+   - Memory: `feedback_no_jekyll_polish.md` — either delete it
+     (rule is no longer load-bearing) or annotate it with a
+     "post-M2 — historical only" header. Update the `MEMORY.md`
+     index accordingly.
+6. **Smoke**: re-run `npm run build` from a clean state, push,
    wait for T6 deploy, verify the public URL still works. (Removing
    Jekyll files shouldn't affect Astro build; this is a paranoia
    check.)
-6. **CHANGELOG entry** for the removal under the current dated
+7. **CHANGELOG entry** for the removal under the current dated
    section.
 
 ## Acceptance check (auditor smoke test — non-inferential)
@@ -76,18 +87,22 @@ is stable before T8.
       placeholder-infrastructure paragraph.
 - [ ] `LICENSE` scope statement no longer mentions
       `Jekyll viewer wrappers`.
+- [ ] `_data/chapters.yml` deletion was preceded by the fail-loud
+      check (step 3) returning zero hits.
+- [ ] `feedback_no_jekyll_polish.md` is either removed from
+      `memory/` (and from `MEMORY.md` index) OR carries a
+      "post-M2 — historical only" header. The active rule no
+      longer applies.
 
 ## Notes
 
-- **`feedback_no_jekyll_polish.md` memory entry can stay.** It's
-  historical context that explains why M1 didn't polish those
-  files; deleting the memory after the rule no longer applies is
-  fine but not required. If you keep it, mark it with a "post-M2"
-  note so future audits know it's no longer load-bearing.
-- **`_data/chapters.yml` migration.** Per T5 notes, the per-chapter
-  metadata in `_data/chapters.yml` should migrate into Astro
-  content-collection frontmatter before this file is removed. If
-  T5 didn't already do that migration, T8 step 3 must include it
-  (otherwise chapter titles vanish from the deployed site).
+- **`feedback_no_jekyll_polish.md` memory entry handling is now an
+  AC**, not a Note. T8 step 5 + the AC list both require it to be
+  either removed or annotated post-M2.
+- **`_data/chapters.yml` migration is owned by T5**, not T8. T8 only
+  *deletes* the file as part of the Jekyll sweep, after the
+  fail-loud check (step 3) confirms nothing reads from it. If the
+  fail-loud check finds hits, the contract is: stop and fix T5, do
+  not work around it in T8.
 - **`assets/` is mixed.** Don't blanket-delete. Some images / CSS
   may be used by Astro pages too. Step 2 inventory is mandatory.

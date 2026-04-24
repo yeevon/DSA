@@ -14,6 +14,52 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Changed** **M2 task list — alignment-review fixes (4 gaps + 3 notes
+  + 2 user-decided design picks).** Outcome of the M2 project-alignment
+  review run after the initial breakout. All edits stay within the M2
+  task tree except one architecture.md amendment.
+  Settled gaps:
+  (1) **Gap 1 — MDX section-list frontmatter location** decided
+  (option A): T4 generates section-list frontmatter (`{chapter_id,
+  sections: [{id, anchor, title, ord}, ...]}`) on `lectures/*.mdx`
+  only — lectures owns header structure. `notes/` and `practice/`
+  carry only `{chapter_id}` plus T5's per-chapter metadata.
+  `architecture.md` §2 seeding amended same-day to point at
+  `src/content/lectures/*.mdx` (was `notes/*.mdx`).
+  (2) **Gap 2 — `_data/chapters.yml` migration ownership** definitively
+  assigned to T5 step 4 (was deferred to "T8 or post-T5"). T8 step 3
+  + AC adds a fail-loud `grep -rn 'chapters\.yml' src/ scripts/`
+  precondition before any deletion.
+  (3) **Gap 3 — `public/audio/` layout pin** materialised by T1 step 7
+  + AC (`mkdir -p public/audio && touch public/audio/.gitkeep`) so
+  architecture.md §1.4's "pinned now to avoid M7 unwind" is honoured
+  by the scaffold itself, not promised for later.
+  (4) **Gap 4 — `resources/` removal** decided (option B): T7 hard-coded
+  to path B (remove `resources/` entirely; week_2–5 superseded by the
+  augmented chapters). Ripples baked into T7 steps 4 + AC: `LICENSE`
+  scope statement, `README.md` repo-layout, `CLAUDE.md` repo-layout +
+  auditor sequencing rule (drop `resources/` from the path list).
+  Earlier "stop and ask" framing removed.
+  Settled notes:
+  (A) T3 + T5 each get a "Decompose trigger" line so the borderline
+  sizing has an explicit split signal.
+  (B) T6 AC requires the manual GitHub-UI Pages-source flip to be
+  explicitly called out in the PR description with date/time, since
+  the change is invisible in the diff.
+  (C) T8 step 5 + AC requires `feedback_no_jekyll_polish.md` to be
+  removed or annotated "post-M2 — historical only" with `MEMORY.md`
+  index updated.
+  Also: two pre-existing typos in the original M2 spec writes fixed
+  (T8 stray backtick on `top-level notes/`; T6 bare URL in step 2).
+  Files touched: `design_docs/milestones/m2_phase2_astro/tasks/T1_scaffold_astro.md`,
+  `…/T3_callout_components.md`, `…/T4_build_pipeline.md`,
+  `…/T5_content_collections.md`, `…/T6_pages_workflow.md`,
+  `…/T7_phase2_issues_cleanup.md`, `…/T8_delete_jekyll.md`,
+  `design_docs/architecture.md`.
+- **Added** **Memory** `feedback_present_options_for_simple_issues.md`.
+  Per user direction during the M2 alignment review: when an issue's
+  fix is small and has 2–3 reasonable directions, list options
+  instead of unilaterally picking one. Indexed in `MEMORY.md`.
 - **Added** **M2 task breakout — 8 task specs + index.** M2 (Phase 2
   Jekyll → Astro migration) was a single milestone README with a
   prose 8-item Tasks list and a "carry-over from prior audits"

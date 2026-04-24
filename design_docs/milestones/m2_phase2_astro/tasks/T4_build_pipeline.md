@@ -39,18 +39,31 @@ responsibilities:
    and `child_process.execFile` (no extra deps). Pass the chapter
    number as a pandoc metadata arg so the filter can use it for
    anchor prefixing (matches T2 step 2).
-2. Edit `package.json`:
+2. **Inject section-list frontmatter into `lectures/*.mdx` only.**
+   Each generated `src/content/lectures/ch_N.mdx` gets frontmatter
+   shape `{chapter_id: 'ch_N', sections: [{id, anchor, title, ord}, ...]}`,
+   where the section list is parsed from T2's emitted
+   `<a id="ch_N-...">` anchors (walk the MDX after pandoc, before
+   write). This is the canonical section index that
+   [`../../architecture.md`](../../architecture.md) §2 seeding
+   reads to populate the `sections` table in M3 — confirmed
+   2026-04-23 (architecture.md amended same day to point at
+   `lectures/*.mdx`, not `notes/*.mdx`, since lectures owns the
+   header structure). `notes/*.mdx` and `practice/*.mdx` carry
+   only `{chapter_id}` plus the per-chapter metadata T5 step 4
+   migrates from `_data/chapters.yml`.
+3. Edit `package.json`:
    - Add `"prebuild": "node scripts/build-content.mjs"`.
    - Add `"predev": "node scripts/build-content.mjs"`.
    - (Optional) `"build:content": "node scripts/build-content.mjs"`
      for ad-hoc invocation.
-3. Add `src/content/` directories with a `.gitkeep` in each
+4. Add `src/content/` directories with a `.gitkeep` in each
    subdirectory so the schema files (T5) have somewhere to live.
    The generated `ch_*.mdx` files themselves should be **gitignored**
    — they're build artefacts. Add `src/content/lectures/ch_*.mdx`,
    `src/content/notes/ch_*.mdx`, `src/content/practice/ch_*.mdx`
    to `.gitignore`. (`config.ts` from T5 stays tracked.)
-4. **Smoke**: from a clean state (rm `src/content/{lectures,notes,
+5. **Smoke**: from a clean state (rm `src/content/{lectures,notes,
    practice}/ch_*.mdx`), run `npm run build`. Expect:
    - Prebuild hook fires, runs T4, produces 36 MDX files (12 × 3).
    - Astro build proceeds against the generated content.
@@ -69,6 +82,14 @@ responsibilities:
 - [ ] `src/content/lectures/ch_1.mdx` opens cleanly: contains
       callout components from T2's filter, contains a `ch_1-`-prefixed
       anchor, no raw passthrough blocks unaccounted for.
+- [ ] `src/content/lectures/ch_1.mdx` frontmatter contains a
+      non-empty `sections:` array; each entry has `id`, `anchor`
+      (prefixed `ch_1-`), `title`, `ord`. Auditor inspects the file
+      directly — this is the M3-seeding contract per
+      [`../../architecture.md`](../../architecture.md) §2.
+- [ ] `src/content/notes/ch_1.mdx` and `src/content/practice/ch_1.mdx`
+      carry `chapter_id: 'ch_1'` in frontmatter but **no** `sections:`
+      array (lectures owns the section structure).
 - [ ] `git status` shows the 36 generated MDX files as ignored, not
       tracked.
 

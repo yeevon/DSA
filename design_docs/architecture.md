@@ -214,8 +214,12 @@ Drizzle. Rationale: lighter than Prisma, no runtime query engine, TypeScript-fir
 ### Seeding
 
 On first boot (and after any rebuild), the state service reads:
-- `_data/chapters.yml` → upserts `chapters`
-- `src/content/notes/*.mdx` frontmatter → upserts `sections`
+- `_data/chapters.yml` → upserts `chapters` *(pre-M2; after M2 T5 migrates the yml into per-MDX frontmatter, seeding reads the merged `chapters.*` frontmatter from any of the three collections)*
+- `src/content/lectures/*.mdx` frontmatter → upserts `sections`
+  *(amended 2026-04-23 from `src/content/notes/*.mdx`; lectures owns
+  the header structure, so the section list lives there. Notes are
+  2-page reference cards and carry only `chapter_id` in frontmatter.
+  M2 T4 generates the section-list frontmatter on lectures only.)*
 
 Seeding is idempotent. Questions and attempt state are never touched.
 

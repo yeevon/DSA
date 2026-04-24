@@ -43,7 +43,7 @@ from "Deploy from a branch" to "GitHub Actions".
    site. T6 is not the place to debug build issues.
 2. **Author the workflow** at `.github/workflows/deploy.yml`. Use
    the official Astro + GitHub Pages template
-   (https://docs.astro.build/en/guides/deploy/github/) as the
+   (<https://docs.astro.build/en/guides/deploy/github/>) as the
    starting point — don't reinvent.
 3. **Settings flip.** In repo settings → Pages, change source from
    "Deploy from a branch" to "GitHub Actions". This is a one-time
@@ -76,6 +76,12 @@ from "Deploy from a branch" to "GitHub Actions".
       are not sufficient — the deployed bytes must be inspected
       per [CLAUDE.md](../../../CLAUDE.md#auditor-conventions).
 - [ ] Repo Pages settings show "GitHub Actions" as the source.
+- [ ] **Manual settings-flip is explicitly called out in the PR
+      description** (since this step happens outside the diff and is
+      otherwise invisible). PR description must include: (a) "Pages
+      source flipped from branch to GitHub Actions in repo settings"
+      and (b) the date/time of the flip. Future audits looking at
+      the PR alone need to know the manual step was done.
 
 ## Notes
 

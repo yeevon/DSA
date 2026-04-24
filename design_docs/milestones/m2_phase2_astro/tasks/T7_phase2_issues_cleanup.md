@@ -6,65 +6,88 @@
 
 ## Why
 
-`design_docs/phase2_issues.md` carries two open items deferred from
+`design_docs/phase2_issues.md` carries two items deferred from
 pre-M2 work:
 
 1. **Companion-materials line in chapter `lectures.tex`** — a
    stale cross-reference to material that no longer exists in the
    current chapter layout.
-2. **`resources/week_2.tex` "Cheatsheet" heading** — the heading
-   `\section{Big-O Cheatsheet}` references a concept-bag the
-   chapter restructure replaced.
+2. **`resources/week_2.tex` "Cheatsheet" heading** — moot after
+   the 2026-04-23 decision to **remove `resources/` entirely** as
+   part of M2 (week_2–5 content has been superseded by the
+   augmented chapters; `resources/` is orphaned). T7 implements
+   the removal and propagates the ripple edits.
 
-Both are doc-cleanliness items, not architectural. T7 is the
-sweep that closes them out so M2 doesn't ship with `phase2_issues.md`
-still listing pending work.
-
-**Open question (carry from prior conversation):** the user has
-flagged `resources/` (week_2–5) as possibly orphaned content. If
-the user decides to remove `resources/` entirely as part of M2,
-the `week_2.tex` "Cheatsheet" item becomes moot — T7 step 2 turns
-into a removal note, not a rename. Before starting T7, **stop and
-ask the user** which path they want.
+T7 is the sweep that closes both items out and removes the
+`resources/` directory + its references across the repo.
 
 ## Deliverable
 
-`design_docs/phase2_issues.md` with both items marked resolved
-(commit refs cited), plus the actual source edits or removals
-those resolutions require.
+- `design_docs/phase2_issues.md` with both items marked resolved
+  (commit refs cited).
+- `chapters/ch_*/lectures.tex` companion-materials lines either
+  removed or rewired.
+- `resources/` directory removed (`git rm -r resources/`).
+- Ripple edits propagated: `LICENSE` scope statement, `README.md`
+  repo-layout, `CLAUDE.md` repo-layout + auditor sequencing rule.
 
 ## Steps
 
 1. **Re-read** `design_docs/phase2_issues.md` for the precise text
-   of both items, plus any context that's accumulated since they
-   were filed.
+   of both items.
 2. **Item 1 — companion-materials line.** Locate the offending
    line via `grep -rn 'companion materials' chapters/`. Decide
    per occurrence:
    - Remove if the referenced material doesn't exist anywhere.
-   - Rewire to the new location if it moved (e.g., to
-     `resources/` or to another chapter).
+   - Rewire to the new location if it moved (typically to
+     `chapters/ch_N/notes.{tex,pdf}` or `chapters/ch_N/practice.md`
+     after the 2026-04-22 file-rename pass).
    Update each `chapters/ch_*/lectures.tex`; rebuild the affected
-   PDFs to verify.
-3. **Item 2 — `resources/week_2.tex` Cheatsheet heading.** Path A
-   (rename): change `\section{Big-O Cheatsheet}` to whatever the
-   week-2 content is actually about now. Path B (remove): if the
-   user has approved removing `resources/`, this item is moot and
-   gets a "obsolete by removal" note in `phase2_issues.md`.
-4. **Update `phase2_issues.md`** — flip both items from open to
-   `RESOLVED 2026-MM-DD` with the commit SHA (or "obsolete" if
-   item 2 went path B).
+   PDFs to verify (`pdflatex -interaction=nonstopmode -halt-on-error`).
+3. **Item 2 — remove `resources/` (path B, settled 2026-04-23).**
+   - `git rm -r resources/` — drops `week_{2,3,4,5}.{tex,pdf}`.
+   - The week-content has been superseded by the augmented chapters
+     (week 2 sorting → `chapters/ch_3`; week 3 lists → `chapters/ch_4`;
+     week 4 hash tables → `chapters/ch_5`; week 5 trees → `chapters/ch_6`).
+     Per the 2026-04-23 review: the dir is orphaned, style-inconsistent
+     (own preamble, not `notes-style.tex`), and week-numbered vs the
+     repo's chapter-numbered organisation.
+4. **Ripple edits, same commit as the removal:**
+   - `LICENSE` scope-statement header — drop the `resources/` bullet.
+   - `README.md` repo-layout `text` block — remove the `resources/`
+     line; remove any other `resources/` references in the body.
+   - `CLAUDE.md` repo-layout — remove the `resources/` line.
+   - `CLAUDE.md` auditor "Sequencing violation?" rule — currently
+     reads "*chapter task touching `coding_practice/` or `resources/`*";
+     simplify to "*chapter task touching `coding_practice/`*" (the
+     memory rule reference `project_practice_md_phase4_link.md` /
+     `project_coding_practice_purpose.md` stays — only the path list
+     shrinks).
+   - `design_docs/phase2_issues.md` item 2 — flip to "RESOLVED
+     2026-MM-DD (obsolete by removal — see commit SHA)".
+5. **Update `phase2_issues.md`** — flip both items from open to
+   `RESOLVED 2026-MM-DD` with the commit SHA.
+6. **Verify nothing else references `resources/`** — `grep -rn
+   'resources/' --include='*.md' --include='*.tex' --include='*.yml'
+   --include='*.html' .` should return zero hits in active docs (only
+   historical references in CHANGELOG and audit logs are acceptable).
 
 ## Acceptance check (auditor smoke test — non-inferential)
 
 - [ ] `design_docs/phase2_issues.md` shows both items resolved
-      (or obsolete) with dates and commit refs.
+      with dates and commit refs.
 - [ ] `grep -rn 'companion materials' chapters/` returns zero hits
       OR every hit is to a real, current target (verify each).
-- [ ] If path A on item 2: `grep -n 'Big-O Cheatsheet'
-      resources/week_2.tex` returns zero hits.
-- [ ] If path B on item 2: `test ! -d resources/` (or
-      `test ! -f resources/week_2.tex`).
+- [ ] `test ! -d resources/` — directory removed.
+- [ ] `grep -rn 'resources/' --include='*.md' --include='*.tex'
+      --include='*.yml' --include='*.html' .` returns zero hits in
+      active docs. Historical references in CHANGELOG and audit
+      logs are acceptable; flag any in active specs.
+- [ ] `LICENSE` scope statement no longer mentions `resources/`.
+- [ ] `README.md` repo-layout block no longer lists `resources/`.
+- [ ] `CLAUDE.md` repo-layout no longer lists `resources/`; the
+      auditor "Sequencing violation?" rule no longer cites
+      `resources/`.
 - [ ] Affected `chapters/ch_*/lectures.pdf` rebuild clean
       (`pdflatex -interaction=nonstopmode -halt-on-error`).
 
@@ -75,9 +98,9 @@ those resolutions require.
   trade-off is settled. The chapter `.tex` edits in step 2 may
   affect what T2's filter has to handle, so doing T2 first is
   cleaner.
-- **The `resources/` removal decision is bigger than T7.** If the
-  user approves it, that change touches `LICENSE` (scope statement
-  references `resources/`), `README.md` (repo layout), `CLAUDE.md`
-  (repo layout + auditor sequencing rule that says "chapter task
-  touching `resources/` is HIGH"), plus T7 step 2. Capture all
-  those in the same commit if path B is taken.
+- **`resources/` removal is the settled path** (decided 2026-04-23
+  during M2 task-breakout review). The earlier "stop and ask"
+  framing has been removed; T7 implements path B directly. If
+  context shifts before T7 runs (e.g. the week_*.tex content turns
+  out to contain something not in the chapters), revisit before
+  removal — but the default is removal.
