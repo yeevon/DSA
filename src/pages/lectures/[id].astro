@@ -14,6 +14,10 @@ import Gotcha from '../../components/callouts/Gotcha.astro';
 import Example from '../../components/callouts/Example.astro';
 import Aside from '../../components/callouts/Aside.astro';
 import CodeBlock from '../../components/callouts/CodeBlock.astro';
+import AnnotateButton from '../../components/annotations/AnnotateButton.astro';
+import AnnotationsPane from '../../components/annotations/AnnotationsPane.astro';
+import SectionNav from '../../components/read_status/SectionNav.astro';
+import MarkReadButton from '../../components/read_status/MarkReadButton.astro';
 
 export async function getStaticPaths() {
   const lectures = await getCollection('lectures');
@@ -25,6 +29,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
+const sectionIds = entry.data.sections.map((s) => s.id);
 ---
 
 <Base title={`${entry.data.title} — Lectures`}>
@@ -35,4 +40,8 @@ const { Content } = await render(entry);
   <article>
     <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock }} />
   </article>
+  <SectionNav chapterId={entry.data.chapter_id} sections={entry.data.sections} />
+  <AnnotationsPane sectionIds={sectionIds} />
+  <AnnotateButton />
+  <MarkReadButton />
 </Base>

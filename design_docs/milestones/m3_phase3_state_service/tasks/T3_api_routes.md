@@ -1,6 +1,6 @@
 # T3 — Astro API route stubs (architecture.md §3)
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T3_issue.md`](../issues/T3_issue.md))
 **Depends on:** T1 (Path A confirmed = Astro server hosts the routes)
 **Blocks:** T6, T7 (UI surfaces hit these endpoints)
 

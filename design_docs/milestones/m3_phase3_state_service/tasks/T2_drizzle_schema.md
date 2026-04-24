@@ -1,6 +1,6 @@
 # T2 — Drizzle schema + initial migration
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T2_issue.md`](../issues/T2_issue.md))
 **Depends on:** T1 (Path A confirmed = Astro server owns SQLite)
 **Blocks:** T4 (seeding needs the schema), T6 + T7 (data-layer surfaces)
 

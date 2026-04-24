@@ -1,0 +1,117 @@
+---
+// MarkReadButton.astro — M3 T7.
+// Floating button (bottom-left) that toggles the current section's
+// read-status. The "current section" is the section whose header
+// anchor is most recently scrolled past — computed via
+// IntersectionObserver on the M2 T4 emitted `<a id="ch_N-...">`
+// anchors.
+//
+// On click: POST or DELETE depending on current state. Fires
+// `cs300:read-status-changed` so SectionNav refreshes its dots.
+//
+// Data-interactive-only per T5 contract.
+---
+
+<button id="mark-read-button" data-interactive-only type="button">Mark section read</button>
+
+<style>
+  #mark-read-button {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    z-index: 1000;
+    padding: 6px 12px;
+    font-size: .8rem;
+    background: #16a34a;
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
+  }
+  #mark-read-button[data-read="true"] {
+    background: #dc2626;
+  }
+  #mark-read-button[data-read="true"]::before {
+    content: 'Unmark ';
+  }
+</style>
+
+<script>
+  const btn = document.getElementById('mark-read-button');
+  if (!btn) {
+    console.warn('[mark-read-button] not found');
+  } else {
+    let currentSectionId: string | null = null;
+    const markedSet = new Set<string>();
+
+    async function refreshMarked() {
+      // Pull from the SectionNav-loaded set if present; else fetch.
+      const nav = document.getElementById('section-nav');
+      if (nav) {
+        nav.querySelectorAll<HTMLElement>('.dot[data-read="true"]').forEach((d) => {
+          if (d.dataset.sectionId) markedSet.add(d.dataset.sectionId);
+        });
+      }
+      updateButtonState();
+    }
+
+    function updateButtonState() {
+      if (!btn) return;
+      if (currentSectionId && markedSet.has(currentSectionId)) {
+        btn.dataset.read = 'true';
+      } else {
+        btn.dataset.read = 'false';
+      }
+    }
+
+    // Observe section-header anchors. The most recently intersecting
+    // anchor (top-most) is the "current" section.
+    const anchors = document.querySelectorAll<HTMLElement>('article a[id^="ch_"]');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            currentSectionId = entry.target.id;
+            updateButtonState();
+            break;
+          }
+        }
+      },
+      { rootMargin: '-10% 0px -80% 0px' },
+    );
+    anchors.forEach((a) => observer.observe(a));
+
+    // Initial best-effort: use the first anchor.
+    if (anchors.length > 0) {
+      currentSectionId = anchors[0].id;
+    }
+
+    refreshMarked();
+
+    btn.addEventListener('click', async () => {
+      if (!currentSectionId) {
+        console.warn('[mark-read-button] no current section');
+        return;
+      }
+      const isRead = markedSet.has(currentSectionId);
+      try {
+        if (isRead) {
+          await fetch(`/api/read_status/${encodeURIComponent(currentSectionId)}`, { method: 'DELETE' });
+          markedSet.delete(currentSectionId);
+        } else {
+          await fetch('/api/read_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ section_id: currentSectionId }),
+          });
+          markedSet.add(currentSectionId);
+        }
+        updateButtonState();
+        window.dispatchEvent(new CustomEvent('cs300:read-status-changed'));
+      } catch (err) {
+        console.error('[mark-read-button] toggle failed:', err);
+      }
+    });
+  }
+</script>

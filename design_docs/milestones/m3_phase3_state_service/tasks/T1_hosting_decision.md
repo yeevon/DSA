@@ -1,6 +1,6 @@
 # T1 — Hosting decision: Astro server vs client SQLite
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T1_issue.md`](../issues/T1_issue.md))
 **Depends on:** —
 **Blocks:** T2, T3, T5 (everything downstream depends on the call)
 

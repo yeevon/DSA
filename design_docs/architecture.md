@@ -346,7 +346,7 @@ These block nothing immediately but need resolution before the phase that depend
 | decision                                 | block       | lean                        | decide by      |
 |------------------------------------------|-------------|-----------------------------|----------------|
 | Pandoc Lua filter vs manual port (Ch 1)  | Phase 2     | **resolved: HYBRID** (small filter + native pandoc) — see [`pandoc_probe.md`](pandoc_probe.md) | ✅ 2026-04-23 |
-| State service: Astro server vs client SQLite | Phase 3 | Astro server                | Phase 3 start  |
+| State service: Astro server vs client SQLite | Phase 3 | **resolved: Path A (Astro server)** — see [ADR 0001](adr/0001_state_service_hosting.md) | ✅ 2026-04-24 |
 | FSRS vs SM-2                             | Phase 5     | FSRS (`ts-fsrs`)            | Phase 5 start  |
 | Code language: C++ only vs C+++Python    | Phase 6     | C++ baseline, Python later  | Phase 6 start  |
 | Question-gen model tier (14B/32B/Claude) | Phase 4     | 14B start, A/B via tier_overrides | Phase 4 eval |

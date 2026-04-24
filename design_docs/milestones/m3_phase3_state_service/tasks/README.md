@@ -8,14 +8,14 @@ independently unless its **Depends on** field says otherwise.
 
 | ID  | Task                                                         | Status | Depends on   | Est. session size |
 |-----|--------------------------------------------------------------|--------|--------------|-------------------|
-| T1  | [Hosting decision: Astro server vs client SQLite](T1_hosting_decision.md) | todo | — | < 1 session |
-| T2  | [Drizzle schema + initial migration](T2_drizzle_schema.md)   | todo   | T1           | 1 focused session |
-| T3  | [Astro API route stubs (architecture.md §3)](T3_api_routes.md) | todo | T1           | 1 focused session |
-| T4  | [Seeding: chapters + sections from MDX](T4_seeding.md)       | todo   | T2           | < 1 session       |
-| T5  | [`detectMode()` + bootstrap mode flag](T5_mode_detection.md) | todo   | T1           | < 1 session       |
-| T6  | [Annotations end-to-end (dogfood)](T6_annotations.md)        | todo   | T2, T3, T5   | 1–2 sessions      |
-| T7  | [Read-status: mark-read indicator](T7_read_status.md)        | todo   | T2, T3, T5   | 1 focused session |
-| T8  | [Verify M2 public deploy unaffected](T8_deploy_verification.md) | todo | T6, T7       | < 1 session       |
+| T1  | [Hosting decision: Astro server vs client SQLite](T1_hosting_decision.md) | ✅ done 2026-04-24 | — | < 1 session |
+| T2  | [Drizzle schema + initial migration](T2_drizzle_schema.md)   | ✅ done 2026-04-24 | T1 | 1 focused session |
+| T3  | [Astro API route stubs (architecture.md §3)](T3_api_routes.md) | ✅ done 2026-04-24 | T1 | 1 focused session |
+| T4  | [Seeding: chapters + sections from MDX](T4_seeding.md)       | ✅ done 2026-04-24 | T2 | < 1 session |
+| T5  | [`detectMode()` + bootstrap mode flag](T5_mode_detection.md) | ✅ done 2026-04-24 | T1 | < 1 session |
+| T6  | [Annotations end-to-end (dogfood)](T6_annotations.md)        | ✅ done 2026-04-24 | T2, T3, T5 | 1–2 sessions |
+| T7  | [Read-status: mark-read indicator](T7_read_status.md)        | ✅ done 2026-04-24 | T2, T3, T5 | 1 focused session |
+| T8  | [Verify M2 public deploy unaffected](T8_deploy_verification.md) | ✅ done 2026-04-24 | T6, T7 | < 1 session |
 
 ## Task ordering note
 

@@ -71,6 +71,11 @@ cs-300/
 - **CHANGELOG entry.** Under the current dated section, add an entry tagged appropriately (Added / Changed / Removed / Fixed / Decided / Deferred). Reference the milestone + task ID (e.g. `M1 Task T2 — Pandoc probe`). List files touched, ACs satisfied, deviations from spec.
 - **File headers.** Every new module / TeX file / shell script gets a header comment citing the task and its relationship to other files. Inline comments only when *why* is non-obvious.
 - **No commits, PRs, or pushes unless the user asks.**
+- **Dependency audit before commit.** When the user asks you to commit, check the staged diff for changes to any dep manifest (`package.json`, `package-lock.json`, `pyproject.toml`, `requirements*.txt`, `.nvmrc`, `.pandoc-version`). If any are touched, spawn the `dependency-auditor` subagent against the changeset before committing. Surface its verdict:
+  - `SHIP` — proceed with the commit. Note `Dep audit: clean` in the CHANGELOG entry.
+  - `FIX-THEN-SHIP` or `BLOCK` — stop, surface findings verbatim, do not commit. Findings re-enter the task as carry-over ACs if the task is still under `/clean-implement`; otherwise surface them for user decision.
+  - Exception: if `/clean-implement` ran the security gate against the exact same changeset earlier in the session, reference that prior audit's verdict and skip the re-run. Note the reference in the CHANGELOG entry (`Dep audit: per <task-id> security gate`).
+  - If no manifest changed, note `Dep audit: skipped — no manifest changes` in the CHANGELOG entry and proceed.
 - **Stop and ask** if spec is ambiguous, an AC can't be met as written, or the task would break prior work.
 
 ---
@@ -189,11 +194,13 @@ If `nice_to_have.md` doesn't exist yet (the default state — created only when 
 - **Changelog discipline.** Every content- or code-touching task updates `CHANGELOG.md` in the same commit.
 - **Propagation discipline.** Forward-deferred items must appear as carry-over in the target task before the audit is complete.
 - **nice_to_have discipline.** Items listed in `nice_to_have.md` are out of scope by default. Adoption requires an architecture.md update plus an ADR — not a task.
+- **Status-surface discipline.** When a task closes, **three** surfaces flip together: (a) `**Status:** todo` → `✅ done <date>` in the per-task spec file, (b) the row in `tasks/README.md`, (c) the row in the milestone README's task table. Additionally, any `Done when` checkbox in the milestone README that the closed task satisfies flips from `[ ]` to `[x]` with a citation parenthetical pointing at the per-task issue file. The Auditor's design-drift check verifies all four — silent drift across them is a HIGH finding (M2 + M3 deep-analyses both caught this; the Builder doing it inline at task close is cheaper than the Auditor catching it cycle-late).
 - **40-page chapter ceiling** (per `feedback_chapter_review_autonomy.md`). `lectures.pdf` for any chapter must stay under 40 pages — over is a HIGH audit finding. **Grandfathered:** `chapters/ch_3/lectures.pdf` (53 pp) and `chapters/ch_4/lectures.pdf` (51 pp) predate the ceiling — their 2026-04-22 augmentation pass landed before the 40-page rule was set. They ship as-is. The ceiling applies forward to any chapter augmentation from 2026-04-22 onward, including any future re-augmentation of ch_3/ch_4.
 - **Code-task verification is non-inferential** (companion to the auditor "Content vs code" rule above). Build success is not evidence of runtime correctness for code. Every code task spec must name an explicit smoke test the auditor will run; without one, the spec is incomplete and the audit cannot pass.
 - **Bounded chapter additions** (per `feedback_chapter_review_scope.md`). 3–5 high-value adds per chapter; defer the rest to the post-build content audit.
 - **Don't polish Jekyll** (per `feedback_no_jekyll_polish.md`). M2 replaces the Jekyll site; pre-M2 polish is churn.
 - **Ask before** force-push, `reset --hard`, or any other destructive git op.
+- **Dependency audit gate.** No commit that touches a dep manifest ships without a clean `dependency-auditor` verdict (`SHIP`). Manifests in scope: `package.json`, `package-lock.json`, `pyproject.toml`, `requirements*.txt`, `.nvmrc`, `.pandoc-version`. Audit output lands in the originating task's issue file if one exists; otherwise attached to the CHANGELOG entry under a `Security` tag. The gate is non-skippable — "I only bumped a patch version" is not an exception, and transitive-dep surprises are exactly why the check exists.
 
 ---
 

@@ -97,3 +97,4 @@ src/content/practice/ch_*.mdx
 .DS_Store
 Thumbs.db
 desktop.ini
+data/

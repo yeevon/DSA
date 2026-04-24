@@ -1,6 +1,6 @@
 # T4 — Seeding: chapters + sections from MDX
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T4_issue.md`](../issues/T4_issue.md))
 **Depends on:** T2 (schema)
 **Blocks:** T6 + T7 (annotations + read-status reference `sections.id` FK)
 

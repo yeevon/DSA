@@ -1,0 +1,107 @@
+---
+// AnnotationsPane.astro — M3 T6.
+// Fixed right-side pane listing annotations for the visible
+// chapter's sections. Subscribes to a `cs300:annotation-added`
+// CustomEvent fired by AnnotateButton so the pane refreshes
+// without a full reload.
+//
+// Receives `sectionIds: string[]` from the parent chapter route.
+// Each annotation row shows: section short-id + truncated text
+// snippet + delete X.
+//
+// Tagged `data-interactive-only` so static-mode CSS hides it.
+interface Props {
+  sectionIds: string[];
+}
+
+const { sectionIds } = Astro.props;
+---
+
+<aside id="annotations-pane" data-interactive-only data-section-ids={sectionIds.join(',')}>
+  <header><strong>Annotations</strong></header>
+  <ul id="annotations-list"><li class="empty">(none yet)</li></ul>
+</aside>
+
+<style>
+  #annotations-pane {
+    position: fixed;
+    top: 64px;
+    right: 0;
+    width: 260px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: #fff;
+    border-left: 1px solid #d1d5db;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, .05);
+    padding: 12px;
+    font-size: .85rem;
+    z-index: 900;
+  }
+  #annotations-pane header { margin-bottom: 8px; color: #4b5563; }
+  #annotations-list { list-style: none; padding: 0; margin: 0; }
+  #annotations-list li { padding: 6px 0; border-top: 1px solid #f3f4f6; display: flex; gap: 6px; align-items: flex-start; }
+  #annotations-list li:first-child { border-top: 0; }
+  #annotations-list li.empty { color: #9ca3af; font-style: italic; }
+  #annotations-list .snippet { flex: 1; }
+  #annotations-list .delete-btn { background: none; border: 0; color: #dc2626; cursor: pointer; padding: 2px 6px; }
+</style>
+
+<script>
+  const pane = document.getElementById('annotations-pane');
+  const list = document.getElementById('annotations-list');
+  if (!pane || !list) {
+    console.warn('[annotations-pane] elements not found');
+  } else {
+    const sectionIds = (pane.dataset.sectionIds ?? '').split(',').filter(Boolean);
+
+    type Annotation = { id: string; sectionId: string; text: string; createdAt: number };
+
+    async function load() {
+      const all: Annotation[] = [];
+      for (const id of sectionIds) {
+        try {
+          const res = await fetch(`/api/annotations?section_id=${encodeURIComponent(id)}`);
+          if (!res.ok) continue;
+          const rows: Annotation[] = await res.json();
+          all.push(...rows);
+        } catch {
+          // Static mode (no /api/health) — silently skip.
+        }
+      }
+      render(all);
+    }
+
+    function render(annotations: Annotation[]) {
+      if (!list) return;
+      if (annotations.length === 0) {
+        list.innerHTML = '<li class="empty">(none yet)</li>';
+        return;
+      }
+      list.innerHTML = '';
+      for (const a of annotations) {
+        const li = document.createElement('li');
+        const snippet = document.createElement('span');
+        snippet.className = 'snippet';
+        snippet.textContent = a.text.length > 80 ? a.text.slice(0, 80) + '…' : a.text;
+        const del = document.createElement('button');
+        del.className = 'delete-btn';
+        del.textContent = '×';
+        del.setAttribute('aria-label', 'Delete annotation');
+        del.addEventListener('click', async () => {
+          try {
+            await fetch(`/api/annotations/${a.id}`, { method: 'DELETE' });
+            load();
+          } catch (err) {
+            console.error('[annotations-pane] DELETE failed:', err);
+          }
+        });
+        li.appendChild(snippet);
+        li.appendChild(del);
+        list.appendChild(li);
+      }
+    }
+
+    load();
+    window.addEventListener('cs300:annotation-added', load);
+  }
+</script>

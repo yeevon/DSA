@@ -14,6 +14,200 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-24
 
+- **Fixed** **M3 T8 — Deploy verification + workflow path fix.**
+  Audit caught a real M3-into-M2 regression: the `@astrojs/node`
+  adapter (added by T3) splits `dist/` into `dist/client/`
+  (prerendered HTML for GH Pages) and `dist/server/` (Node
+  adapter runtime — not used by GH Pages). M2 T6's deploy
+  workflow uploaded `path: ./dist`, which after the adapter
+  switch would have shipped both directories and served the
+  wrong root index. Fixed by changing the workflow's
+  `actions/upload-pages-artifact@v3` `path:` from `./dist` →
+  `./dist/client`. **Pre-fix deploy would have broken the
+  public site**; post-fix the upload payload is byte-equivalent
+  to what M2 T6 expected. Verification doc at
+  `design_docs/m3_deploy_verification.md` covers: page count
+  parity (37/37), static-mode behavioural verification (all 4
+  M3 UI surfaces in HTML + CSS-hidden under T5 contract), bundle
+  inspection (zero server-only paths in client JS — `better-sqlite3`,
+  `drizzle`, `gray-matter`, `src/lib/seed`, `src/db` all 0 hits),
+  and the hybrid-output GH Pages compatibility check (M3 audit
+  fix F3). Files added: `design_docs/m3_deploy_verification.md`.
+  Files changed: `.github/workflows/deploy.yml` (one-line path
+  fix + comment). Runtime push verification deferred until the
+  user pushes M3 commits and the workflow fires.
+- **Added** **M3 T7 — Read-status indicator.** Full CRUD:
+  `GET /api/read_status?chapter_id=…` (returns
+  `{section_ids: [...]}` for marked sections in that chapter via
+  Drizzle innerJoin on sections.chapter_id),
+  `POST /api/read_status` (idempotent upsert via
+  `onConflictDoUpdate(readAt: Date.now())`),
+  `DELETE /api/read_status/:section_id` (un-mark, 204). Routes
+  restructured into a folder same as T6: `read_status/index.ts`
+  for GET+POST, `read_status/[section_id].ts` for DELETE. UI:
+  `SectionNav.astro` (fixed left-side TOC, one row per section
+  with a colored dot — green when marked, grey otherwise; loads
+  marked-set once on mount via GET) + `MarkReadButton.astro`
+  (fixed bottom-left toggle that targets the currently-visible
+  section via `IntersectionObserver` on the `<a id="ch_N-…">`
+  anchors; POST or DELETE on click; updates the dot via
+  `cs300:read-status-changed` CustomEvent which SectionNav
+  listens to). Both wired into `src/pages/lectures/[id].astro`;
+  both carry `data-interactive-only` per T5. Smoke (auditor):
+  `scripts/read-status-smoke.mjs` runs POST × 3 → GET (count=3) →
+  DELETE one → GET (count=2), all 4 steps PASS. Regression check:
+  T6 annotations smoke also passes against the same dev server.
+  Chapter page HTML contains all 4 UI surfaces (section-nav,
+  annotations-pane, annotate-button, mark-read-button) with
+  `data-interactive-only` markers; chapter page size grew from
+  ~300 KB (T6) to ~360 KB (T7). Files added:
+  `src/components/read_status/{SectionNav,MarkReadButton}.astro`,
+  `src/pages/api/read_status/[section_id].ts`,
+  `scripts/read-status-smoke.mjs`. Files renamed:
+  `src/pages/api/read_status.ts` → `read_status/index.ts`. Files
+  changed: `src/pages/lectures/[id].astro` (+2 imports + 2 uses).
+- **Added** **M3 T6 — Annotations end-to-end (the M3 dogfood).**
+  Full CRUD: `GET /api/annotations?section_id=…` (array),
+  `POST /api/annotations` (insert, returns 201 + row),
+  `DELETE /api/annotations/:id` (204). Routes restructured from
+  `src/pages/api/annotations.ts` to a folder
+  (`annotations/index.ts` for GET+POST, `annotations/[id].ts` for
+  DELETE) so Astro's dynamic `[id]` segment works. UI components:
+  `AnnotateButton.astro` (floating button on selection — captures
+  section_id via DOM walk to nearest `<a id="ch_N-…">` anchor +
+  char offsets via TreeWalker; POSTs on click) +
+  `AnnotationsPane.astro` (fixed right-side list — fetches per
+  visible section, renders snippet + delete button, refreshes via
+  CustomEvent on insert). Both wired into
+  `src/pages/lectures/[id].astro` (sectionIds passed from MDX
+  frontmatter); both carry `data-interactive-only` per T5
+  contract. Smoke (auditor): `scripts/annotations-smoke.mjs` runs
+  the full POST → GET → DELETE → GET cycle against the dev server,
+  all 4 steps PASS; chapter page HTML contains both component
+  IDs + the `data-interactive-only` markers (verified via curl).
+  In static mode the components are CSS-hidden but the JS islands
+  bail silently (their fetch to `/api/annotations` 404s on GH
+  Pages → no error UX; pane stays empty). Files added:
+  `src/components/annotations/{AnnotateButton,AnnotationsPane}.astro`,
+  `src/pages/api/annotations/[id].ts`, `scripts/annotations-smoke.mjs`.
+  Files renamed: `src/pages/api/annotations.ts` →
+  `src/pages/api/annotations/index.ts`. Files changed: that
+  index.ts (rewritten from 501-stub to real GET+POST impl),
+  `src/pages/lectures/[id].astro` (+2 imports + 2 uses).
+- **Added** **M3 T5 — `detectMode()` + bootstrap mode flag.**
+  `src/lib/mode.ts` exports `detectMode(): Promise<'interactive' |
+  'static'>` matching architecture.md §4's listing exactly: two
+  parallel `fetch` probes (`ADAPTER_URL + '/health'` for the M4
+  FastMCP adapter; `/api/health` for the T3 state service);
+  AND-condition on both `r.ok`; any throw → `'static'`.
+  `ADAPTER_URL = 'http://localhost:7700'` (FastMCP convention; M4
+  inherits or overrides — open question deferred from T1 ADR).
+  `Base.astro` updated to:
+  (1) default `<body data-mode="static">` server-side (so the
+  page renders correctly even before client-side probe completes);
+  (2) inline `<style is:global>` with the rule
+  `body[data-mode="static"] [data-interactive-only] { display: none
+  !important }` — the conditional-render plumbing T6/T7 surfaces
+  ride;
+  (3) a tiny `<script>` that imports + runs `detectMode()` on load
+  and sets `document.body.dataset.mode`;
+  (4) a placeholder `<div data-interactive-only>interactive mode
+  active</div>` (bottom-right green pill) so the smoke test has a
+  visible target. Smoke (auditor): `npm run build` exit 0
+  (37 prerendered + server bundle); `npm run dev` + curl a chapter
+  page returns 294 KB with `<body data-mode="static">` server-
+  default, inline CSS rule present, placeholder div in HTML
+  (display: none under the static-mode CSS). In dev mode without
+  the M4 adapter running on 7700, the adapter probe fails → mode
+  stays `'static'` → placeholder hidden. Until M4's adapter ships,
+  `detectMode()` will always return `'static'` in both production
+  and local — the wiring + conditional-render plumbing land here
+  for M4 to flip on. Files added: `src/lib/mode.ts`. Files changed:
+  `src/layouts/Base.astro` (+CSS rule + script + placeholder).
+- **Added** **M3 T4 — Seeding (chapters + sections from MDX
+  frontmatter).** `src/lib/seed.ts` implements idempotent upserts
+  per architecture.md §2 "Seeding": 12 chapters from
+  `scripts/chapters.json`, 365 sections from
+  `src/content/lectures/*.mdx` frontmatter `sections:` array.
+  Uses FS + gray-matter (rather than Astro's `getCollection`) so
+  the same module works inside Astro API routes AND as a
+  standalone Node script (T4 smoke). `src/pages/api/health.ts`
+  extended to call `seed()` on first GET per process — single-shot
+  guard skips re-runs. Idempotent via `ON CONFLICT DO UPDATE` —
+  re-runs from any state are safe. `gray-matter` + `tsx` deps
+  added (gray-matter for frontmatter parsing; tsx so the
+  smoke script can import the .ts seed module directly). Smoke
+  (auditor): `rm -f data/cs-300.db && node scripts/db-migrate.mjs &&
+  npx tsx scripts/seed-smoke.mjs` → exits 0 with `chapters=12,
+  sections=365`. Re-running yields same counts (idempotent
+  verified). Dev-server `GET /api/health` first call returns
+  `{db:"ok", seeded:{chapters:12,sections:365}, seed_error:null}`;
+  second call uses in-memory cache (same response, no re-seed).
+  Direct DB query confirms 12 + 365 row counts. M4+ rows
+  (questions, attempts, fsrs_state, annotations, read_status)
+  untouched per architecture.md §2 "Questions and attempt state
+  are never touched". Files added: `src/lib/seed.ts`,
+  `scripts/seed-smoke.mjs`. Files changed: `src/pages/api/health.ts`
+  (+seed call + 2 module-level state vars), `package.json` deps
+  (+gray-matter, +tsx).
+- **Added** **M3 T3 — Astro API route stubs (architecture.md §3).**
+  Seven routes under `src/pages/api/`. `health.ts` is the only
+  fully-implemented one — returns `{ok, version, db}` with
+  `db: 'ok'` from a `SELECT 1` against the Drizzle client (T2).
+  The other six return 501 with `{kind: 'not_implemented',
+  impl_milestone: '...'}` envelopes pointing at the milestone
+  that owns the impl: `attempts.ts` → M4/M5/M6 per question type;
+  `review/due.ts` → M5; `questions/bulk.ts` → M4;
+  `fsrs_state/[question_id].ts` → M5; `annotations.ts` → M3 T6;
+  `read_status.ts` → M3 T7. All routes export `prerender = false`.
+  **`@astrojs/node` adapter installed** (`@astrojs/node@^10.0.6`,
+  standalone mode); `astro.config.mjs` wires it. Astro 6 removed
+  hybrid output mode — the modern pattern is `output: 'static'`
+  (default; pages prerender) + adapter + per-route `prerender =
+  false` opt-out for API handlers. The Node-server entrypoint
+  produced by the adapter is not uploaded by M2 T6's deploy
+  workflow (which uploads `dist/`); only the prerendered chapter
+  pages ship to GH Pages. Smoke (auditor): `npm run build` exits
+  0 (37 prerendered pages + server bundle); `npm run dev` +
+  curl confirms all 9 endpoints (GET+POST on annotations and
+  read_status; single verb on the others) return expected
+  status + body. Astro 6's CSRF protection rejects POST/PATCH
+  without a matching `Origin` header — real frontend `fetch()`
+  sets it automatically; smoke tests pass `-H 'Origin: http://localhost:<port>'`.
+  Files added: 7 route files. Files changed: `astro.config.mjs`
+  (+1 import + 1 adapter line), `package.json` deps (+1).
+- **Added** **M3 T2 — Drizzle schema + initial migration.** SQLite
+  state service schema instantiated per architecture.md §2 — 7
+  tables (chapters, sections, questions, attempts, fsrs_state,
+  read_status, annotations) + 3 indexes (idx_questions_chapter,
+  idx_attempts_question, idx_fsrs_due). Files added: `src/db/schema.ts`
+  (Drizzle table defs, 1:1 with arch §2 column names/types/FKs),
+  `src/db/client.ts` (singleton `db` export with WAL + foreign_keys
+  pragmas), `drizzle.config.ts` (sqlite dialect, `data/cs-300.db`
+  path), `drizzle/0000_tiny_bug.sql` (generated migration —
+  drizzle-kit auto-named it; semantic shape is what matters),
+  `scripts/db-migrate.mjs` (programmatic migrator — `drizzle-kit
+  push` requires TTY, this works headless), `scripts/db-smoke.mjs`
+  (verifies 7 tables + 3 indexes present). Deps installed:
+  `drizzle-orm@0.45.2`, `better-sqlite3@12.9.0`,
+  `drizzle-kit@0.31.10`, `@types/better-sqlite3@7.6.13`. `data/`
+  added to `.gitignore` (per-dev SQLite file). Smoke (auditor):
+  `rm -f data/cs-300.db && node scripts/db-migrate.mjs && node
+  scripts/db-smoke.mjs` exits 0; output lists exactly 7 user tables
+  + 3 user indexes. `npm run build` still produces 37 pages
+  cleanly (DB infra doesn't affect Astro static build).
+- **Decided** **M3 T1 — Path A (Astro server) confirmed for the
+  state service.** ADR 0001 written at `design_docs/adr/0001_state_service_hosting.md`
+  (first ADR in the repo — `design_docs/adr/` directory created
+  per CLAUDE.md "created when needed" convention). Drives M3 T2
+  (Drizzle + better-sqlite3), T3 (Astro API routes under
+  `src/pages/api/` with hybrid output), T5 (`detectMode()` probes
+  `/api/health` + the M4 adapter URL). Trade-offs accepted: reject
+  WASM bundle weight (~2 MB) + browser-side migrations in exchange
+  for simpler schema management + alignment with architecture.md
+  §4's recommendation. `architecture.md` §5 row 2 flipped from
+  open → ✅ resolved with ADR link. M3 README's "Open decisions
+  resolved here" mirrored.
 - **Fixed** Added `.nojekyll` at repo root. GitHub's implicit Jekyll
   `pages-build-deployment` was still firing on push after T8 deleted
   the Jekyll source, crashing on `src/pages/index.astro` (Jekyll

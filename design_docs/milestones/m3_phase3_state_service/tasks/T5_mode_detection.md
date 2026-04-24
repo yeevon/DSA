@@ -1,6 +1,6 @@
 # T5 — `detectMode()` + bootstrap mode flag
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T5_issue.md`](../issues/T5_issue.md))
 **Depends on:** T1 (the routes T5 probes exist per Path A choice)
 **Blocks:** T6 + T7 (interactive UI conditionally renders on `mode === 'interactive'`)
 

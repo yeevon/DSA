@@ -67,9 +67,13 @@ jobs:
         run: npm run build
 
       - name: Upload Pages artifact
+        # M3 T8: with the @astrojs/node adapter (added by T3), Astro
+        # splits dist/ into dist/client/ (prerendered HTML — what GH
+        # Pages serves) and dist/server/ (Node-runtime entrypoint —
+        # not used by GH Pages). Upload only dist/client.
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./dist/client
 
   deploy:
     needs: build

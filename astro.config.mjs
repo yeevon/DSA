@@ -12,13 +12,23 @@
 // occurrences each).
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
+import node from '@astrojs/node';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 
+// M3 T3 — `@astrojs/node` adapter added so per-route
+// `prerender = false` works in dev + standalone-server build.
+// Pages stay prerendered (Astro 6 default with `output: 'static'`);
+// API routes under src/pages/api/* opt out per-route. The
+// public GH Pages deploy still serves only the prerendered chapter
+// pages — the Node-server entrypoint produced by the adapter is
+// not uploaded by M2 T6's deploy workflow (which uploads `dist/`,
+// where prerendered pages live).
 export default defineConfig({
   site: 'https://yeevon.github.io',
   base: '/DSA/',
   output: 'static',
+  adapter: node({ mode: 'standalone' }),
   integrations: [
     mdx({
       remarkPlugins: [remarkMath],

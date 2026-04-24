@@ -1,6 +1,6 @@
 # T8 — Verify M2 public deploy unaffected
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T8_issue.md`](../issues/T8_issue.md); caught + fixed M3-T08-ISS-01 HIGH workflow path regression)
 **Depends on:** T6, T7 (the surfaces that could leak interactive code into prod)
 **Blocks:** declaring M3 done
 

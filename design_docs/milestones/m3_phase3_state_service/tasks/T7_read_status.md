@@ -1,6 +1,6 @@
 # T7 — Read-status: mark-read indicator
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T7_issue.md`](../issues/T7_issue.md))
 **Depends on:** T2 (schema), T3 (API stubs), T5 (mode flag)
 **Blocks:** T8
 

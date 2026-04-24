@@ -1,6 +1,6 @@
 # T6 — Annotations end-to-end (dogfood)
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24 (1 cycle — see [`../issues/T6_issue.md`](../issues/T6_issue.md))
 **Depends on:** T2 (schema), T3 (API stubs), T5 (mode flag)
 **Blocks:** T8
 
