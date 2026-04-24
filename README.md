@@ -7,13 +7,15 @@ idioms; `std::vector`, `std::list`, `std::unordered_map`, etc.) and is
 supplemented with material aimed at real DSA mastery rather than
 course-passing.
 
-> **Status — Milestone 1 (Phase 1 close-out, in progress).** All six
-> SNHU-required chapters (ch_1–ch_6) have been augmented with CLRS +
-> MIT OCW material per the bounded-additions rule. Optional chapters
-> (ch_7, ch_9–ch_13) ship as committed-but-un-augmented; their
-> deeper review is deferred to the post-build content audit. The site
-> still renders via Jekyll on GitHub Pages; M2 replaces it with
-> Astro. Interactive features (M3–M7: LLM-generated practice
+> **Status — Milestone 1 (Phase 1 close-out) ✅ closed 2026-04-23.**
+> All six SNHU-required chapters (ch_1–ch_6) augmented with CLRS +
+> MIT OCW material per the bounded-additions rule; pandoc filter
+> verdict locked (HYBRID); single repo-wide `LICENSE` shipped; all 13
+> Phase 1 acceptance criteria verified. Optional chapters (ch_7,
+> ch_9–ch_13) ship as committed-but-un-augmented; deeper review is
+> deferred to the post-build content audit. **M2 (Astro migration)
+> is now active** — the site still renders via Jekyll on GitHub Pages
+> until M2 lands. Interactive features (M3–M7: LLM-generated practice
 > questions, FSRS spaced repetition, in-browser code execution,
 > narrated audio) are designed but not built. See
 > [`design_docs/milestones/`](design_docs/milestones/) for the

@@ -14,6 +14,23 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Decided** **M1 (Phase 1 close-out) closed.** All 5 M1 tasks
+  done; all 13 Phase 1 acceptance criteria in
+  `design_docs/roadmap_addenda.md` verified end-to-end and ticked
+  (Step-1 inventories ✓, Step-2 gap reports ✓, Step-3 CHANGELOG
+  entries ✓ for ch_1–ch_6; 24/24 pdflatex builds clean per T5;
+  ch_3/ch_4 grandfathered explicitly in build_sweep.md per the
+  criterion's escape clause; no `ch_8` references; AVL → ch.~9;
+  architecture.md §5 row 1 resolved HYBRID; README "pre-Phase-1"
+  language gone; all 7 milestone READMEs present; pandoc verdict
+  captured; single LICENSE present; optional-chapter status
+  recorded in `memory/project_chapter_review_progress.md`). Status
+  flips: `design_docs/milestones/README.md` M1 row →
+  `✅ closed 2026-04-23`; `design_docs/milestones/m1_phase1_closeout/README.md`
+  → `✅ closed`; `README.md` status callout flipped from "in progress"
+  to closed. **M2 (Astro migration) is now unblocked and active.**
+  No new artefacts shipped by this close-out — all M1 deliverables
+  were committed in 842cdf1 / d6b97b5 / 90f1e70 earlier today.
 - **Added** **`CLAUDE.md` — cs-300 conventions doc.** First commit
   of the repo's foundational conventions file. Defines Builder and
   Auditor modes, the `/clean-implement` loop's behavioural contract,

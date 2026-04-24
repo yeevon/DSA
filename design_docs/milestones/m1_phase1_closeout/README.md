@@ -1,7 +1,7 @@
 # M1 — Phase 1 close-out
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 1
-**Status:** ✅ all 5 tasks done 2026-04-23 (M1-T01-ISS-01 Drive port superseded — round-trip rule dropped 2026-04-23)
+**Status:** ✅ **closed 2026-04-23** — all 5 tasks done; all 13 Phase 1 acceptance criteria in [`roadmap_addenda.md`](../../roadmap_addenda.md#phase-1-acceptance-criteria) verified and ticked; M1-T01-ISS-01 Drive port superseded (round-trip rule dropped 2026-04-23). M2 (Astro migration) is now unblocked.
 **Depends on:** — (architecture.md and README are settled)
 **Unblocks:** M2 (Astro migration)
 
