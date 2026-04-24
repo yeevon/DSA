@@ -14,6 +14,70 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-23
 
+- **Decided** **M2 (Phase 2 — Astro migration) closed.** All 9 M2
+  tasks done (T1, T2, T3, T4, T5a, T5b, T6, T7, T8 — T5 was
+  decomposed into T5a + T5b mid-milestone after the pandoc → MDX
+  bridge work proved larger than the original spec anticipated).
+  All 9 Done-when bullets in
+  `design_docs/milestones/m2_phase2_astro/README.md` ticked.
+  **What landed:**
+  - **Astro 6** scaffold replacing Jekyll. Node 22 + pandoc 3.1.3
+    pinned; `astro.config.mjs` with MDX + remark-math + rehype-katex
+    integrations.
+  - **Pandoc Lua filter** (`scripts/pandoc-filter.lua`) maps the 5
+    `notes-style.tex` callout envs to MDX components 1:1
+    (`<Definition>`/`<KeyIdea>`/`<Gotcha>`/`<Example>`/`<Aside>`),
+    prefixes section anchors with `ch_N-` per architecture.md §2,
+    forces `cpp` as the CodeBlock language. Pandoc raw-passthrough
+    sweep across all 24 source files documented at
+    `design_docs/m2_raw_passthrough_sweep.md` (1 raw block accepted;
+    1 source-fix to `chapters/ch_6/lectures.tex` for nested-tabular
+    that pandoc couldn't parse).
+  - **6 callout components** under `src/components/callouts/` with
+    scoped CSS + Shiki + a copy-button JS island.
+  - **Build pipeline** (`scripts/build-content.mjs`) wired as
+    `prebuild` + `predev`; iterates 12 chapters; injects per-chapter
+    metadata from `scripts/chapters.json` (migrated from
+    Jekyll's `_data/chapters.yml`) into every generated MDX
+    frontmatter; section-list array on lectures/*.mdx (the canonical
+    M3 seeding source per architecture.md §2). Includes
+    `mdxSafetyRewrite()` state-machine pass: rewrites `{#anchor}`
+    headers, converts HTML comments to MDX-style, escapes literal
+    `{`/`}` outside code/math/JSX/frontmatter contexts.
+  - **3 dynamic chapter routes** (`src/pages/{lectures,notes,practice}/[id].astro`)
+    + landing page + content-collection schema with Zod validation.
+    37 production routes after T8's callouts-test cleanup.
+  - **GitHub Actions deploy workflow** (`.github/workflows/deploy.yml`)
+    builds + deploys via `actions/deploy-pages@v4`. First green run
+    on commit `bdc1bac`; site live at <https://yeevon.github.io/DSA/>.
+  - **Jekyll source removed** (T8): `_config.yml`, `_data/chapters.yml`,
+    `_includes/`, `_layouts/`, top-level `lectures/` + `notes/`
+    (24 wrappers), `index.md`, `assets/style.css`, plus the T3
+    callouts-test smoke page. Memory entry
+    `feedback_no_jekyll_polish.md` deleted (rule no longer load-
+    bearing).
+  - **`resources/` removed** (T7): week-level sidecar TeX was
+    orphaned by chapter augmentation; 8 files removed; ripple edits
+    to LICENSE / README / CLAUDE.md scope statements + auditor rule.
+  - **`phase2_issues.md` items** both resolved: stale companion-
+    materials path rewires across 6 lectures + 11 practice files;
+    `resources/week_2.tex` Cheatsheet heading mooted by removal.
+  - **architecture.md amendments**: §2 seeding source now points at
+    lectures/*.mdx (was notes/*.mdx); §5 records the pandoc 3.1.3
+    pin; §6 carries a forward-work item for per-language CodeBlock
+    detection when the post-build content audit augments optional
+    chapters.
+  - **CLAUDE.md updates**: code-task verification non-inferential
+    rule, ch_3/ch_4 grandfather under the 40-page ceiling, Phase-N-
+    blocking glossary, single-LICENSE row, T8 repo-layout rewrite
+    showing the Astro src/ shape.
+  - Status flips: `design_docs/milestones/README.md` M2 row →
+    `✅ closed 2026-04-23`; `m2/README.md` → `✅ closed`;
+    top-level `README.md` status callout flipped to "M1 + M2 closed,
+    M3 active." UI/UX polish parked at
+    `design_docs/nice_to_have.md` (deferred until M3+ chrome
+    dependencies surface).
+  **M3 (state service) is now unblocked and active.**
 - **Deferred** **Site UI/UX layer parked in `design_docs/nice_to_have.md`.**
   First entry in the nice_to_have file (file didn't exist before today
   — CLAUDE.md says it's created only when needed). User raised the

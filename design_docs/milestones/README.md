@@ -17,7 +17,7 @@ what definition of done.
 | #  | Milestone                                                    | Status | Blocks                |
 |----|--------------------------------------------------------------|--------|-----------------------|
 | M1 | [Phase 1 close-out](m1_phase1_closeout/README.md)            | ✅ closed 2026-04-23 | M2 (now unblocked) |
-| M2 | [Phase 2 — Astro migration](m2_phase2_astro/README.md)       | todo   | M3, M7                |
+| M2 | [Phase 2 — Astro migration](m2_phase2_astro/README.md)       | ✅ closed 2026-04-23 | M3 (now active), M7   |
 | M3 | [Phase 3 — State service](m3_phase3_state_service/README.md) | todo   | M4, M5, M6            |
 | M4 | [Phase 4 — Question generation](m4_phase4_question_gen/README.md) | todo | M5                |
 | M5 | [Phase 5 — Review loop (FSRS)](m5_phase5_review_loop/README.md) | todo | —                  |

@@ -1,7 +1,7 @@
 # M2 — Phase 2: Jekyll → Astro migration
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 2
-**Status:** todo (8 tasks broken out 2026-04-23 — see [`tasks/`](tasks/))
+**Status:** ✅ **closed 2026-04-23** — 9 tasks done (T1–T8 with T5 decomposed into T5a + T5b); all 9 Done-when bullets satisfied; site live at <https://yeevon.github.io/DSA/> via the new GitHub Actions workflow. M3 (state service) is now unblocked and active.
 **Depends on:** M1 (Phase 1 close-out — pandoc verdict + acceptance criteria)
 **Unblocks:** M3 (state service hangs off Astro API routes), M7 (audio islands)
 
