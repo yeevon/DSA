@@ -24,7 +24,7 @@ course-passing.
 > Optional chapters (ch_7, ch_9–ch_13) ship as committed-but-
 > un-augmented; deeper review is deferred to the post-build
 > content audit. **M4 (question generation) is now active** —
-> question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'s
+> question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'sl
 > `aiw-mcp` server running cs-300's workflow modules from
 > `./workflows/`; the first surface that actually flips
 > `detectMode()` to `'interactive'`. M4 is gated on an upstream
