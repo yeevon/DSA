@@ -14,6 +14,29 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-24
 
+- **Added** **M-UX task breakout — 8 task specs + index.** Mirrors
+  the M3 task-breakout pattern (per-task spec under `tasks/T<NN>_<slug>.md`,
+  ordering + status table at `tasks/README.md`, `issues/` directory
+  scaffolded for first-audit-time creation per CLAUDE.md). Tasks:
+  - **T1** — Layout shell (three-column grid + responsive scaffold).
+  - **T2** — Left-rail chapter nav + completion indicators
+    (Required/Optional grouping per ADR-0002).
+  - **T3** — Top breadcrumb (collection switcher + prev/next + sticky).
+  - **T4** — Right-rail TOC + scroll-spy island + M3 `SectionNav`
+    refactor (the largest task; likely decompose candidate to T4a + T4b).
+  - **T5** — Index page rewrite (mastery-dashboard placeholder; M5
+    hooks pre-wired via `data-interactive-only` slots).
+  - **T6** — M3 component re-homing (annotations to right rail,
+    mark-read to chapter header). API-stable; no M3 contract changes.
+  - **T7** — Mobile drawer + responsive sweep (the only always-loaded
+    JS island M-UX introduces; budget <5KB).
+  - **T8** — Deploy verification (37 pages, size budget <50KB delta,
+    no M3 regression, hybrid-output split preserved).
+  Critical path: T1 → T4 → T6 → T7 → T8. Three parallel branches
+  after T1: chrome (T2 + T3), content-pane (T4), index (T5). Files
+  added under `design_docs/milestones/m_ux_polish/`: `README.md`,
+  `tasks/README.md`, 8 × `tasks/T<NN>_<slug>.md`, empty `issues/`
+  directory. **Dep audit: skipped — no manifest changes.**
 - **Decided / Added** **M-UX kickoff — promote Canvas/left-nav UI
   polish out of `nice_to_have.md` (trigger fired post-M3 close).**
   Per the parked entry's promotion trigger ("M3 starts and the
