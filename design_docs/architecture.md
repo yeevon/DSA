@@ -96,6 +96,50 @@ src/content/
 
 Per-chapter metadata stays in `_data/chapters.yml` for now (migrate into content-collection frontmatter at Phase 2 cutover — trivial port).
 
+### Page chrome (UX layer)
+
+Resolved in [ADR-0002](adr/0002_ux_layer_mdn_three_column.md), 2026-04-24, after M3 closed and the M3 surfaces (annotations, read-status, section nav) needed a deliberate place to live. M-UX milestone owns the implementation; this subsection documents the contract every future surface should compose into.
+
+**Three-column desktop grid (≥1024px):**
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ top breadcrumb (sticky)                                            │
+│   cs-300 / Lectures / ch_4 ─ Lists, Stacks, Queues   [‹ prev | next ›] │
+├──────────────┬─────────────────────────────────────┬───────────────┤
+│ left rail    │ center                              │ right rail    │
+│              │                                     │               │
+│ Required     │ chapter content (max-width ~75ch)   │ § TOC         │
+│  ✓ ch_1      │   prose, callouts, code blocks      │   §1 Intro    │
+│  ✓ ch_2      │                                     │   §2 …  ←now  │
+│  → ch_4      │                                     │   §3 …        │
+│    ch_5      │                                     │               │
+│    ch_6      │                                     │ ─ annotations │
+│              │                                     │   (interactive│
+│ Optional     │                                     │    mode only) │
+│    ch_7      │                                     │               │
+│    ch_9 …    │                                     │               │
+└──────────────┴─────────────────────────────────────┴───────────────┘
+```
+
+**Mobile (<1024px):** single column. Left rail collapses to hamburger drawer in the breadcrumb bar. Right-rail TOC moves to a collapsed `<details>` summary at content top. Annotations pane stays gated on `data-interactive-only` per [§4](#4-local-vs-public-mode).
+
+**Interactive-mode affordances** (all gated via the M3 T5 `data-interactive-only` CSS contract):
+
+- Per-chapter completion indicator (Canvas-style checkmark) in the left rail, derived from the `read_status` table.
+- Annotations pane in the right rail (re-homed from the M3 always-rendered position).
+- "Recently read" + "due for review" sections on the index page (M5 fills these in when the review queue lands).
+
+**Static-mode posture** (public GH Pages deploy):
+
+- Left rail + right-rail TOC + chapter content all SSR-rendered. Fully navigable without JS.
+- Mobile drawer requires JS (one always-loaded island). Single graceful degradation: without JS, the drawer button is hidden and the left rail isn't reachable on mobile — desktop is unaffected.
+- Scroll-spy enhancement on the right-rail TOC is JS-only; without it, the TOC links are still anchors that work.
+
+**Shared layout primitives** live under `src/components/chrome/` (shell, breadcrumb, left rail, right rail, drawer). Existing component trees (`src/components/{annotations,read_status,callouts}/`) keep their interfaces; M-UX T6 re-homes the M3 components into the new chrome slots without changing their APIs.
+
+**M3 `SectionNav` refactor.** Current implementation (T7) ships `SectionNav` as a fixed left rail. Per ADR-0002, M-UX T4 pulls its functionality into the right-rail TOC structure. The old left-rail position becomes the chapter-list nav. No two left rails.
+
 ### Audio (Phase 7 forward-compat)
 
 TTS MP3s and sentence-timestamp JSON live alongside MDX:

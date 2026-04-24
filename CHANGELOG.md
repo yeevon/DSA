@@ -14,6 +14,47 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-24
 
+- **Decided / Added** **M-UX kickoff — promote Canvas/left-nav UI
+  polish out of `nice_to_have.md` (trigger fired post-M3 close).**
+  Per the parked entry's promotion trigger ("M3 starts and the
+  chrome decisions can no longer be deferred — read-status
+  indicators need a sidebar to live in, annotations need a margin
+  pane"), M3 closing 2026-04-24 with the M3 client surfaces
+  shipped bare into a 51-line `Base.astro` shell satisfies the
+  trigger. Per CLAUDE.md non-negotiables, adoption requires an
+  architecture.md amendment + ADR. **This commit lands both
+  halves.**
+  - `design_docs/adr/0002_ux_layer_mdn_three_column.md` (new) —
+    decision: MDN-docs three-column layout with Canvas-style
+    Required/Optional grouping in the left rail. Three columns on
+    desktop (left chapter nav, center content, right TOC +
+    annotations), single-column with hamburger drawer on mobile.
+    Specific commitments per slot: chapter list grouping +
+    completion indicators, prose-width-constrained center
+    (~75ch), SSR TOC + scroll-spy island, mastery-dashboard
+    placeholder index page (M5 hooks pre-wired). Visual style /
+    color / typography / dark-mode / search all explicitly
+    deferred to follow-on work — M-UX scope is layout structure
+    only.
+  - `design_docs/architecture.md` §1.6 (new) — "Page chrome (UX
+    layer)" subsection added between "Astro content collections"
+    and "Audio (Phase 7 forward-compat)". Three-column ASCII
+    diagram, mobile-collapse story, interactive-mode affordances
+    (read-status checkmarks + annotations pane gated on the
+    `data-interactive-only` T5 contract), static-mode posture
+    (left rail + TOC + content all SSR; mobile drawer is the
+    only always-loaded JS island), and the M3 `SectionNav`
+    refactor note (re-homes from fixed left rail to right-rail
+    TOC structure — no two left rails).
+  - `design_docs/milestones/README.md` — M-UX added as a sidecar
+    milestone (not in original `interactive_notes_roadmap.md`
+    phasing). Same edit syncs M3 status (todo → ✅ closed
+    2026-04-24) and M4 status (todo → todo + upstream-gated note
+    pointing at the issue file). Dependency-graph paragraph
+    updated to call out M-UX as parallel-with-M4.
+  M-UX milestone breakout (README + per-task specs T1–T8) lands
+  in a follow-up commit per the M3 task-breakout precedent.
+  **Dep audit: skipped — no manifest changes.**
 - **Decided / Changed** **M4 architecture clarification — `aiw-mcp` is
   the MCP server, cs-300 contributes workflow modules (no "FastMCP
   adapter we build").** User confirmed (after pulling the actual
