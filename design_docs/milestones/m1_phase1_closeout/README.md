@@ -23,7 +23,7 @@ criteria — it is operational, not authoritative.
 
 - T1 produces the acceptance criteria themselves (in roadmap_addenda).
 - T2 produces `design_docs/pandoc_probe.md` and resolves architecture.md §5 row 1.
-- T3 produces `LICENSE-CONTENT` and `LICENSE-CODE`.
+- T3 produces a single `LICENSE` file (CC BY-NC-SA 4.0 covering content + code). The original spec called for dual `LICENSE-CONTENT` + `LICENSE-CODE`; consolidated to one file 2026-04-23 — see CHANGELOG.
 - T4 updates `README.md` status callout to remove "pre-Phase-1" language.
 - T5 produces `design_docs/build_sweep.md` confirming all 24 chapter PDFs rebuild clean.
 

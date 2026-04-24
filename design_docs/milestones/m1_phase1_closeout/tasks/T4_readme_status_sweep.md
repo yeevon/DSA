@@ -55,8 +55,10 @@ stale lines (Jekyll references, etc).
    - The "(7, 9, 10, 11, 12, 13)" parenthetical above lists the
      optional chapters — verify it matches the actual ch_*/ dirs
      (ch_7, ch_9, ch_10, ch_11, ch_12, ch_13 — yes, all present).
-3. Apply T3's LICENSE link edits if T3 hasn't already (link
-   `LICENSE-CONTENT` and `LICENSE-CODE` from the License section).
+3. Apply T3's LICENSE link edits if T3 hasn't already (link the
+   single `LICENSE` file from the License section). *Spec originally
+   said `LICENSE-CONTENT` + `LICENSE-CODE`; consolidated to one
+   `LICENSE` post-task on 2026-04-23.*
 4. Add a one-line pointer near the top of the "Architecture"
    section to `design_docs/milestones/` (currently the section only
    points at architecture.md and roadmap_addenda.md).

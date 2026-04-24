@@ -1,6 +1,6 @@
 # T3 — Add LICENSE files
 
-**Status:** ✅ done 2026-04-23 (2 cycles — see [issues/T3_issue.md](../issues/T3_issue.md))
+**Status:** ✅ done 2026-04-23 (2 cycles — see [issues/T3_issue.md](../issues/T3_issue.md)) — **superseded later same day:** the dual `LICENSE-CONTENT` + `LICENSE-CODE` shipped by this task were collapsed into a single repo-wide `LICENSE` (CC BY-NC-SA 4.0 covering content + code) per user direction (M1 deep-analysis follow-up). The deliverable + acceptance-check sections below describe what *originally* shipped; the current state is one `LICENSE` file. See CHANGELOG 2026-04-23 ("License consolidated to a single LICENSE file").
 **Depends on:** —
 **Blocks:** T4 (README wants to link to these); declaring M1 done.
 
