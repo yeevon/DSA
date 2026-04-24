@@ -1,0 +1,194 @@
+# CLAUDE.md — cs-300 conventions
+
+Loaded into every Claude Code conversation. Defines Builder and
+Auditor modes and shared project conventions. Step-by-step
+procedures live in [.claude/commands/](.claude/commands/) (gitignored):
+
+- `/clean-implement <task>` — Builder → Auditor loop, up to 10 cycles.
+
+When a skill says "follow Builder / Auditor mode from CLAUDE.md," the
+rules below are what it means.
+
+---
+
+## Grounding (read before any task)
+
+- [design_docs/architecture.md](design_docs/architecture.md) — the architecture of record.
+- [design_docs/roadmap_addenda.md](design_docs/roadmap_addenda.md) — operational roadmap (canonical for cs-300 work). Originated as a local supplement to a Google Drive doc (id `1SJHI76hibJ6aJqvtMuJbE1dhzVLZlWcOpitofrziWC8`), but the Drive doc is now historical only and not actively synced.
+- [design_docs/milestones/README.md](design_docs/milestones/README.md) — operational milestone index + dependency graph.
+- [design_docs/nice_to_have.md](design_docs/nice_to_have.md) — **deferred parking lot.** Do not plan work for anything listed there without an explicit trigger firing. No tasks, no milestones, no drive-by adoption. File created only when needed.
+
+---
+
+## Repo layout
+
+```text
+cs-300/
+├── chapters/ch_N/              # source of truth: lectures.tex, notes.tex, practice.md
+├── coding_practice/            # prompt corpus for ai-workflows question-gen (Phase 4)
+├── resources/                  # week-level sidecar TeX
+├── design_docs/
+│   ├── architecture.md
+│   ├── roadmap_addenda.md
+│   ├── phase2_issues.md
+│   ├── chapter_reviews/        # per-chapter Step-1 inventories + Step-2 gap reports
+│   └── milestones/             # operational plan
+│       ├── README.md
+│       └── m<N>_<phase_name>/
+│           ├── README.md       # milestone spec
+│           ├── tasks/T<NN>_<slug>.md   # task specs
+│           └── issues/T<NN>_issue.md   # audit findings (created on first audit)
+├── .claude/commands/           # slash commands (gitignored)
+├── notes-style.tex             # shared LaTeX preamble
+├── CLAUDE.md                   # this file
+├── CHANGELOG.md
+└── README.md
+```
+
+The Jekyll site files (`_config.yml`, `_data/`, `_includes/`,
+`_layouts/`, `lectures/`, `notes/`, `index.md`, `assets/`) are placeholder
+infrastructure — M2 replaces them with Astro under `src/`. Do not polish
+them in pre-M2 work (per `feedback_no_jekyll_polish.md`).
+
+---
+
+## Builder conventions
+
+- **Issue file is authoritative amendment to task file.** If they disagree, task file wins; call out the conflict first. Deviations go into the issue file.
+- **Carry-over section at bottom of task file = extra ACs.** Tick each as it lands.
+- **Scope discipline.** Implement strictly against task + issue + carry-over. No invented scope, no drive-by refactors, no `nice_to_have.md` adoption.
+- **CHANGELOG entry.** Under the current dated section, add an entry tagged appropriately (Added / Changed / Removed / Fixed / Decided / Deferred). Reference the milestone + task ID (e.g. `M1 Task T2 — Pandoc probe`). List files touched, ACs satisfied, deviations from spec.
+- **File headers.** Every new module / TeX file / shell script gets a header comment citing the task and its relationship to other files. Inline comments only when *why* is non-obvious.
+- **No commits, PRs, or pushes unless the user asks.**
+- **Stop and ask** if spec is ambiguous, an AC can't be met as written, or the task would break prior work.
+
+---
+
+## Auditor conventions
+
+- **Full project scope, not just diff.** Verify task file, milestone `README.md`, sibling tasks, project memory, `CHANGELOG.md`, every claimed file, **and [design_docs/architecture.md](design_docs/architecture.md) plus every design record the task cites**. Architecture grounding is mandatory — an audit that does not open architecture.md is incomplete.
+- **Design-drift check (mandatory).** Before grading ACs, cross-check the implementation against architecture.md and the project's standing rules:
+  - **New dependency added?** Must appear in architecture.md (settled tech / open decisions table) or be justified by an ADR. Items in [nice_to_have.md](design_docs/nice_to_have.md) are a hard stop — flag HIGH.
+  - **Jekyll polish?** Phase 2 (M2) will replace the Jekyll site. Don't add Jekyll improvements that won't survive M2 — flag HIGH.
+  - **Chapter content over the 40-page `lectures.pdf` ceiling?** Per `feedback_chapter_review_autonomy.md` — flag HIGH.
+  - **Chapter additions beyond the 3–5 bounded-additions rule?** Per `feedback_chapter_review_scope.md` — flag HIGH unless the task explicitly authorises more.
+  - **Cross-chapter references** must point at chapters that exist in the cs-300 chapter map (ch_1–7, ch_9–13). References to non-existent chapters (e.g. ch_8) or the wrong chapter (e.g. "ch.~7 for AVL" when AVL lives in ch_9) — flag HIGH.
+  - **Sequencing violation?** A pre-Phase-1 task touching M2+ surfaces, or a chapter task touching `coding_practice/` or `resources/` (out of scope per `project_practice_md_phase4_link.md` / `project_coding_practice_purpose.md`) — flag HIGH.
+  - Any drift is logged as HIGH with a citation: violated architecture section, memory entry, or design record. Drift HIGH blocks audit pass.
+- **Verification.** Run any task-specific checks the spec calls out (e.g. `pdflatex -halt-on-error` for chapter tasks, `pandoc` invocation for the probe task, doc-content greps for documentation tasks). cs-300 has no language-level test suite or linter today; per-task verification *is* the audit gate.
+- **Content vs code verification standards differ — and code is stricter.** For **content** tasks (chapter `.tex`, design docs, README, CHANGELOG): build-clean (`pdflatex` exit 0, markdown renders, links resolve) is sufficient evidence. For **code** tasks (build scripts, Astro components, the FastMCP adapter, the pandoc Lua filter, `scripts/*`, anything executable): build-clean is necessary but **not** sufficient — the auditor MUST run a smoke test or end-to-end exercise of the change and cite the output. "Compiles / type-checks / exits 0" is not the same as "works." Inferential claims about runtime behaviour from build success alone are a HIGH finding.
+- **Grade each AC individually.** Passing checks ≠ done.
+- **Be extremely critical.** Look for ACs that look met but aren't, silently skipped deliverables, additions beyond spec that add coupling/complexity, doc drift, scope creep from `nice_to_have.md`, silent architecture drift.
+- **Do not modify code or content during an audit** unless the user asks.
+- **Update the existing issue file on re-audit** — no `_v2` copies. Tick items off, flip severities, mark `RESOLVED` as work lands (with the commit SHA once committed).
+
+### Issue file structure
+
+At `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md`:
+
+```markdown
+# T<NN> — <title> — Audit Issues
+
+**Source task:** [../tasks/T<NN>_<slug>.md](../tasks/T<NN>_<slug>.md)
+**Audited on:** YYYY-MM-DD
+**Audit scope:** <what was inspected>
+**Status:** ✅ PASS / ⚠️ OPEN / 🚧 BLOCKED
+
+## Design-drift check
+(architecture.md, memory rules, nice_to_have boundary)
+
+## AC grading
+| AC | Status | Notes |
+| -- | ------ | ----- |
+
+## 🔴 HIGH — <one issue per subsection>
+## 🟡 MEDIUM — …
+## 🟢 LOW — …
+
+## Additions beyond spec — audited and justified
+## Verification summary
+## Issue log — cross-task follow-up
+(M<N>-T<NN>-ISS-NN IDs, severity, owner / next touch point)
+## Deferred to nice_to_have
+(if any — only when nice_to_have.md exists and the finding maps there)
+## Propagation status
+(if any forward-deferrals)
+```
+
+### Severity
+
+- **HIGH** — AC unmet, spec deliverable missing, architectural rule broken, drift from project memory rules.
+- **MEDIUM** — deliverable partial, convention skipped, downstream risk.
+- **LOW** — cosmetic, forward-looking, flag-only.
+
+### Every issue carries a proposed solution
+
+For every issue (any severity, including issue log entries):
+
+- Include an **Action** / **Recommendation** line: which file to edit, which check to add, which task owns follow-up, trade-offs if relevant.
+- If the fix is unclear (two reasonable options, crosses milestones, needs spec change) — **stop and ask the user** before finalising. No invented direction.
+- Same rule applies to issues surfaced outside the audit file (chat, status updates): pair each with a solution or an explicit ask.
+
+### Forward-deferral propagation
+
+When an audit defers work to a future task:
+
+1. Log the deferral in the current issue file as `DEFERRED` with explicit owner (milestone + task ID).
+2. Append a **"Carry-over from prior audits"** section at the bottom of the **target** task's spec file. Each `- [ ]` entry has: issue ID, severity, concrete "what to implement" line, source link back, and alternative owner if any.
+3. Close the loop in the current issue file with a "Propagation status" footer linking to each target file.
+
+Non-optional. Without propagation, the target Builder can't see the deferral — issue files only exist after an audit, and carry-over sections are the only channel the Builder workflow reads.
+
+When the target Builder finishes, they tick the carry-over; on re-audit, flip `DEFERRED → RESOLVED` in the originating issue file.
+
+### nice_to_have.md boundary
+
+If a finding naturally maps to an item in `nice_to_have.md`:
+
+- Do **not** forward-defer to a future task — these items have no milestone.
+- Note the match in the issue file under a `## Deferred to nice_to_have` section with the `nice_to_have §N` reference and the trigger that would justify promotion.
+- Keep the finding itself addressed against the actual task's scope (don't skip the audit because the "real fix" is deferred).
+
+If `nice_to_have.md` doesn't exist yet (the default state — created only when needed), this section is omitted.
+
+---
+
+## Canonical file locations
+
+| Purpose                | Path                                                                |
+| ---------------------- | ------------------------------------------------------------------- |
+| Architecture           | `design_docs/architecture.md`                                       |
+| Roadmap                | `design_docs/roadmap_addenda.md` (canonical for ops); Google Drive doc id `1SJHI76hibJ6aJqvtMuJbE1dhzVLZlWcOpitofrziWC8` is the historical originating doc, not actively synced |
+| Deferred parking lot   | `design_docs/nice_to_have.md` (created when needed)                 |
+| Phase-2 deferred       | `design_docs/phase2_issues.md`                                      |
+| ADRs                   | `design_docs/adr/*.md` (created when needed)                        |
+| Per-chapter reviews    | `design_docs/chapter_reviews/ch_<N>{,_gaps}.md`                     |
+| Milestone index        | `design_docs/milestones/README.md`                                  |
+| Milestone spec         | `design_docs/milestones/m<M>_<name>/README.md`                      |
+| Task spec              | `design_docs/milestones/m<M>_<name>/tasks/T<NN>_<slug>.md`          |
+| Task issue / audit log | `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md`          |
+| Changelog              | `CHANGELOG.md`                                                      |
+| License                | `LICENSE` (single file — CC BY-NC-SA 4.0, covers everything)        |
+| Slash commands         | `.claude/commands/<name>.md` (gitignored)                           |
+
+---
+
+## Non-negotiables
+
+- **Changelog discipline.** Every content- or code-touching task updates `CHANGELOG.md` in the same commit.
+- **Propagation discipline.** Forward-deferred items must appear as carry-over in the target task before the audit is complete.
+- **nice_to_have discipline.** Items listed in `nice_to_have.md` are out of scope by default. Adoption requires an architecture.md update plus an ADR — not a task.
+- **40-page chapter ceiling** (per `feedback_chapter_review_autonomy.md`). `lectures.pdf` for any chapter must stay under 40 pages — over is a HIGH audit finding. **Grandfathered:** `chapters/ch_3/lectures.pdf` (53 pp) and `chapters/ch_4/lectures.pdf` (51 pp) predate the ceiling — their 2026-04-22 augmentation pass landed before the 40-page rule was set. They ship as-is. The ceiling applies forward to any chapter augmentation from 2026-04-22 onward, including any future re-augmentation of ch_3/ch_4.
+- **Code-task verification is non-inferential** (companion to the auditor "Content vs code" rule above). Build success is not evidence of runtime correctness for code. Every code task spec must name an explicit smoke test the auditor will run; without one, the spec is incomplete and the audit cannot pass.
+- **Bounded chapter additions** (per `feedback_chapter_review_scope.md`). 3–5 high-value adds per chapter; defer the rest to the post-build content audit.
+- **Don't polish Jekyll** (per `feedback_no_jekyll_polish.md`). M2 replaces the Jekyll site; pre-M2 polish is churn.
+- **Ask before** force-push, `reset --hard`, or any other destructive git op.
+
+---
+
+## Glossary
+
+- **Phase-N-blocking item.** Something that satisfies *any* of:
+  (a) without it, a subsequent phase's items cannot be implemented at all (hard dependency); OR
+  (b) without it, **two or more** items within the *same* phase will fail or produce inaccurate output (intra-phase critical path).
+  Anything that fails neither test is non-blocking — it can land late, defer, or be dropped without rescoping the phase. Use this definition in milestone READMEs and acceptance criteria; do not invent ad-hoc "blocking" judgments.

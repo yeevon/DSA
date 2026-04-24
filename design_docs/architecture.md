@@ -324,7 +324,7 @@ These block nothing immediately but need resolution before the phase that depend
 
 | decision                                 | block       | lean                        | decide by      |
 |------------------------------------------|-------------|-----------------------------|----------------|
-| Pandoc Lua filter vs manual port (Ch 1)  | Phase 2     | filter (if output is messy) | Phase 1 probe  |
+| Pandoc Lua filter vs manual port (Ch 1)  | Phase 2     | **resolved: HYBRID** (small filter + native pandoc) — see [`pandoc_probe.md`](pandoc_probe.md) | ✅ 2026-04-23 |
 | State service: Astro server vs client SQLite | Phase 3 | Astro server                | Phase 3 start  |
 | FSRS vs SM-2                             | Phase 5     | FSRS (`ts-fsrs`)            | Phase 5 start  |
 | Code language: C++ only vs C+++Python    | Phase 6     | C++ baseline, Python later  | Phase 6 start  |

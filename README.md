@@ -7,13 +7,19 @@ idioms; `std::vector`, `std::list`, `std::unordered_map`, etc.) and is
 supplemented with material aimed at real DSA mastery rather than
 course-passing.
 
-> **Status — pre-Phase-1.** Content (LaTeX lectures, compact notes,
-> practice prompts) is the only thing that works today. The site
-> renders via Jekyll on GitHub Pages as a placeholder; Phase 2
-> replaces it with Astro. Interactive features (LLM-generated practice
+> **Status — Milestone 1 (Phase 1 close-out, in progress).** All six
+> SNHU-required chapters (ch_1–ch_6) have been augmented with CLRS +
+> MIT OCW material per the bounded-additions rule. Optional chapters
+> (ch_7, ch_9–ch_13) ship as committed-but-un-augmented; their
+> deeper review is deferred to the post-build content audit. The site
+> still renders via Jekyll on GitHub Pages; M2 replaces it with
+> Astro. Interactive features (M3–M7: LLM-generated practice
 > questions, FSRS spaced repetition, in-browser code execution,
 > narrated audio) are designed but not built. See
-> [`design_docs/architecture.md`](design_docs/architecture.md).
+> [`design_docs/milestones/`](design_docs/milestones/) for the
+> operational plan and
+> [`design_docs/architecture.md`](design_docs/architecture.md) for
+> the system design.
 
 ---
 
@@ -125,10 +131,13 @@ features when present; if they're absent, the UI degrades cleanly to
 read-only.
 
 Full design in
-[`design_docs/architecture.md`](design_docs/architecture.md). The
-phased roadmap lives in Google Drive
-(`interactive_notes_roadmap.md`); local addenda (sequencing, deferred
-decisions) in
+[`design_docs/architecture.md`](design_docs/architecture.md).
+Operational plan (milestones M1–M7, each with its own README and
+task breakouts) in
+[`design_docs/milestones/`](design_docs/milestones/). The phased
+roadmap lives in Google Drive (`interactive_notes_roadmap.md`);
+local addenda (sequencing, deferred decisions, Phase 1 acceptance
+criteria) in
 [`design_docs/roadmap_addenda.md`](design_docs/roadmap_addenda.md).
 
 Settled tech worth flagging up front:
@@ -176,17 +185,9 @@ from source defeats the point.
 
 ## License
 
-Dual licensed (settled per roadmap; LICENSE files to follow):
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (CC BY-NC-SA 4.0) for everything in this repo — content and code alike. See [LICENSE](LICENSE) for the full canonical legal text and the scope statement.
 
-- **Content** — `chapters/`, `resources/`, `lectures/`, `notes/`,
-  generated PDFs:
-  [Creative Commons Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-  (matches MIT OCW).
-- **Code** — build scripts, future Astro components, future MCP
-  adapter, ai-workflows integration glue: MIT.
-
-No commercial use. No multi-user deployment. No cloud LLM APIs at
-runtime — question generation runs against local Ollama.
+This is personal course material that augments the SNHU CS 300 syllabus with concepts referenced from MIT OpenCourseWare 6.006 and CLRS. **Non-commercial use only.** No multi-user deployment. No cloud LLM APIs at runtime — question generation runs against local Ollama.
 
 ---
 
