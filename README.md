@@ -13,7 +13,8 @@ course-passing.
 > GitHub Actions to <https://yeevon.github.io/DSA/>. 38 routes built
 > from MDX (12 lectures + 12 notes + 12 practice + index +
 > callouts-test). Content pipeline: `chapters/*.tex` → pandoc 3.1.3
-> + a small Lua filter → `src/content/{lectures,notes,practice}/*.mdx`
+>
+> - a small Lua filter → `src/content/{lectures,notes,practice}/*.mdx`
 > → Astro static build with KaTeX math + Shiki syntax highlighting +
 > a 5-component callout library matching the LaTeX source 1:1.
 > Optional chapters (ch_7, ch_9–ch_13) ship as committed-but-
