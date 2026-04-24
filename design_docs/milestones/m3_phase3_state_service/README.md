@@ -1,7 +1,7 @@
 # M3 — Phase 3: State service
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 3
-**Status:** todo (8 tasks broken out 2026-04-24 — see [`tasks/`](tasks/))
+**Status:** ✅ **closed 2026-04-24** — 8 tasks done (T1–T8); all 8 Done-when bullets ticked; site deployed live with M3 surfaces (annotations + read-status) bundled CSS-hidden under static mode per T5 contract. M4 (question generation) is now unblocked and active.
 **Depends on:** M2 (Astro project + content collections must exist)
 **Unblocks:** M4 (question generation needs a place to persist
 questions), M5 (review loop reads/writes FSRS state), M6 (code
