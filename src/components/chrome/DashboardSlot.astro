@@ -1,0 +1,88 @@
+---
+// src/components/chrome/DashboardSlot.astro — M-UX T5 deliverable.
+//
+// Per ADR-0002 + T5 spec, the index page hosts two `data-interactive-
+// only` dashboard slots at the top: "Recently read" + "Due for review".
+// Both are stub-now-fill-later: M-UX ships the empty-state shape;
+// M5 (review queue) replaces the slot contents with populated lists
+// when the FSRS-backed surface lands.
+//
+// Contract:
+//   - The wrapping `<section>` carries `data-interactive-only` so the
+//     entire slot hides on the public deploy (Base.astro / HomeLayout
+//     install the global `body[data-mode="static"] [data-interactive-only]
+//     { display: none !important; }` rule). Static-mode visitors see no
+//     dashboard chrome at all — only the chapter cards below.
+//   - Default slot content = the empty-state message (the parent
+//     passes `<p>...</p>` as children when no populated state is
+//     available). M5 fills the slot via Astro composition: when the
+//     review queue has data, M5's component renders into the same
+//     `<DashboardSlot>` and the empty-state default is no longer used.
+//   - The `heading` prop drives an `<h2>` so the page has a clean
+//     accessibility hierarchy when the slot is visible.
+//
+// `emptyState` prop is accepted for API symmetry with future
+// populated states (M5 may want a fallback when the user has marked
+// nothing yet). Today, callers either pass it as the slot text or
+// pass children directly — both work.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T5_index_dashboard.md
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/layouts/HomeLayout.astro (sets the
+//     `body[data-mode="static"] [data-interactive-only]` global rule
+//     this component relies on)
+//   - src/pages/index.astro (sole consumer today)
+
+interface Props {
+  /** `<h2>` text — "Recently read" / "Due for review". */
+  heading: string;
+  /** Empty-state message used when no children are passed. */
+  emptyState?: string;
+}
+
+const { heading, emptyState } = Astro.props;
+---
+
+<section class="dashboard-slot" data-interactive-only aria-label={heading}>
+  <h2 class="dashboard-slot-heading">{heading}</h2>
+  <div class="dashboard-slot-body">
+    <slot>
+      {emptyState && <p class="dashboard-slot-empty">{emptyState}</p>}
+    </slot>
+  </div>
+</section>
+
+<style>
+  /* Scoped styles; tokens come from src/styles/chrome.css (imported
+     globally by HomeLayout.astro). */
+  .dashboard-slot {
+    margin: 0 0 var(--mux-space-6) 0;
+    padding: var(--mux-space-4);
+    background: var(--mux-surface-alt);
+    border: 1px dashed var(--mux-border);
+    border-radius: 6px;
+  }
+
+  .dashboard-slot-heading {
+    /* Same small-caps idiom as `.left-rail h3` — ties dashboard
+       slots and chapter-list groupings to a shared visual register. */
+    margin: 0 0 var(--mux-space-3) 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+  }
+
+  .dashboard-slot-body {
+    font-size: 0.9rem;
+    color: var(--mux-fg-muted);
+  }
+
+  .dashboard-slot-empty {
+    margin: 0;
+    font-style: italic;
+    color: var(--mux-fg-subtle);
+  }
+</style>

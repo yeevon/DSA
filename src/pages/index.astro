@@ -1,62 +1,174 @@
 ---
-// src/pages/index.astro
+// src/pages/index.astro — M-UX T5 deliverable.
 //
-// M2 Tasks T5a + T5b — chapter-listing index. Reads chapter
-// metadata from scripts/chapters.json directly (kept after T5b
-// because the index doesn't need to render MDX bodies — chapter
-// routes own that). The MDX-pandoc bridge work in T5b unblocked
-// the dynamic [id].astro routes; the chapter links here now
-// resolve to rendered chapter pages.
-import Base from '../layouts/Base.astro';
+// Replaces the M2 T5a/T5b two-table chapter-listing layout with the
+// mastery-dashboard placeholder per ADR-0002 + T5 spec:
+//   - Two `data-interactive-only` dashboard slots at the top
+//     ("Recently read" + "Due for review") that M5 fills when the
+//     review queue lands. Hidden on the public static deploy.
+//   - Chapter cards grouped Required (ch_1..ch_6) / Optional (ch_7,
+//     ch_9..ch_13) — same partition the left rail uses on chapter
+//     pages, so the user's mental model carries from index to chapter
+//     and back.
+//   - Footer with license + repo link.
+//
+// The page renders through `HomeLayout.astro` (M-UX T5 sibling of
+// Base.astro) — single column, no rails, no breadcrumb. Per ADR-0002
+// + T5 Notes "No left rail on the index page": putting a chapter-list
+// rail next to a chapter-list grid is redundant; the cards ARE the
+// chapter list at the index level. Breadcrumb is also chapter-route-
+// only by design (the index has nowhere to navigate "up" to and the
+// `Breadcrumb.astro` path-derivation regex returns null on non-chapter
+// routes — wiring it would render an empty nav).
+//
+// BASE_URL convention: link composition lives inside `ChapterCard.astro`
+// (each card builds `${baseUrl}/{collection}/{id}/`). This file
+// itself does not produce any `/DSA/` href today. The doc-comment
+// above mentions `/DSA/` only descriptively — reviewer-eyes pass per
+// DA2-E / DA3-A.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T5_index_dashboard.md
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/layouts/HomeLayout.astro
+//   - src/components/chrome/ChapterCard.astro
+//   - src/components/chrome/DashboardSlot.astro
+//   - scripts/chapters.json (chapter manifest; same source of truth
+//     consumed by `LeftRail.astro` so the partition stays in sync)
+import HomeLayout from '../layouts/HomeLayout.astro';
+import ChapterCard from '../components/chrome/ChapterCard.astro';
+import DashboardSlot from '../components/chrome/DashboardSlot.astro';
 import chapters from '../../scripts/chapters.json';
 
+// Sort by chapter number, then partition. Mirrors `LeftRail.astro`
+// — same sort key (`n`, not lexicographic on `id`) so ch_10 sorts
+// after ch_9; same `required` boolean partitioning.
 const sorted = [...chapters].sort((a, b) => a.n - b.n);
 const required = sorted.filter((c) => c.required);
 const optional = sorted.filter((c) => !c.required);
-const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
-<Base title="cs-300 — Data Structures & Algorithms">
-  <h1>CS 300 — Data Structures &amp; Algorithms</h1>
-  <p>
-    LaTeX lecture notes, compact study notes, and coach-prompt exercises.
-    Source taught in pseudocode; this rewrite ports everything to C++17 and
-    augments with CLRS + MIT OCW 6.006 material.
-  </p>
+<HomeLayout title="cs-300 — Data Structures & Algorithms">
+  <header class="home-header">
+    <h1>CS 300 — Data Structures &amp; Algorithms</h1>
+    <p class="home-blurb">
+      LaTeX-sourced lecture notes + interactive practice.
+    </p>
+  </header>
 
-  <h2>Required (SNHU CS 300 syllabus)</h2>
-  <table>
-    <thead>
-      <tr><th>#</th><th>Title</th><th>Lectures</th><th>Notes</th><th>Practice</th></tr>
-    </thead>
-    <tbody>
+  <DashboardSlot
+    heading="Recently read"
+    emptyState="No recent activity yet."
+  />
+  <DashboardSlot
+    heading="Due for review"
+    emptyState="Nothing due — start reading or generate questions."
+  />
+
+  <section class="chapter-group" aria-labelledby="chapters-required-heading">
+    <h2 id="chapters-required-heading" class="chapter-group-heading">Required</h2>
+    <p class="chapter-group-blurb">SNHU CS 300 syllabus.</p>
+    <div class="chapter-grid">
       {required.map((c) => (
-        <tr>
-          <td>{c.n}</td>
-          <td>{c.subtitle}</td>
-          <td><a href={`${baseUrl}/lectures/${c.id}/`}>read</a></td>
-          <td><a href={`${baseUrl}/notes/${c.id}/`}>read</a></td>
-          <td><a href={`${baseUrl}/practice/${c.id}/`}>read</a></td>
-        </tr>
+        <ChapterCard
+          id={c.id}
+          n={c.n}
+          title={c.title}
+          subtitle={c.subtitle}
+          required={c.required}
+        />
       ))}
-    </tbody>
-  </table>
+    </div>
+  </section>
 
-  <h2>Optional (depth chapters; outside the graded path)</h2>
-  <table>
-    <thead>
-      <tr><th>#</th><th>Title</th><th>Lectures</th><th>Notes</th><th>Practice</th></tr>
-    </thead>
-    <tbody>
+  <section class="chapter-group" aria-labelledby="chapters-optional-heading">
+    <h2 id="chapters-optional-heading" class="chapter-group-heading">Optional</h2>
+    <p class="chapter-group-blurb">Depth chapters; outside the graded path.</p>
+    <div class="chapter-grid">
       {optional.map((c) => (
-        <tr>
-          <td>{c.n}</td>
-          <td>{c.subtitle}</td>
-          <td><a href={`${baseUrl}/lectures/${c.id}/`}>read</a></td>
-          <td><a href={`${baseUrl}/notes/${c.id}/`}>read</a></td>
-          <td><a href={`${baseUrl}/practice/${c.id}/`}>read</a></td>
-        </tr>
+        <ChapterCard
+          id={c.id}
+          n={c.n}
+          title={c.title}
+          subtitle={c.subtitle}
+          required={c.required}
+        />
       ))}
-    </tbody>
-  </table>
-</Base>
+    </div>
+  </section>
+
+  <footer class="home-footer">
+    <p>
+      <a href="https://github.com/jdelima-snhu/cs-300" rel="noopener noreferrer">Repository</a>
+      <span aria-hidden="true"> · </span>
+      Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener noreferrer">CC BY-NC-SA 4.0</a>.
+    </p>
+  </footer>
+</HomeLayout>
+
+<style>
+  .home-header {
+    margin: 0 0 var(--mux-space-8) 0;
+  }
+
+  .home-header h1 {
+    margin: 0 0 var(--mux-space-2) 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .home-blurb {
+    margin: 0;
+    color: var(--mux-fg-muted);
+    font-size: 0.95rem;
+  }
+
+  .chapter-group {
+    margin: 0 0 var(--mux-space-8) 0;
+  }
+
+  .chapter-group-heading {
+    margin: 0 0 var(--mux-space-1) 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+  }
+
+  .chapter-group-blurb {
+    margin: 0 0 var(--mux-space-4) 0;
+    font-size: 0.875rem;
+    color: var(--mux-fg-subtle);
+  }
+
+  .chapter-grid {
+    /* Auto-fit columns at >=280px each — single column on narrow
+       viewports, two on tablets, three on desktop. M-UX T7's
+       responsive sweep may revisit; the auto-fit floor keeps the
+       cards readable at every breakpoint without an explicit @media. */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--mux-space-4);
+  }
+
+  .home-footer {
+    margin-top: var(--mux-space-8);
+    padding-top: var(--mux-space-4);
+    border-top: 1px solid var(--mux-border-subtle);
+    font-size: 0.85rem;
+    color: var(--mux-fg-subtle);
+  }
+
+  .home-footer a {
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--mux-border-subtle);
+  }
+
+  .home-footer a:hover {
+    color: var(--mux-accent-strong);
+    border-bottom-color: var(--mux-accent);
+  }
+</style>

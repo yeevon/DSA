@@ -1,6 +1,6 @@
 # T5 — Index page rewrite: mastery-dashboard placeholder
 
-**Status:** todo
+**Status:** ✅ done 2026-04-25
 **Depends on:** T1 (shell), T2 (chapter-list shape — cards reuse Required/Optional grouping)
 **Blocks:** T7 (responsive sweep), T8 (deploy verification)
 

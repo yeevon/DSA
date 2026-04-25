@@ -1,0 +1,177 @@
+---
+// src/components/chrome/ChapterCard.astro — M-UX T5 deliverable.
+//
+// Per ADR-0002 + T5 spec, the index page becomes the mastery-
+// dashboard host: chapter cards grouped Required / Optional in
+// static mode, plus `data-interactive-only` slots ("recently read",
+// "due for review") that M5 fills when the review queue lands.
+// This component is the card primitive — used by `src/pages/index.astro`
+// today; potentially reused by M5's "recently read" populated state
+// (it can render a list of `ChapterCard`s into the dashboard slot).
+//
+// Each card is an `<article>` with an `<h3>` heading (chapter number
+// + title) per the T5 spec accessibility note. The card body shows
+// the subtitle and a triple-link footer (Lectures / Notes / Practice).
+// A `data-interactive-only` slot for an optional completion badge is
+// reserved at the top right — M5 may surface "X of Y sections read"
+// there without changing the card's static-mode shape.
+//
+// BASE_URL convention (resolves MUX-BO-ISS-02 / HIGH-2 +
+// MUX-BO-DA-1): every collection link is constructed via
+// `import.meta.env.BASE_URL` — never hardcode `/DSA/` in produced
+// HTML. Same idiom as `src/pages/index.astro`,
+// `src/components/chrome/LeftRail.astro`, and
+// `src/components/chrome/Breadcrumb.astro`. Source-level grep on
+// this file is `grep -nE '/DSA/' …` — doc-comment hits (this header)
+// are reviewer-eyes per DA2-E / DA3-A; only `href` hardcoding is a
+// regression.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T5_index_dashboard.md
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/pages/index.astro (sole consumer today; M5 may add another)
+//   - src/components/chrome/DashboardSlot.astro (sibling primitive
+//     for the `data-interactive-only` empty-state wrapper)
+//   - scripts/chapters.json (the props' source of truth)
+
+interface Props {
+  /** Chapter slug — `ch_4`. Used as the URL segment for all three collection links. */
+  id: string;
+  /** Chapter number (manifest `n`). Used for prominent display. */
+  n: number;
+  /** Manifest `title` — currently "Chapter N". */
+  title: string;
+  /** Manifest `subtitle` — short topic summary, e.g. "Lists, stacks, queues, deques". */
+  subtitle: string;
+  /** Manifest `required` flag. Not rendered (the parent groups by it) but accepted so
+   * a single object spread from `chapters.json` rows works without prop pruning. */
+  required?: boolean;
+}
+
+const { id, n, title, subtitle } = Astro.props;
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<article class="chapter-card" data-chapter-id={id}>
+  <header class="chapter-card-header">
+    <span class="chapter-card-num" aria-hidden="true">ch_{n}</span>
+    <h3 class="chapter-card-title">
+      <span class="visually-hidden">{title} — </span>{subtitle}
+    </h3>
+    <span
+      class="chapter-card-badge"
+      data-chapter-id={id}
+      data-interactive-only
+      aria-hidden="true"
+    >
+      {/* Populated by M5 (review-queue / mastery dashboard) when it
+          lands. Empty in M-UX scope. The slot is reserved so the M5
+          paint doesn't reflow the card on first interactive boot. */}
+    </span>
+  </header>
+  <p class="chapter-card-subtitle">{title}</p>
+  <ul class="chapter-card-links">
+    <li><a href={`${baseUrl}/lectures/${id}/`}>Lectures</a></li>
+    <li><a href={`${baseUrl}/notes/${id}/`}>Notes</a></li>
+    <li><a href={`${baseUrl}/practice/${id}/`}>Practice</a></li>
+  </ul>
+</article>
+
+<style>
+  /* Scoped styles; tokens come from src/styles/chrome.css (imported
+     globally by HomeLayout.astro). */
+  .chapter-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mux-space-2);
+    padding: var(--mux-space-4);
+    border: 1px solid var(--mux-border-subtle);
+    border-radius: 6px;
+    background: var(--mux-surface);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+
+  .chapter-card:hover {
+    border-color: var(--mux-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .chapter-card-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--mux-space-3);
+  }
+
+  .chapter-card-num {
+    /* Prominent chapter-number tag — accent colour per ADR-0002
+       "one accent colour for chapter numbers / completion badges". */
+    flex-shrink: 0;
+    font-family: var(--mux-font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--mux-accent-strong);
+    text-transform: uppercase;
+  }
+
+  .chapter-card-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--mux-fg);
+  }
+
+  .chapter-card-badge {
+    /* Reserve inline space even when empty so an M5 paint doesn't
+       reflow the row. Mirrors T2's `.checkmark-slot` idiom. */
+    min-width: 1.25em;
+    text-align: right;
+    color: var(--mux-accent-strong);
+    font-weight: 700;
+  }
+
+  .chapter-card-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--mux-fg-subtle);
+  }
+
+  .chapter-card-links {
+    display: flex;
+    gap: var(--mux-space-3);
+    list-style: none;
+    padding: 0;
+    margin: var(--mux-space-2) 0 0 0;
+    font-size: 0.875rem;
+  }
+
+  .chapter-card-links a {
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+
+  .chapter-card-links a:hover {
+    color: var(--mux-accent-strong);
+    border-bottom-color: var(--mux-accent);
+  }
+
+  /* Visually hidden — used so screen readers hear "Chapter 4 — Lists,
+     stacks, queues, deques" while sighted users see only the
+     subtitle (the `ch_4` tag carries the chapter-number affordance
+     visually). */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

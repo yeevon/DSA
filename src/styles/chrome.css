@@ -62,6 +62,12 @@
   --mux-col-left-rail: 260px;
   --mux-col-right-rail: 280px;
   --mux-content-max: 75ch;
+  /* HomeLayout container width (M-UX T5). The index page is a
+     mastery-dashboard host with a chapter-card grid + dashboard
+     slots — wider than the chapter-pane prose constraint so the
+     card grid breathes, but bounded so very wide displays don't
+     stretch lines into "track the eye across the screen" territory. */
+  --mux-home-max: 1100px;
 
   /* Spacing scale. Conservative + extensible. */
   --mux-space-1: 4px;

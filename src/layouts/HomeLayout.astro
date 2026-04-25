@@ -1,0 +1,147 @@
+---
+// src/layouts/HomeLayout.astro — M-UX T5 deliverable.
+//
+// Per ADR-0002 (https://.../adr/0002_ux_layer_mdn_three_column.md)
+// the index page is the mastery-dashboard host and does NOT take
+// the three-column chrome — putting a chapter-list left rail next
+// to a chapter-list main grid is redundant. T5 spec Step 1 (leaning
+// "separate `HomeLayout.astro`") landed: this file is a sibling
+// layout that imports the same global tokens (`src/styles/chrome.css`)
+// + preserves the M3 mode-detection contracts from `Base.astro`,
+// but composes them differently — one full-width column, no rails,
+// no breadcrumb (the index has nowhere to navigate "up" to).
+//
+// Why a separate file rather than a `Base.astro variant="home"` prop:
+//   - Base.astro's grid + slot machinery is load-bearing for chapter
+//     routes; threading a "no rails" branch through every grid rule
+//     muddies the layout component that has to keep the chapter
+//     experience clean. A sibling layout keeps both files focused.
+//   - Future surfaces (M5 review queue dashboard, M7 audio player
+//     home shelf) compose into HomeLayout, not Base — the index
+//     evolution is decoupled from chapter-route evolution.
+//
+// M3 contracts preserved verbatim from `Base.astro`:
+//   1. Inline script imports `detectMode()` and sets
+//      `<body data-mode="static|interactive">`. This is the T5
+//      bootstrap (M3 task T5, not M-UX T5 — different T5) that
+//      gates every `data-interactive-only` element.
+//   2. Global CSS rule
+//        `body[data-mode="static"] [data-interactive-only] { display: none !important; }`
+//      hides interactive-only surfaces on the public deploy. The
+//      dashboard slots (`DashboardSlot.astro`) carry the attribute
+//      and stay invisible in static mode.
+//   3. The "interactive mode active" floating badge stays — same
+//      `data-interactive-only` rule.
+//
+// Shared design tokens (accent, font-stack, spacing scale) come
+// from `src/styles/chrome.css` — imported globally so the page
+// + ChapterCard + DashboardSlot all reach the same vars without
+// per-component imports.
+//
+// Companion files:
+//   - design_docs/architecture.md §1.6 (Page chrome — UX layer)
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - design_docs/milestones/m_ux_polish/tasks/T5_index_dashboard.md
+//   - src/layouts/Base.astro (sibling layout, chapter routes)
+//   - src/pages/index.astro (sole consumer today)
+//   - src/components/chrome/ChapterCard.astro (rendered into the
+//     `<main>` chapter-grid sections by the index page)
+//   - src/components/chrome/DashboardSlot.astro (rendered into the
+//     `<main>` dashboard-slot sections by the index page; M5 fills
+//     the slot contents when the review queue lands)
+import '../styles/chrome.css';
+
+interface Props {
+  title?: string;
+}
+
+const { title = 'cs-300' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <title>{title}</title>
+    <style is:global>
+      /* T5 contract (M3 T5, not M-UX T5): hide interactive-only
+         surfaces in static mode. Preserved unchanged from Base.astro
+         so the dashboard slots hide on the public deploy. */
+      body[data-mode="static"] [data-interactive-only] {
+        display: none !important;
+      }
+    </style>
+    <style>
+      /* ============================================================
+         HomeLayout — single-column shell, no rails.
+         Base-only rules; component-internal rules live with the
+         components in `src/components/chrome/*` and the shared tokens
+         live in `src/styles/chrome.css`.
+         ============================================================ */
+
+      :global(html),
+      :global(body) {
+        margin: 0;
+        padding: 0;
+      }
+      :global(body) {
+        font-family: var(--mux-font-sans);
+        color: var(--mux-fg);
+        background: var(--mux-surface);
+        line-height: 1.6;
+      }
+
+      /* Single-column home grid. Constrained content width so the
+         index reads consistently with the chapter pages (~75ch prose
+         constraint there; the index uses a slightly wider container
+         to accommodate the chapter-card grid). */
+      .home {
+        min-height: 100vh;
+        padding: var(--mux-space-6) var(--mux-space-4);
+      }
+
+      .home > main {
+        max-width: var(--mux-home-max);
+        margin: 0 auto;
+      }
+
+      /* Floating "interactive mode active" badge — preserved from
+         Base.astro. `data-interactive-only` keeps it absent in static
+         mode. */
+      .interactive-badge {
+        position: fixed;
+        bottom: 8px;
+        right: 8px;
+        font-size: .75rem;
+        background: var(--mux-accent);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        z-index: 1000;
+      }
+
+      @media (min-width: 1024px) {
+        .home {
+          padding: var(--mux-space-8) var(--mux-space-8);
+        }
+      }
+    </style>
+  </head>
+  <body data-mode="static">
+    <div class="home">
+      <main>
+        <slot />
+      </main>
+    </div>
+    <div data-interactive-only class="interactive-badge">interactive mode active</div>
+    <script>
+      import { detectMode } from '../lib/mode';
+      detectMode().then((mode) => {
+        document.body.dataset.mode = mode;
+      });
+    </script>
+  </body>
+</html>
