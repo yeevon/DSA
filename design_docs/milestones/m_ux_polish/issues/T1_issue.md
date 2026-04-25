@@ -1,9 +1,9 @@
 # T1 — Layout shell — Audit Issues
 
 **Source task:** [../tasks/T1_layout_shell.md](../tasks/T1_layout_shell.md)
-**Audited on:** 2026-04-24
-**Audit cycle:** 1 of up to 10
-**Audit scope:** spec-vs-implementation re-verification of every AC; design-drift check against [`design_docs/architecture.md`](../../../architecture.md) §1.6, §1 (pandoc anchor contract), §4 (`data-mode` / `data-interactive-only`); ADR-0002; sibling-spec carry-over (DA3-A..D) propagation; status-surface flips; gate re-run on the existing `dist/client/`; M3 surface preservation; `nice_to_have.md` boundary.
+**Audited on:** 2026-04-24 (re-audit, restarted `/clean-implement` loop)
+**Audit cycle:** 1 of up to 10 (prior-session PASS re-validated from scratch)
+**Audit scope:** spec-vs-implementation re-verification of every AC; design-drift check against [`design_docs/architecture.md`](../../../architecture.md) §1.6, §1 (pandoc anchor contract), §4 (`data-mode` / `data-interactive-only`); ADR-0002; sibling-spec carry-over (DA3-A..D) propagation; status-surface flips; **gate re-run by rebuilding from scratch (`npm run build` — the auditor did not trust the pre-existing `dist/client/`)**; M3 surface preservation; `nice_to_have.md` boundary. Fresh `npm run build` re-executed by the auditor reproduced the Builder's numbers byte-for-byte (`du -sb dist/client/` = `4537978`, page count `37`, slot set `{breadcrumb, left-rail, main, right-rail}`, M3-surface counts `6 / 6 / 8 / 12`, 179 `id="ch_N-"` anchors, 6 `data-interactive-only` hits, `<article>` in all three route HTMLs). Build is fully reproducible — no environment drift between Builder and Auditor.
 **Status:** ✅ PASS
 
 ## Design-drift check
@@ -61,13 +61,15 @@ None.
 
 ## 🟢 LOW
 
-### LOW-1 — Stray `pandoc_3.1.3+ds-2_amd64.deb` untracked at repo root
+### LOW-1 — ~~Stray `pandoc_3.1.3+ds-2_amd64.deb` untracked at repo root~~ ✅ RESOLVED 2026-04-24 (re-audit)
 
-**Surface:** `git status --short` shows an untracked `pandoc_3.1.3+ds-2_amd64.deb` at the repo root. Builder used it to extract pandoc into `/tmp/pandoc-local/` for the build (per `pre_m_ux_baseline.md` lines 76–77). Not in a T1 deliverable list; appears to be a build-environment artefact left behind.
+**Original surface (cycle-0, prior session):** `git status --short` showed an untracked `pandoc_3.1.3+ds-2_amd64.deb` at the repo root from the sandbox pandoc extraction procedure.
 
-**Severity rationale:** LOW — file is untracked (not committed, not in the diff), does not pollute the working tree on commit, and `.gitignore` would catch it cleanly. Build-environment hygiene only.
+**Re-audit 2026-04-24 (this cycle):** `git status --porcelain` returns empty — working tree is clean. No `*.deb` file at repo root (`ls /home/papa-jochy/Documents/School/cs-300/*.deb` → "No such file or directory"). The environment this cycle uses the system `/usr/bin/pandoc` (v3.1.3) directly — no sandbox-extracted `.deb` needed. Finding RESOLVED by environment change; no commit SHA attached (file was never committed, simply not present this cycle).
 
-**Action / Recommendation:** Add `*.deb` to `.gitignore` if convenient, or delete the file once pandoc is installed locally. Not a T1 carry-over — the next Builder picks it up incidentally or ignores it. No code or content change.
+**Severity rationale (historical):** LOW — file was untracked (not committed, not in the diff); `.gitignore` would catch it cleanly. Build-environment hygiene only.
+
+**Action / Recommendation:** No action required. If this build environment ever re-appears (e.g., a fresh sandbox that needs the `.deb` again), adding `*.deb` to `.gitignore` pre-emptively would future-proof against accidental commits. Not a T1 carry-over.
 
 ### LOW-2 — `chrome.css` token surface includes `--mux-fg-muted` / `--mux-fg-subtle` / `--mux-surface-alt` not yet consumed
 
@@ -90,7 +92,8 @@ No invented scope. No drive-by refactors. No dependency adds. No animation / pal
 
 | Gate | Command | Result |
 | ---- | ------- | ------ |
-| Build artefacts present | `ls dist/client/` | ✅ present (build re-run skipped per Builder report — pandoc available via `/tmp/pandoc-local`; relied on existing artefacts which match Builder's claim) |
+| Full project build from scratch | `npm run build` | ✅ clean — prebuild + astro build both exit 0; 37 `/…/index.html` rendered; "Server built in 8.66s"; no warnings |
+| Build artefacts present | `ls dist/client/` | ✅ present (freshly rebuilt this cycle; pandoc 3.1.3 from `/usr/bin/pandoc`) |
 | Page count | `find dist/client -name '*.html' \| wc -l` | ✅ 37 |
 | `<article>` wrapper preserved (built) | `grep -c '<article' dist/client/lectures/ch_4/index.html` | ✅ 1 (also verified for notes + practice) |
 | `<article>` wrapper preserved (source) | `grep -n '<article' src/pages/{lectures,notes,practice}/[id].astro` | ✅ 3/3 routes |
@@ -115,14 +118,27 @@ No invented scope. No drive-by refactors. No dependency adds. No animation / pal
 | Size delta | `du -sb dist/client/` (post) − pre-M-UX baseline | ✅ +117031 B (~114 KB; under T8 alarm threshold for net-new JS, surfaced for T8 budget evaluation) |
 | Net new JS | inspection: no `_astro/*.js` directory introduced | ✅ 0 KB net JS (T1 introduces no islands) |
 
-**Build re-run note.** The existing `dist/client/` was used as ground truth; pandoc 3.1.3 is available in this environment via `/tmp/pandoc-local/`, but a full rebuild was not performed because the existing artefacts match the Builder's reported numbers exactly (`du -sb` = `4537978`, page count = 37) and no source-tree changes have been made since the Builder's build. If post-audit work touches Base.astro or chrome.css, the next audit cycle should rebuild.
+**Build re-run note (re-audit 2026-04-24, this cycle).** The auditor this cycle did NOT trust the Builder's `dist/client/` — `npm run build` was re-executed from scratch using the system `/usr/bin/pandoc` (v3.1.3, matches `.pandoc-version`). The freshly-built artefacts reproduce every one of the Builder's reported numbers byte-for-byte:
+
+- `du -sb dist/client/` = `4537978` (bytes) — matches Builder's claim exactly.
+- HTML page count = `37` — matches.
+- `data-slot` unique set = `{breadcrumb, left-rail, main, right-rail}` — matches exactly; no `drawer-trigger`.
+- `<article>` wrapper in all three routes (`dist/client/{lectures,notes,practice}/ch_4/index.html` each emit 1 `<article` hit).
+- M3 surface counts (built ch_4 lectures page): 6× `annotate-button`, 6× `annotations-pane`, 8× `mark-read-button`, 12× `section-nav` — matches.
+- `data-interactive-only` = 6 hits — matches.
+- 179× `id="ch_N-…"` anchors — matches.
+- Grid CSS present in built HTML in minified form: `grid-template-columns:260px 1fr 280px` inside `@media(min-width:1024px){…}`. Default (pre-breakpoint) template: `grid-template-areas:"breadcrumb" "left-rail" "main" "right-rail"` (single-column stack).
+- T5 contract rule present in built HTML in minified form: `body[data-mode=static] [data-interactive-only]{display:none!important}`.
+- `dist/client/_astro/` directory: still absent (no net-new client JS shipped by T1).
+
+Build is fully reproducible; no environment drift between Builder and Auditor. The earlier cycle-0 note (that the audit "relied on existing artefacts") is superseded.
 
 ## Issue log
 
 | ID | Severity | Description | Status | Owner / next touch |
 | -- | -------- | ----------- | ------ | ------------------ |
 | M-UX-T1-ISS-01 | MEDIUM | Done-when bullet 1 partial-satisfaction footnote not yet added | DEFERRED | T2 or T4 Builder (whichever lands second) flips line 19 with parenthetical citation |
-| M-UX-T1-ISS-02 | LOW | Stray `pandoc_3.1.3+ds-2_amd64.deb` untracked at repo root | OPEN | Next Builder removes file or adds `*.deb` to `.gitignore` |
+| M-UX-T1-ISS-02 | LOW | Stray `pandoc_3.1.3+ds-2_amd64.deb` untracked at repo root | ✅ RESOLVED 2026-04-24 (re-audit) | N/A — file not present this cycle; working tree clean |
 | M-UX-T1-ISS-03 | LOW | `chrome.css` declares 3 neutral tokens not yet consumed (`--mux-fg-muted`, `--mux-fg-subtle`, `--mux-surface-alt`) | OPEN | T2/T3/T4 Builders consume or T8 audit prunes |
 
 ## Deferred to nice_to_have
@@ -137,23 +153,27 @@ No `## Carry-over from prior audits` blocks were appended to T2/T3/T4/T5/T7 by t
 - The four DA3-A..D carry-over items were already resolved by T1's Builder this cycle (verified above) — propagation already complete via the Builder's edits.
 - M-UX-T1-ISS-01's deferral is light-touch and surfaced through this issue file, not through carry-over blocks.
 
-**Audit verdict propagation.** The cycle-1 audit returns `FUNCTIONALLY CLEAN` to the invoker. T1 closes cleanly; M-UX-T1-ISS-01 (MEDIUM) is non-blocking and tracked here for the T2/T4 follow-up.
+**Audit verdict propagation.** This restarted cycle-1 audit (2026-04-24) returns `FUNCTIONALLY CLEAN` to the invoker. T1 closes cleanly; M-UX-T1-ISS-01 (MEDIUM) remains non-blocking and tracked here for the T2/T4 follow-up; M-UX-T1-ISS-02 (LOW) flipped to RESOLVED (file not present this cycle); M-UX-T1-ISS-03 (LOW) remains OPEN for T2/T3/T4 Builders or T8's audit.
+
+**Override / disagreement with prior issue-file state.** The prior-session issue file listed the stray `.deb` as OPEN LOW-1 and noted the build was not re-run. This re-audit flips both: LOW-1 is RESOLVED (file not present, `git status --porcelain` empty), and the build WAS re-run from scratch, reproducing the Builder's numbers byte-for-byte. The Builder's this-cycle report claimed "no code, doc, or CHANGELOG changes this cycle" — that claim is consistent with `git status` / `git log` (HEAD is commit `31c17aa`, the same T1-close commit), and it is consistent with the reproducible build. No override of the Builder's factual claims was necessary.
 
 ## Security review
 
-**Reviewed on:** 2026-04-24
+**Reviewed on:** 2026-04-24 (re-audit from scratch — supersedes prior-session section)
 **Reviewer:** security-reviewer subagent
-**Scope:** `src/layouts/Base.astro`, `src/styles/chrome.css`, `src/lib/mode.ts` (boot-script dependency). No API routes, pandoc pipeline, code-execution paths, or annotation handlers were touched in T1 — those surfaces are out of scope for this gate.
+**Scope:** `src/layouts/Base.astro`, `src/styles/chrome.css`, `src/lib/mode.ts` (boot-script dependency), `astro.config.mjs` (output mode + BASE_URL source), `.github/workflows/deploy.yml` (GH Pages artifact boundary). No API routes, pandoc pipeline, code-execution paths, or annotation handlers were touched by T1 — those surfaces are out of scope for this gate. All seven applicable checks run from scratch; prior section not trusted.
 
 ### Checks
 
 | # | Check | Result |
 |---|-------|--------|
-| 1 | Unsafe DOM handling (`set:html`, `innerHTML`, `eval`, `new Function`, dynamic attribute interpolation of user data) | PASS — only `{title}` (Astro-escaped) and `import.meta.env.BASE_URL` (build-time constant) interpolated into HTML; `dataset.mode` assigned from closed-set `{'static','interactive'}` only |
-| 2 | `import.meta.env` leakage | PASS — sole reference is `BASE_URL` (public subpath, non-secret); no `*_SECRET`, `*_KEY`, Ollama URL, or loopback address exposed via SSR |
-| 3 | `data-mode` boot script integrity | PASS — `<body data-mode="static">` SSR default and `detectMode().then(mode => document.body.dataset.mode = mode)` client script preserved verbatim; `detectMode()` returns only `'static'` or `'interactive'` (closed set, no injection surface) |
-| 4 | `data-interactive-only` rule preservation | PASS — `body[data-mode="static"] [data-interactive-only] { display: none !important; }` present verbatim in `<style is:global>` at Base.astro lines 82–84; `is:global` prevents Astro scope-hashing the selector; `!important` intact |
-| 5 | `chrome.css` external resource / injection surface | PASS — 74-line file is pure `:root` custom-property declarations; no `@import`, no `url(...)`, no `expression()`, no `javascript:` string; system font stack has no web-font fetch |
+| 1 | Unsafe DOM handling (`set:html`, `innerHTML`, `eval`, `new Function`, dynamic attribute interpolation of user data) | PASS — only `{title}` (Astro-escaped string prop, default `'cs-300'`) and `import.meta.env.BASE_URL` (build-time constant) interpolated into HTML; `dataset.mode` assigned from `detectMode()` return which is a closed two-value set `{'static','interactive'}` only — no user-controlled path |
+| 2 | `import.meta.env` leakage | PASS — sole reference is `BASE_URL` at Base.astro line 77 (public subpath `/DSA/`, non-secret, set in `astro.config.mjs`); `mode.ts` ADAPTER_URL is a plain string literal, not an env var; no `*_SECRET`, `*_KEY`, Ollama URL, database path, or loopback address reaches the bundle through `import.meta.env` |
+| 3 | `data-mode` boot-script integrity | PASS — `<body data-mode="static">` SSR default at Base.astro line 195; client script at lines 211–216 calls `detectMode().then(mode => document.body.dataset.mode = mode)`; `detectMode()` returns only `'interactive'` (both probes `r.ok`) or `'static'` (any failure/catch) — no injection surface; mode value is never derived from response bodies or user input |
+| 4 | `data-interactive-only` rule preservation | PASS — rule `body[data-mode="static"] [data-interactive-only] { display: none !important; }` present verbatim in `<style is:global>` at Base.astro lines 82–84; `is:global` prevents Astro scope-hashing the selector; `!important` intact; T5 contract unchanged |
+| 5 | `chrome.css` external resource / injection surface | PASS — 74-line file is pure `:root` custom-property declarations; no `@import`, no `url(...)`, no `expression()`, no `javascript:` string; `--mux-font-sans`/`--mux-font-mono` are system font stacks (no network fetch) |
+| 6 | Pandoc anchor contract preservation | PASS — T1 touches no pandoc surface (filter, build script, chapter routes); `<a id="ch_N-…">` anchors are emitted by `pandoc-filter.lua` via `--metadata chapter_id=ch_N` argv injection, not string interpolation; Base.astro slot is a pass-through, not a string processor; M3 `article a[id^="ch_"]` selector unaffected |
+| 7 | New external resource fetches introduced by T1 | PASS — `chrome.css` has no network fetch; Base.astro `<link rel="icon">` is same-origin relative; no CDN scripts, web-font fetches, analytics, or tracking introduced; `astro.config.mjs` `output: 'static'` confirmed; GH Pages workflow (`deploy.yml` line 76) uploads only `dist/client/` — `dist/server/` Node entrypoint does not reach the public deploy |
 
 ### Critical / High
 
@@ -161,12 +181,12 @@ None.
 
 ### Advisory
 
-`src/lib/mode.ts` emits the `http://localhost:8080` loopback literal into every client bundle page. This is intentional (aiw-mcp probe address, per architecture.md §4) and consistent with the threat model (local-only, no secret). Noted for completeness: if the project ever adds a build-time env override for that URL, the same `import.meta.env` leakage check should be re-run to confirm the override value is not a secret.
+`src/lib/mode.ts` line 25 hardcodes the `http://localhost:8080` loopback literal as a plain string constant (not via `import.meta.env`). This is intentional per architecture.md §4 (aiw-mcp probe address) and consistent with the threat model. Because the value is a string literal rather than an env var, there is no path by which a secret could be accidentally substituted here in a future build. No action required; noted for completeness.
 
 ### Verdict
 
-**SHIP.** No security issues. T1's threat surface (layout shell + CSS token file) is clean on all five applicable checks.
+**SHIP.** No security issues found on re-audit from scratch. T1's threat surface (layout shell + CSS token file) is clean on all seven applicable checks. Findings are consistent with the prior-session section; two additional checks (6 and 7) were run this cycle and also pass.
 
 ## Dependency audit
 
-Dependency audit: skipped — no manifest changes (`git diff --stat HEAD -- package.json package-lock.json .nvmrc .pandoc-version` empty).
+Dependency audit: skipped — no manifest changes verified this cycle (2026-04-24 re-audit): `git diff --stat HEAD -- package.json package-lock.json .nvmrc .pandoc-version` empty; `git diff --stat 31c17aa~1..HEAD -- package.json package-lock.json .nvmrc .pandoc-version` also empty across the full T1 implementation commit range. No manifests touched by T1; `dependency-auditor` correctly not spawned.
