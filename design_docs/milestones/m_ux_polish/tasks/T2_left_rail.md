@@ -1,6 +1,6 @@
 # T2 — Left-rail chapter nav + completion indicators
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24
 **Depends on:** T1 (shell + slot scaffold)
 **Blocks:** T5 (index dashboard reuses the chapter-list shape), T7 (responsive sweep), T8 (deploy verification)
 

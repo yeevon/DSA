@@ -13,6 +13,7 @@ import Gotcha from '../../components/callouts/Gotcha.astro';
 import Example from '../../components/callouts/Example.astro';
 import Aside from '../../components/callouts/Aside.astro';
 import CodeBlock from '../../components/callouts/CodeBlock.astro';
+import LeftRail from '../../components/chrome/LeftRail.astro';
 
 export async function getStaticPaths() {
   const practice = await getCollection('practice');
@@ -27,6 +28,7 @@ const { Content } = await render(entry);
 ---
 
 <Base title={`${entry.data.title} — Practice`}>
+  <LeftRail slot="left-rail" />
   <header>
     <h1>{entry.data.title} — Practice</h1>
     <p><em>{entry.data.subtitle}</em></p>

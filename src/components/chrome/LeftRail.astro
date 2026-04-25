@@ -1,0 +1,202 @@
+---
+// src/components/chrome/LeftRail.astro — M-UX T2 deliverable.
+//
+// Per ADR-0002 (https://.../adr/0002_ux_layer_mdn_three_column.md)
+// and design_docs/architecture.md §1.6, the left rail is the
+// primary chapter navigation. This component mounts into the
+// `left-rail` slot declared by `src/layouts/Base.astro` (T1) and
+// is reached from every chapter route (lectures, notes, practice)
+// plus the index page (T5).
+//
+// Contract (per T2 spec):
+//   - SSR-rendered: no JS required for navigation. Every link is a
+//     real anchor the static deploy can resolve.
+//   - Grouped Required / Optional per the chapter manifest at
+//     `scripts/chapters.json` — Required = ch_1..ch_6 (SNHU syllabus),
+//     Optional = ch_7 + ch_9..ch_13 (depth chapters).
+//   - Current-chapter highlight via `aria-current="page"` matched on
+//     `Astro.url.pathname` — the chapter slug is the path segment
+//     after the collection directory (lectures / notes / practice).
+//   - Completion indicator is a SIBLING JS island
+//     (`CompletionIndicator.astro`) rendered inside the same `<aside>`
+//     via `data-interactive-only` so it hides entirely in static mode.
+//     The `<li>` rows themselves stay visible either way — the
+//     checkmark is an enhancement, not load-bearing.
+//
+// BASE_URL convention (resolves MUX-BO-ISS-02 / HIGH-2 +
+// MUX-BO-DA-1): links are constructed via
+// `import.meta.env.BASE_URL` — never hardcode `/DSA/`. A forked
+// deploy at a different sub-path would 404 otherwise. Same
+// convention as `src/pages/index.astro` line 16.
+//
+// Sort key is `n` (chapter number) so ch_10 sorts after ch_9 —
+// not lexicographic on `id` (which would sort ch_10 before ch_9).
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T2_left_rail.md
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/layouts/Base.astro (T1 — slot contract)
+//   - src/components/chrome/CompletionIndicator.astro (sibling island)
+//   - scripts/chapters.json (chapter manifest; also consumed by
+//     M3 T4 seed helper and src/pages/index.astro)
+import chapters from '../../../scripts/chapters.json';
+import { getCollection } from 'astro:content';
+import CompletionIndicator from './CompletionIndicator.astro';
+
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// Sort by chapter number, then partition. `required` is a boolean on
+// the manifest; the cs-300 chapter map has gaps (no ch_8) but that is
+// a data-level concern — the manifest itself is authoritative.
+const sorted = [...chapters].sort((a, b) => a.n - b.n);
+const required = sorted.filter((c) => c.required);
+const optional = sorted.filter((c) => !c.required);
+
+// Derive the current-chapter slug from the path. Chapter routes are
+// `/DSA/{collection}/{chapter-id}/` — the second-to-last segment is
+// the id when the URL ends in `/`. Index and non-chapter routes
+// return null so nothing is highlighted.
+const path = Astro.url.pathname;
+const chapterSlugMatch = path.match(/\/(lectures|notes|practice)\/(ch_\d+)\/?$/);
+const currentChapterId = chapterSlugMatch ? chapterSlugMatch[2] : null;
+
+// Pull per-chapter section ids from the lectures collection so the
+// CompletionIndicator island can evaluate the "all sections marked"
+// rule. `scripts/chapters.json` does not carry the section list —
+// only the lectures collection's MDX frontmatter does (populated by
+// `scripts/build-content.mjs` per content.config.ts). If a chapter's
+// lectures entry is missing (it shouldn't be — the build fails
+// otherwise), fall back to an empty list so the island degrades to
+// "never complete" rather than throwing.
+const lectures = await getCollection('lectures');
+const sectionIdsByChapter: Record<string, string[]> = {};
+for (const c of sorted) {
+  const entry = lectures.find((l) => l.data.chapter_id === c.id);
+  sectionIdsByChapter[c.id] = entry
+    ? entry.data.sections.map((s) => s.id)
+    : [];
+}
+---
+
+<nav class="left-rail" aria-label="Chapter navigation">
+  <section class="group">
+    <h3>Required</h3>
+    <ul>
+      {required.map((c) => (
+        <li>
+          <a
+            href={`${baseUrl}/lectures/${c.id}/`}
+            aria-current={c.id === currentChapterId ? 'page' : undefined}
+            class:list={['chapter-link', c.id === currentChapterId && 'is-current']}
+          >
+            <span class="chapter-label">ch_{c.n} — {c.subtitle}</span>
+            <span class="checkmark-slot" data-chapter-id={c.id} data-interactive-only>
+              {/* Populated by CompletionIndicator island on mount. */}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="group">
+    <h3>Optional</h3>
+    <ul>
+      {optional.map((c) => (
+        <li>
+          <a
+            href={`${baseUrl}/lectures/${c.id}/`}
+            aria-current={c.id === currentChapterId ? 'page' : undefined}
+            class:list={['chapter-link', c.id === currentChapterId && 'is-current']}
+          >
+            <span class="chapter-label">ch_{c.n} — {c.subtitle}</span>
+            <span class="checkmark-slot" data-chapter-id={c.id} data-interactive-only>
+              {/* Populated by CompletionIndicator island on mount. */}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</nav>
+
+<CompletionIndicator
+  sectionIdsByChapter={sectionIdsByChapter}
+  currentChapterId={currentChapterId}
+/>
+
+<style>
+  /* Scoped styles; tokens come from src/styles/chrome.css (imported
+     globally by Base.astro). */
+  .left-rail {
+    font-size: 0.9rem;
+  }
+
+  .left-rail .group + .group {
+    margin-top: var(--mux-space-6);
+  }
+
+  .left-rail h3 {
+    /* Group heading: small-caps + de-emphasized per spec step 4. */
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+    margin: 0 0 var(--mux-space-2) 0;
+    padding: 0 var(--mux-space-2);
+  }
+
+  .left-rail ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .left-rail li {
+    margin: 0;
+  }
+
+  .chapter-link {
+    /* Whole row is the click target; flex keeps label + checkmark
+       in one line with the checkmark pinned right. */
+    display: flex;
+    align-items: center;
+    gap: var(--mux-space-2);
+    padding: var(--mux-space-2) var(--mux-space-3);
+    border-radius: 4px;
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+    line-height: 1.35;
+  }
+
+  .chapter-link:hover {
+    background: var(--mux-surface-alt);
+    color: var(--mux-fg);
+  }
+
+  .chapter-link.is-current {
+    /* Current-chapter highlight — distinct from hover: filled
+       background using the accent tint, plus a left accent bar. */
+    background: var(--mux-accent-bg);
+    color: var(--mux-fg);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--mux-accent);
+  }
+
+  .chapter-label {
+    flex: 1;
+    /* Allow label to wrap if the subtitle is long; the rail is
+       narrow (260px) so ch_10's longer subtitle may wrap. */
+    overflow-wrap: anywhere;
+  }
+
+  .checkmark-slot {
+    /* Reserve the inline space even when empty so the interactive-
+       mode checkmark doesn't reflow chapter labels on mount. */
+    min-width: 1.25em;
+    text-align: right;
+    color: var(--mux-accent-strong);
+    font-weight: 700;
+  }
+</style>

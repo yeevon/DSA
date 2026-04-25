@@ -1,0 +1,174 @@
+---
+// src/components/chrome/CompletionIndicator.astro — M-UX T2 deliverable.
+//
+// JS-island sibling to `LeftRail.astro`. Populates the empty
+// `.checkmark-slot` spans the rail renders with a ✓ glyph in
+// interactive mode when a chapter's read-status covers its
+// completion rule.
+//
+// **Completion rule chosen (per T2 Notes): (a) all sections marked.**
+// Strict rule from the two options the spec lists; documented in the
+// T2 audit issue file at cycle close. The rule is re-evaluated on
+// every fetch — if it never triggers in practice, T2 follow-on
+// switches to an "X of Y" progress fraction.
+//
+// Island-vs-SSR choice: the read-status state is owned by the local
+// state service and is NOT reachable at build time (the public
+// deploy has no state service at all — per architecture.md §4), so
+// the data MUST be fetched client-side. The JS-island surface is
+// the lightest reasonable client payload for that fetch.
+//
+// data-interactive-only contract: the checkmark slots inside the
+// rail carry `data-interactive-only`. In static mode the T1
+// `body[data-mode="static"] [data-interactive-only] { display:none }`
+// rule hides every slot even if this script runs (it wouldn't, since
+// `/api/read_status` is unreachable — failures swallow silently).
+// The chapter rows themselves remain visible either way.
+//
+// Live refresh (resolves MUX-BO-DA2-B / MEDIUM + MUX-BO-DA3-C / LOW):
+// the `MarkReadButton` dispatches `cs300:read-status-changed` on
+// toggle (no detail payload). We listen for it and re-run the GET
+// fetch — SCOPED to the current chapter only (the other chapters'
+// state can't change without a navigation). The current chapter
+// comes from the `current-chapter-id` dataset attribute, populated
+// SSR-side by `LeftRail.astro`'s match against `Astro.url.pathname`.
+// When null (non-chapter pages, e.g. index), the listener is a
+// no-op — legal because no chapter is being actively read.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T2_left_rail.md
+//   - src/components/chrome/LeftRail.astro (sibling, mounts this island)
+//   - src/components/read_status/MarkReadButton.astro (dispatches event)
+//   - src/components/read_status/SectionNav.astro (subscribes to same event)
+//   - src/pages/api/read_status/index.ts (the fetched endpoint)
+interface Props {
+  /**
+   * Per-chapter section-id list. Keyed by chapter id, values are the
+   * section ids that belong to that chapter (from the lectures
+   * collection's frontmatter). The island uses these to evaluate
+   * rule (a) — "all sections marked" — against the API response.
+   */
+  sectionIdsByChapter: Record<string, string[]>;
+  /**
+   * Chapter id of the currently-viewed chapter, or null when the
+   * page is not a chapter route. Used to scope the live-refresh
+   * listener to a single chapter rather than sweeping all 12.
+   */
+  currentChapterId: string | null;
+}
+
+const { sectionIdsByChapter, currentChapterId } = Astro.props;
+
+// JSON-encode once for the dataset attribute. The island deserialises
+// on mount.
+const sectionIdsJson = JSON.stringify(sectionIdsByChapter);
+---
+
+<script
+  type="application/json"
+  id="cs300-completion-indicator-data"
+  is:inline
+  set:html={sectionIdsJson}
+/>
+<div
+  id="cs300-completion-indicator"
+  data-interactive-only
+  data-current-chapter-id={currentChapterId ?? ''}
+  hidden
+></div>
+
+<script>
+  // Boot when the rail is on-screen. `DOMContentLoaded` is safe
+  // because Base.astro mounts everything inside `<body>` and this
+  // script is at the end of the component's render — by the time
+  // it executes, `LeftRail.astro`'s `.checkmark-slot` spans already
+  // exist in the DOM.
+
+  interface ReadStatusResponse {
+    section_ids: string[];
+  }
+
+  const root = document.getElementById('cs300-completion-indicator');
+  const dataNode = document.getElementById(
+    'cs300-completion-indicator-data',
+  );
+  if (!root || !dataNode) {
+    console.warn('[completion-indicator] root or data node missing');
+  } else {
+    let sectionIdsByChapter: Record<string, string[]> = {};
+    try {
+      sectionIdsByChapter = JSON.parse(
+        dataNode.textContent ?? '{}',
+      ) as Record<string, string[]>;
+    } catch (err) {
+      console.warn('[completion-indicator] failed to parse data payload', err);
+    }
+
+    const currentChapterId = root.dataset.currentChapterId || null;
+
+    /**
+     * Fetch read_status for one chapter and update its slot in
+     * the rail. Returns silently on any error (static mode / offline
+     * adapter) so the UI degrades to "no checkmark" rather than
+     * throwing.
+     */
+    async function refreshChapter(chapterId: string): Promise<void> {
+      const requiredSectionIds = sectionIdsByChapter[chapterId] ?? [];
+      if (requiredSectionIds.length === 0) {
+        // No section-list means we cannot satisfy rule (a); clear
+        // any stale glyph and return.
+        paintSlot(chapterId, false);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `/api/read_status?chapter_id=${encodeURIComponent(chapterId)}`,
+        );
+        if (!res.ok) {
+          paintSlot(chapterId, false);
+          return;
+        }
+        const body = (await res.json()) as ReadStatusResponse;
+        const marked = new Set(body.section_ids);
+        const complete = requiredSectionIds.every((id) => marked.has(id));
+        paintSlot(chapterId, complete);
+      } catch {
+        // Network / parse failure — treat as incomplete.
+        paintSlot(chapterId, false);
+      }
+    }
+
+    /**
+     * Paint or clear the ✓ glyph inside the chapter's slot. Scoped
+     * to the rail so this island does not reach into other chrome
+     * components.
+     */
+    function paintSlot(chapterId: string, complete: boolean): void {
+      const slots = document.querySelectorAll<HTMLElement>(
+        `.left-rail .checkmark-slot[data-chapter-id="${chapterId}"]`,
+      );
+      slots.forEach((slot) => {
+        slot.textContent = complete ? '✓' : '';
+        slot.setAttribute('aria-label', complete ? 'Chapter complete' : '');
+      });
+    }
+
+    // Initial sweep: fetch all chapters in parallel. At 12 chapters
+    // this is trivially cheap; a "list-all" endpoint is noted in the
+    // T2 spec Notes as a follow-on if perf ever becomes a concern.
+    const chapterIds = Object.keys(sectionIdsByChapter);
+    Promise.all(chapterIds.map(refreshChapter)).catch(() => {
+      // Individual failures are already swallowed in refreshChapter;
+      // this catch is defensive against Promise.all itself rejecting.
+    });
+
+    // Live refresh: re-run fetch for the current chapter only on
+    // MarkReadButton toggles. The other chapters' state can't have
+    // changed without a navigation, so a full sweep would be waste.
+    window.addEventListener('cs300:read-status-changed', () => {
+      if (currentChapterId) {
+        void refreshChapter(currentChapterId);
+      }
+    });
+  }
+</script>

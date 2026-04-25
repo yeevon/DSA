@@ -110,3 +110,11 @@ M-UX touches every page on the site (new layout shell, new index, re-homed M3 su
 - **Preview vs dev for verification.** Use `npm run preview` (built artifacts) — that's what GH Pages serves. Don't verify against `npm run dev` (different bundling, different reload semantics).
 - **Decompose trigger.** If T8 surfaces a HIGH regression (size blow-out, server-leak, M3 surface broken), file as a finding and re-open the relevant T1–T7 task to fix. Don't band-aid in T8.
 - **Runtime push verification.** Same procedural pattern as M3 T8: T8 closes with the deploy contract verified locally; user pushes; the GH Pages workflow runs; user confirms the live site renders correctly. T8 cannot push.
+
+## Carry-over from prior audits
+
+- [ ] **M-UX-T2-ISS-02 / MEDIUM** — T2 added `~444 KB` of SSR-embedded section-id JSON to `dist/client/` (per-page payload of `~12 KB × 37 pages`) populating the per-chapter "all sections marked" rule for the left-rail completion indicators. Cumulative `dist/client/` size delta vs the pre-M-UX baseline at T2 close: `~780 KB` (T1: +117 KB; T2: +664 KB) — well over T8's `<50KB` alarm threshold. T8 is the formal budget gate. Two reasonable directions if T8's measurement still over-budget after T3–T7 land:
+  - **(a) Refactor `CompletionIndicator.astro` to fetch the section-id list once via a new `GET /api/sections` (or `/api/sections?chapter_id=...`) endpoint** instead of embedding the 12-chapter section map per page. Saves the `~444 KB` at the cost of one extra round-trip on initial page load. Architecture.md §3.4 already exposes section data structure; adding a list-all endpoint is small.
+  - **(b) Accept the budget breach and document.** If the M-UX `dist/client/` total still ships under whatever ceiling matters for the hosting context (GH Pages has no hard ceiling for cs-300 traffic), document the deviation in `m_ux_deploy_verification.md` Step 7 and lift the spec budget rather than refactor.
+  - Pick option (a) by default — the SSR-embed pattern is per-page replication of identical data, which is exactly the case where the size hit is artificial.
+  - Source: [`../issues/T2_issue.md`](../issues/T2_issue.md) MEDIUM-2.

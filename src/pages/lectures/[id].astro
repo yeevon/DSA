@@ -18,6 +18,7 @@ import AnnotateButton from '../../components/annotations/AnnotateButton.astro';
 import AnnotationsPane from '../../components/annotations/AnnotationsPane.astro';
 import SectionNav from '../../components/read_status/SectionNav.astro';
 import MarkReadButton from '../../components/read_status/MarkReadButton.astro';
+import LeftRail from '../../components/chrome/LeftRail.astro';
 
 export async function getStaticPaths() {
   const lectures = await getCollection('lectures');
@@ -33,6 +34,7 @@ const sectionIds = entry.data.sections.map((s) => s.id);
 ---
 
 <Base title={`${entry.data.title} — Lectures`}>
+  <LeftRail slot="left-rail" />
   <header>
     <h1>{entry.data.title} — Lectures</h1>
     <p><em>{entry.data.subtitle}</em></p>

@@ -17,8 +17,8 @@ Replace the bare 51-line `Base.astro` shell + 62-line two-table `index.astro` wi
 ## Done when
 
 - [ ] **Three-column desktop layout** (≥1024px) — left rail, center content, right rail — renders cleanly on every chapter route (lectures, notes, practice).
-- [ ] **Left-rail chapter nav** — chapter list grouped Required (ch_1–ch_6) / Optional (ch_7, ch_9–ch_13), current chapter highlighted, SSR-rendered (no JS required for navigation).
-- [ ] **Per-chapter completion indicators** in the left rail — Canvas-style checkmark gated via `data-interactive-only` (T5 contract), populated from `read_status` table in interactive mode, hidden in static mode.
+- [x] **Left-rail chapter nav** — chapter list grouped Required (ch_1–ch_6) / Optional (ch_7, ch_9–ch_13), current chapter highlighted, SSR-rendered (no JS required for navigation). (T2 issue file)
+- [x] **Per-chapter completion indicators** in the left rail — Canvas-style checkmark gated via `data-interactive-only` (T5 contract), populated from `read_status` table in interactive mode, hidden in static mode. (T2 issue file)
 - [ ] **Top breadcrumb** — sticky on scroll, shows path (`cs-300 / Lectures / ch_4 — Lists, Stacks, Queues`), hosts collection switcher (Lectures / Notes / Practice) + prev/next chapter buttons.
 - [ ] **Right-rail in-chapter TOC** — section anchors SSR-rendered from MDX frontmatter (`sections` array), scroll-spy enhancement as a JS island that toggles `data-current` via `IntersectionObserver`. M3's `SectionNav` is refactored into this slot (no two left rails).
 - [ ] **Annotations pane re-homed** to right rail (below TOC) in interactive mode, with the `data-interactive-only` contract preserved.
@@ -34,7 +34,7 @@ Broken out into individual files under [`tasks/`](tasks/README.md).
 | ID  | Task                                                          | Status |
 | --- | ------------------------------------------------------------- | ------ |
 | T1  | [Layout shell — three-column grid + responsive scaffold](tasks/T1_layout_shell.md) | ✅ done 2026-04-24 |
-| T2  | [Left-rail chapter nav + completion indicators](tasks/T2_left_rail.md) | todo |
+| T2  | [Left-rail chapter nav + completion indicators](tasks/T2_left_rail.md) | ✅ done 2026-04-24 |
 | T3  | [Top breadcrumb — collection switcher + prev/next + sticky](tasks/T3_breadcrumb.md) | todo |
 | T4  | [Right-rail TOC + scroll-spy island + SectionNav refactor](tasks/T4_right_rail_toc.md) | todo |
 | T5  | [Index page rewrite — mastery-dashboard placeholder](tasks/T5_index_dashboard.md) | todo |
