@@ -3,7 +3,9 @@
 **Source artefacts:** [`../README.md`](../README.md), [`../tasks/README.md`](../tasks/README.md), [`../tasks/T1_layout_shell.md`](../tasks/T1_layout_shell.md) … [`T8_deploy_verification.md`](../tasks/T8_deploy_verification.md), [`../../../adr/0002_ux_layer_mdn_three_column.md`](../../../adr/0002_ux_layer_mdn_three_column.md), [`../../../architecture.md`](../../../architecture.md) §1.6, [`../../README.md`](../../README.md) (M-UX row).
 **Audited on:** 2026-04-24
 **Audit scope:** Planning-phase audit of the M-UX kickoff (commit `e14813a` — ADR + architecture amendment + milestones index sync) and the M-UX task breakout (commit `b67350c` — milestone README + tasks/README + 8 task specs). Verified ADR↔task coverage matrix, nice_to_have boundary discipline, status-surface set-up, cross-reference integrity, M3 dependency assumptions against actual M3 source, code-task verification non-inferential rule, slot-naming contract, no-new-deps commitment.
-**Status:** ✅ **PASS** (2026-04-24, after meta-audit cycle) — all 3 HIGH + 4 MEDIUM findings amended directly into the task specs (T1, T2, T3, T4, T5, T6, T8). A subsequent **deep-analysis (meta-audit) pass on 2026-04-24** caught 1 HIGH + 4 MEDIUM defects in the original fixes themselves (`MUX-BO-DA-NN` IDs in the Issue log table); all six DA findings amended in the same day. The ADR + architecture amendment + milestone README were clean from the start. Spec amendments cite this issue file by ID (`MUX-BO-ISS-NN` + `MUX-BO-DA-NN`); see the **Issue log** table below for the per-finding RESOLVED status. T1 is now safe to pick up. LOW-2 + LOW-3 left as flagged-not-blocking; LOW-1 deferred to T2's own issue file at T2 close (per the original audit recommendation). DA-6 (T6 floating-button positioning) flagged for test-then-decide during T6 implementation, not pre-decided.
+**Status:** ✅ **PASS** (2026-04-24, third deep-analysis pass amendments landed) — earlier cycles resolved all `MUX-BO-ISS-NN` (3 HIGH + 4 MEDIUM) and `MUX-BO-DA-NN` (1 HIGH + 4 MEDIUM + 1 flagged) findings. A third deep-analysis pass on 2026-04-24 caught 3 MEDIUM + 3 LOW gaps in the *audit-check enforcement* surface introduced by DA-2/DA-3 fixes (`MUX-BO-DA2-A` … `MUX-BO-DA2-F`); all six landed via direct spec amendment same-day to T1, T2, T3, T4, T5, T7. The DA2 findings tested whether the audit-checks added in cycle 2 actually exercise the contracts they claim to enforce (the recurring lesson: an AC that exists ≠ an AC that exercises the contract). Per-finding resolution recorded in the Issue log table.
+
+**Prior status (2026-04-24, second cycle close):** ✅ PASS — all 3 HIGH + 4 MEDIUM findings amended directly into the task specs (T1, T2, T3, T4, T5, T6, T8). A subsequent **deep-analysis (meta-audit) pass on 2026-04-24** caught 1 HIGH + 4 MEDIUM defects in the original fixes themselves (`MUX-BO-DA-NN` IDs in the Issue log table); all six DA findings amended in the same day. T1 was at-the-time safe to pick up. LOW-2 + LOW-3 left as flagged-not-blocking; LOW-1 deferred to T2's own issue file at T2 close (per the original audit recommendation). DA-6 (T6 floating-button positioning) flagged for test-then-decide during T6 implementation, not pre-decided.
 
 **Original audit status (preserved for context):** ⚠️ OPEN — three HIGH findings on the task specs that the Builder must amend before T1 can be picked up safely; everything else is MEDIUM/LOW. The ADR + architecture amendment + milestone README are clean. The task specs need spot fixes (slot-name contract, MarkReadButton DOM coupling, hardcoded base URL); they do not need to be rewritten.
 
@@ -339,6 +341,85 @@ The most important meta-audit lesson: **a grep that exists isn't the same as a g
 
 DA-1 through DA-5 resolved by direct spec amendment 2026-04-24 (same-day as ISS-NN fixes). DA-6 left flagged in T6 per user direction — Builder makes the call during T6 implementation.
 
+## Third deep-analysis pass (2026-04-24) — audit-check enforcement gaps
+
+After the second pass closed with ✅ PASS, a third deep-analysis pass tested whether the audit-checks added in cycle 2 actually exercise the contracts they claim to enforce. Three MEDIUM + one LOW finding, surfaced as `MUX-BO-DA2-NN`:
+
+- **DA2-A (MEDIUM)** — DA-3's listener requirement (`cs300:read-status-changed` listener on the new TOC) has **no audit-check that exercises it**. T4's existing reload-state AC tests `refreshMarked()`'s on-mount fetch; nothing tests the live listener. A Builder writing only the on-mount fetch (skipping the listener) would ship a regression where TOC indicators stale-render after every `MarkReadButton` toggle until reload, and every existing T4 AC would still pass.
+- **DA2-B (MEDIUM)** — T2's `CompletionIndicator` doesn't subscribe to `cs300:read-status-changed`. T2 Step 3 specifies on-mount fetch only. Cross-component asymmetry with T4 (per DA-3): right-rail TOC updates live, left-rail chapter checkmark goes stale until reload. The user marks the last section of ch_4 → TOC indicator updates, but the "Required" group's ch_4 checkmark in the left rail does not.
+- **DA2-C (MEDIUM)** — T1 doesn't reference T8 Step 0 as a prerequisite, so it's silently skippable. T8 Step 0 says "before any T1 code lands, the auditor (or whoever picks up T1) runs..." — but T1's spec doesn't surface this. A Builder picking up T1 reads T1's deliverable + steps + ACs, sees no mention of baseline capture, plows ahead. T8's audit later finds `pre_m_ux_baseline.md` missing → fails → someone retroactively runs the capture against a tree where M-UX work has already landed.
+- **DA2-D (LOW)** — T4 ScrollSpy Step 3 says "query `[id]` headings inside the article container" without specifying the selector. T1 amendment requires `<article>` to survive — T4 should pin `article [id]` to match T1's contract so a future rename surfaces as a HIGH ScrollSpy break, not a silent no-op.
+- **DA2-E (LOW)** — DA-1's grep `grep -nE '/DSA/' src/components/chrome/<file>.astro` could match `.astro` comment lines (`<!-- /DSA/foo -->`, `// /DSA/...` inside script blocks) and false-positive on legitimate doc references. Hypothetical today (the chrome components don't have such comments at planning time), but the audit-check should narrow to substantive matches — either filter `-v` for comment prefixes, or rely on the reviewer's eyes after the grep produces a hit. Document the exception clearly.
+- **DA2-F (LOW)** — T7 step 1 vs step 16 hamburger-mounting language is internally loose (pre-existing, not introduced by my fixes — but MUX-BO-ISS-04's "drawer trigger lives inside `Breadcrumb.astro`" resolution made the distinction load-bearing). Step 1 line 25 says "Hamburger `<button>` in the breadcrumb slot" (Base-level slot region); step 16 says "`Breadcrumb.astro` (from T3) updated — gains a slot for the drawer trigger button" (component-internal slot). Two different mounting strategies — pick one.
+
+**Two further observations (not standalone findings):**
+- **DA2-G** — T6's (i)/(ii) positioning vs Notes (a)/(b) granularity framings have subtle overlap (Notes (a) bundles "per-chapter button + at article header"; my (i)/(ii) is positioning-only). The test-then-decide procedure is robust to this; Builder will figure it out at implementation. Flag-only.
+- **DA2-H** — T6 Step 4 has grown long after DA-6's flag (multi-paragraph deliberation, three sub-callouts). Sign that T6 might benefit from a Builder-time decompose if the (i)/(ii) decision triggers (ii). Not blocking. Flag-only.
+
+The recurring lesson, now confirmed across three passes: **CLAUDE.md's "non-inferential verification" principle applies recursively** — to the implementation, to the audit-checks, and to whether the audit-checks exercise the contracts being added. A fix-for-the-fix-for-the-fix that doesn't enforce its own contract leaves the original gap open.
+
+### DA2 actions
+
+- **DA2-A** → T4: add an AC that exercises the listener without reload. Concrete observation: "Auditor opens `/DSA/lectures/ch_4/` in `npm run dev`, marks a section read via `MarkReadButton`, **does not reload**, observes the corresponding TOC entry's read indicator flip from un-marked to marked within ~1s. If the indicator only updates after reload, the listener wasn't wired."
+- **DA2-B** → T2 Step 3: add a `cs300:read-status-changed` listener requirement scoped to the current chapter (not all 12 — the other chapters' state can't change without navigation). Add matching AC: "Auditor on a chapter page marks a section read; observes the chapter's left-rail checkmark refresh without reload."
+- **DA2-C** → T1: add a Step 0 pointing at T8 Step 0. Concrete: "Before writing any code, confirm `design_docs/milestones/m_ux_polish/issues/pre_m_ux_baseline.md` exists. If not, run T8 Step 0 first (`git worktree add` at `bf9c773`, capture three numbers, write the file)."
+- **DA2-D** → T4 Step 3: pin `article [id]` selector. One-line: "Selector: `article [id]` — matches T1's preserved `<article>` wrapper contract (MUX-BO-ISS-01 / HIGH-1)."
+- **DA2-E** → T2/T3/T5: add a one-line note next to the BASE_URL audit-check that the `grep -nE '/DSA/'` may surface comment hits — auditor reviews the lines, doesn't fail blindly on a non-empty grep result. (Or narrow with a `-v` filter; pick one and document.)
+- **DA2-F** → T7: tighten the hamburger-mounting language so step 1, step 16, and the deliverable list agree on a single placement strategy. Lean: T7 step 16's framing wins (drawer trigger lives **inside** `Breadcrumb.astro`'s component-internal slot, not directly in Base.astro's `breadcrumb` slot). Update step 1 line 25 and the deliverable bullet at line 15 accordingly.
+
+### Auditor verification (cycle 4 — 2026-04-24)
+
+Independent re-audit of the Builder's DA2 amendments. Builder-claim verification, not Builder-summary trust. All gates run from scratch.
+
+**Phase 1 — Design-drift check.** No drift introduced by DA2 amendments:
+- No new dependencies (DA2 is spec-text only). `git diff --stat HEAD -- package.json package-lock.json .nvmrc .pandoc-version` shows zero changes.
+- No source code touched (`git diff --stat HEAD -- src/` shows zero changes).
+- No `nice_to_have.md` items silently adopted. The only `nice_to_have` reference across the six amended specs is T5 line 11's pre-existing acknowledgment of the parked entry that ADR-0002 already promoted (legitimate).
+- Status-surface discipline: all 8 task specs remain `todo` (T1 line 3, T2 line 3, T3 line 3, T4 line 3, T5 line 3, T6 line 3, T7 line 3, T8 line 3); `tasks/README.md` lines 9–16 all show `todo`; milestone `README.md` task table lines 36–43 all show `todo`; milestone `README.md` Done-when bullets lines 19–28 all `[ ]`. No tasks closed this cycle, so the four-surface flip rule does not fire — and no surface drifted.
+- T1 Step 0's reference to `pre_m_ux_baseline.md` is correctly to a *future-existing* path (T8 Step 0 produces it pre-T1 implementation); not a path that should already exist. The conditional language ("If it does not, run T8 Step 0 first") handles the "file missing" case explicitly.
+
+**Phase 2 — Gate re-run.** Per CLAUDE.md "per-task verification IS the audit gate." For spec-amendment-only work, gates = grep + git diff:
+
+| Gate | Command | Result |
+| --- | --- | --- |
+| DA2-A cited in T4 | `grep -n 'MUX-BO-DA2-A' design_docs/milestones/m_ux_polish/tasks/T4_right_rail_toc.md` | ✅ line 57 |
+| DA2-B cited in T2 | `grep -n 'MUX-BO-DA2-B' design_docs/milestones/m_ux_polish/tasks/T2_left_rail.md` | ✅ lines 32 + 46 (Step 3 + AC) |
+| DA2-C cited in T1 | `grep -n 'MUX-BO-DA2-C' design_docs/milestones/m_ux_polish/tasks/T1_layout_shell.md` | ✅ line 23 (Step 0) |
+| DA2-D cited in T4 | `grep -n 'MUX-BO-DA2-D' design_docs/milestones/m_ux_polish/tasks/T4_right_rail_toc.md` | ✅ line 31 (Step 3) |
+| DA2-E cited in T2/T3/T5 | `grep -n 'MUX-BO-DA2-E' design_docs/milestones/m_ux_polish/tasks/T{2,3,5}*.md` | ✅ T2:42, T3:44, T5:52 |
+| DA2-F cited in T7 | `grep -n 'MUX-BO-DA2-F' design_docs/milestones/m_ux_polish/tasks/T7_mobile_drawer.md` | ✅ line 25 |
+| No source-code changes | `git diff --stat HEAD -- src/` | ✅ empty |
+| No manifest changes | `git diff --stat HEAD -- package.json package-lock.json .nvmrc .pandoc-version` | ✅ empty |
+| Working tree limited to expected files | `git status --short` | ✅ only the 6 amended task specs + audit file + CHANGELOG.md |
+| `npm run build` | n/a | ⚠️ skipped — environment-blocked (Node 18 vs Astro `>=22.12.0`); acceptable per cycle-2 precedent (DA2 is text-only spec edits) |
+| CHANGELOG newest-first ordering | `grep -n 2026-04-24 CHANGELOG.md \| head` | ✅ DA2 entry sits at top of the 2026-04-24 dated section (line 17), above the cycle-3 (DA-NN) entry at line 25 and the cycle-2 (ISS-NN) entry at line 33 |
+
+**Phase 3 — AC grading (DA2-NN as ACs).**
+
+| ID | Status | Verification |
+| --- | --- | --- |
+| DA2-A | ✅ PASS | T4 line 57 contains an AC that exercises the listener live (mark a section, **does not reload**, observes `[data-read-indicator]` flip to `data-read="true"` within ~1s). The AC names the regression class explicitly ("If the indicator only updates after reload, the `cs300:read-status-changed` listener wasn't wired") so a Builder skipping the listener cannot pass it. Cross-references DA2-B for symmetry. |
+| DA2-B | ✅ PASS | T2 Step 3 line 32 registers `cs300:read-status-changed` listener, **scoped to the current chapter via `data-current-chapter` data-attribute** (re-fetches that chapter only — not all 12). Matching live-refresh AC at line 46 enforces the listener exists and is correctly scoped. The "scoped to current chapter" detail is correctly emphasized — a global re-fetch would be wasted work and would mask scope bugs. |
+| DA2-C | ✅ PASS | T1 line 23 has Step 0 (numbered before Step 1) referencing `pre_m_ux_baseline.md` and pointing at T8 Step 0's full procedure (worktree + three pinned numbers + `## Pre-M-UX baseline` section). The Step-0 framing is correct: a prerequisite-check, not a deliverable. Conditional fallback language ("If it does not, run T8 Step 0 first") makes the dependency operationally usable. |
+| DA2-D | ✅ PASS | T4 Step 3 line 31 pins selector to `article [id]` with rationale citing T1's preserved `<article>` wrapper contract (MUX-BO-ISS-01 / HIGH-1; T1 Step 2 + audit-check #7). The "don't write `document.querySelectorAll('[id]')`" call-out makes the regression class explicit. |
+| DA2-E | ✅ PASS | T2 line 42, T3 line 44, T5 line 52 each have the comment-hit policy note (default: reviewer-eyes, not blind-fail). Wording is consistent across the three (template-literal regression class + comment-line carve-out). T2 additionally provides the optional `grep -vE` narrowing pattern; T3 + T5 reference the policy without the optional pattern. Acceptable variance — the policy is the same. |
+| DA2-F | ✅ PASS | T7 step 1 line 25 now reads "inside `Breadcrumb.astro`'s component-internal drawer-trigger slot — not directly in `Base.astro`'s `breadcrumb` slot region", and explicitly cross-references deliverable line 16 + MUX-BO-ISS-04. Step 1 + deliverable line 16 + ISS-04 resolution all converge on a single placement strategy (component-internal slot inside Breadcrumb.astro). |
+
+**Phase 4 — Critical sweep findings.**
+
+- **No additions beyond DA2 scope.** Each of the six amendments matches its action-line scope verbatim. No drive-by edits, no surprise refactors.
+- **No silently skipped deliverables.** All six DA2-NN findings are present in the spec text at the cited lines.
+- **No cross-task inconsistency.** T2's listener (DA2-B) and T4's listener (DA-3 + DA2-A) both subscribe to `cs300:read-status-changed` with no `detail` payload, both re-run a GET on the event. T2 scopes to the current chapter, T4 scopes to the current chapter's section list — these scopes are compatible (one MarkReadButton dispatch causes both islands to re-fetch their own chapter-scoped data; no event-storm risk because the M3 button only dispatches once per click).
+- **DA2-A's "asymmetric behaviour … is a HIGH finding" call-out is enforced by the cross-referenced T2 AC at line 46.** If only one listener is wired, T2 line 46 OR T4 line 57 fails — neither AC requires the *other* listener to exist for it to pass on its own surface, so the asymmetry surfaces directly. No coverage gap.
+- **CHANGELOG accuracy.** Line 17–24 entry accurately summarizes per-finding amendments and matches the actual spec text. Newest-first ordering preserved within the 2026-04-24 dated section (DA2 entry → DA-NN entry → ISS-NN entry → breakout-add entry → kickoff entry).
+- **Issue log table integrity.** All six DA2 rows (lines 390–395) have ID / Severity / Status / Owner / History columns populated. Status flips for all six are `✅ RESOLVED 2026-04-24`.
+- **Propagation status footer.** Lines 415–426 accurately describe the cycle-4 sequence (T1, T2, T3, T4, T5, T7 amended; T6 + T8 untouched per the action-lines). The "no carry-over to a future milestone" + "no `nice_to_have.md` deferrals" footer claims are correct — DA2 amendments are direct spec edits, not forward-deferrals.
+- **Three top status blocks** (lines 6–10) accurately reflect cycle history: current ✅ PASS (cycle 4), prior PASS (cycle 2 close), original ⚠️ OPEN (initial audit). The "third deep-analysis pass" framing in line 6 is consistent with the narrative section at line 344.
+
+**Phase 5 — Verdict.** Builder's flips are *not* premature. All six DA2-NN findings land at the cited lines with the cited semantics. ✅ PASS stands. Status remains ✅ PASS post-cycle-4.
+
+**Phase 6 — Forward-deferral propagation.** N/A — DA2 amendments are direct spec edits to existing M-UX task specs, not forward-deferrals to future tasks. Propagation status footer at lines 415–426 correctly reflects this.
+
 ## Issue log — cross-task follow-up
 
 | ID | Severity | Status | Owner | History |
@@ -359,12 +440,18 @@ DA-1 through DA-5 resolved by direct spec amendment 2026-04-24 (same-day as ISS-
 | MUX-BO-DA-4 | MEDIUM | ✅ RESOLVED 2026-04-24 | T8 Step 0 pins baseline file location to a dedicated `issues/pre_m_ux_baseline.md` (sibling to this audit file) — neither the now-PASS breakout audit nor the not-yet-existing T8 issue file is the right home | Meta-audit caught ambiguous "the M-UX issue file" reference |
 | MUX-BO-DA-5 | MEDIUM | ✅ RESOLVED 2026-04-24 | T8 Step 0 advises `git worktree add` (or stash-and-restore fallback) instead of naked `git checkout bf9c773`; matching audit-check bullet verifies the baseline-capture command output uses worktree | Meta-audit caught destructive-checkout risk |
 | MUX-BO-DA-6 | MEDIUM | FLAGGED (test-then-decide) | T6 Step 4 explicit "open question" callout — M3 MarkReadButton's `position: fixed; bottom; left;` decouples DOM-position from render-position, so the literal "re-home" framing is ambiguous between (i) keep floating + (ii) make flow-positioned. Builder implements (i) first, smokes both breakpoints, decides during T6 implementation. Not pre-decided | Meta-audit caught structural conflict between M3 CSS and T6 spec wording; flagged-not-fixed per user direction |
+| MUX-BO-DA2-A | MEDIUM | ✅ RESOLVED 2026-04-24 | T4 acceptance-check — new AC exercises `cs300:read-status-changed` listener without reload (mark a section, observe TOC indicator `[data-read-indicator]` flip to `data-read="true"` within ~1s; cross-references T2's matching listener AC for symmetry) | Third deep-analysis pass 2026-04-24; resolved same-day via direct spec amendment |
+| MUX-BO-DA2-B | MEDIUM | ✅ RESOLVED 2026-04-24 | T2 Step 3 — `cs300:read-status-changed` listener requirement added, scoped to the current chapter (chapter slug embedded as `data-current-chapter` data-attribute; listener re-fetches that chapter only). Matching live-refresh AC added | Third deep-analysis pass 2026-04-24; resolved same-day; cross-component symmetry with T4 |
+| MUX-BO-DA2-C | MEDIUM | ✅ RESOLVED 2026-04-24 | T1 Step 0 added — confirms `pre_m_ux_baseline.md` exists before T1 code work; if missing, run T8 Step 0 first (worktree procedure) | Third deep-analysis pass 2026-04-24; resolved same-day |
+| MUX-BO-DA2-D | LOW | ✅ RESOLVED 2026-04-24 | T4 Step 3 — ScrollSpy selector pinned to `article [id]` (matches T1's preserved `<article>` wrapper contract, MUX-BO-ISS-01 / HIGH-1) | Third deep-analysis pass 2026-04-24; resolved same-day |
+| MUX-BO-DA2-E | LOW | ✅ RESOLVED 2026-04-24 | T2/T3/T5 BASE_URL audit-check — note added that `grep -nE '/DSA/'` may surface comment hits; reviewer-eyes policy, no blind-fail | Third deep-analysis pass 2026-04-24; resolved same-day |
+| MUX-BO-DA2-F | LOW | ✅ RESOLVED 2026-04-24 | T7 step 1 line 25 updated — hamburger mounted **inside `Breadcrumb.astro`'s component-internal drawer-trigger slot** (not directly in Base.astro's `breadcrumb` slot region). Now agrees with deliverable line 16 + MUX-BO-ISS-04's resolution | Third deep-analysis pass 2026-04-24; resolved same-day |
 
 ## Propagation status
 
 This audit deferred spec amendments to seven of the eight task specs (T1, T2, T3, T4, T5, T6, T8). Because the task specs themselves are the spec of record (no implementation had started), the propagation strategy was **direct spec amendment** — not the usual "carry-over from prior audits" pattern.
 
-**Sequence executed 2026-04-24:**
+**Sequence executed 2026-04-24 (cycle 2 — original ISS-NN amendments):**
 
 1. ✅ Builder amended T1, T2, T3, T4, T5, T6, T8 specs per the HIGH and MEDIUM action lines above. Per-spec landing summary:
    - **T1** — drawer-trigger slot dropped (4 slots only); `chrome.css` pinned as T1 deliverable; `<article>` wrapper + `<a id="ch_N-…">` anchor preservation audit-check added; Step 2 calls out the `<article>` requirement explicitly.
@@ -378,6 +465,61 @@ This audit deferred spec amendments to seven of the eight task specs (T1, T2, T3
 3. ✅ This issue file's status flipped to ✅ PASS; per-task ISS-NN entries flipped to RESOLVED 2026-04-24 (see Issue log table).
 4. ⏭️ T1 work is unblocked. Subsequent per-task audits will land in `issues/T<NN>_issue.md` (sibling files in this directory).
 
+**Sequence executed 2026-04-24 (cycle 4 — DA2-NN amendments):**
+
+1. ✅ Builder amended T1, T2, T3, T4, T5, T7 specs per the DA2-A … DA2-F action lines. Per-spec landing summary:
+   - **T1** ([`tasks/T1_layout_shell.md`](../tasks/T1_layout_shell.md)) — new Step 0 added: confirms `issues/pre_m_ux_baseline.md` exists before T1 code work begins; if missing, run T8 Step 0 first (worktree procedure). Resolves MUX-BO-DA2-C / MEDIUM (forward-prerequisite gap).
+   - **T2** ([`tasks/T2_left_rail.md`](../tasks/T2_left_rail.md)) — Step 3 gains `cs300:read-status-changed` listener requirement (scoped to current chapter via `data-current-chapter` data-attribute); matching live-refresh AC added (mark a section read, no reload, observe checkmark within ~1s). BASE_URL audit-check note added: `grep -nE '/DSA/'` comment-hit policy (reviewer-eyes, no blind-fail). Resolves MUX-BO-DA2-B / MEDIUM + MUX-BO-DA2-E / LOW.
+   - **T3** ([`tasks/T3_breadcrumb.md`](../tasks/T3_breadcrumb.md)) — BASE_URL audit-check note added: comment-hit policy. Resolves MUX-BO-DA2-E / LOW.
+   - **T4** ([`tasks/T4_right_rail_toc.md`](../tasks/T4_right_rail_toc.md)) — Step 3 ScrollSpy selector pinned to `article [id]` (matches T1's `<article>` wrapper contract per MUX-BO-ISS-01); new live-listener AC added (mark a section read, no reload, observe TOC indicator flip within ~1s) — exercises Step 4's listener requirement that DA-3 added but the previous AC set didn't enforce. Resolves MUX-BO-DA2-A / MEDIUM + MUX-BO-DA2-D / LOW.
+   - **T5** ([`tasks/T5_index_dashboard.md`](../tasks/T5_index_dashboard.md)) — BASE_URL audit-check note added: comment-hit policy. Resolves MUX-BO-DA2-E / LOW.
+   - **T7** ([`tasks/T7_mobile_drawer.md`](../tasks/T7_mobile_drawer.md)) — step 1 line 25 hamburger-mounting language tightened to "inside `Breadcrumb.astro`'s component-internal drawer-trigger slot" (agrees with deliverable line 16 + MUX-BO-ISS-04 resolution). Resolves MUX-BO-DA2-F / LOW.
+2. ✅ Every amendment cites this file by issue ID (`MUX-BO-DA2-NN`).
+3. ✅ This issue file's status flipped ⚠️ OPEN → ✅ PASS; all six DA2-NN rows flipped to RESOLVED 2026-04-24 (see Issue log table).
+4. ⏭️ T1 work remains unblocked.
+
 **No carry-over to a future cs-300 milestone.** All findings are M-UX-internal.
 
 **No `nice_to_have.md` deferrals.** No findings map to deferred items.
+
+## Security review
+
+**Reviewer:** security-reviewer subagent (M-UX-BO-DA2, cycle 4 close)
+**Reviewed on:** 2026-04-24
+**Scope:** 8 `.md` files touched in this task cycle — T1, T2, T3, T4, T5, T7 spec amendments + `m_ux_breakout_audit.md` + `CHANGELOG.md`. No source code, no manifest, no API routes.
+
+### Verdict: SHIP
+
+This cycle is documentation-only. No source code was modified (`git diff --stat HEAD -- src/ scripts/ public/` empty). No dependency manifest was modified (`git diff --stat HEAD -- package.json package-lock.json .nvmrc .pandoc-version` empty). The security gate's threat model targets source code changes that move the local-only single-user attack surface; spec-text amendments do not move that surface.
+
+### Verification trail
+
+**No sensitive values introduced.** All eight amended files were read in full. No credentials, API keys, Ollama hostnames, `127.0.0.1` or `0.0.0.0` references, environment variable leakage, or internal-only paths appear in any amended text. The `/DSA/` path strings present throughout are the public GitHub Pages base path — not a secret.
+
+**Recommended Builder patterns examined for unsafe construction:**
+
+- T1 Step 0 (worktree baseline capture): uses `git worktree add /tmp/cs-300-baseline bf9c773` and measurement commands (`du -sh`, `find`, `wc -l`). Arguments are static strings, not user-controlled. No shell interpolation risk.
+- T2 Step 3 / T4 Step 4 (listener registration): `window.addEventListener('cs300:read-status-changed', ...)` with no `event.detail` read. The chapter slug fed into the re-fetch URL is embedded as a `data-current-chapter` attribute at SSR time, derived from `Astro.url.pathname` at build/render time (static). No runtime user-controlled value flows into the fetch URL.
+- T4 Step 3 (ScrollSpy selector): `article [id]` is a static CSS selector string, not derived from any input. No injection surface.
+- T2/T3/T5 audit-check grep filter (`grep -nE '/DSA/'` + reviewer-eyes comment-hit policy): reviewer instruction only, not executed code.
+- T7 Step 1 (drawer JS island): prescribes `class` toggling, `aria-expanded` flips, and focus trapping via native DOM APIs (`client:load`). No `dangerouslySetInnerHTML`, no `innerHTML` assignment, no `eval`, no dynamic script construction in the recommended pattern.
+
+**All nine threat-model items checked:**
+
+| Threat-model item | Status |
+| --- | --- |
+| Reference-solution leakage (`questions.reference_json`) | Not touched — no API handler modified |
+| Code-execution subprocess integrity | Not touched — no subprocess or `g++` path |
+| MDX injection via pandoc pipeline | Not touched — no Lua filter or build-content.mjs |
+| Question-content injection via Ollama | Not touched — no question serialization |
+| Annotation rendering (`dangerouslySetInnerHTML`) | Not touched — no annotation handler; no unsafe render pattern recommended |
+| Feature-detection bypass / accidental exposure | Not touched — no `astro.config.mjs`, no GH Pages workflow, no server bind address |
+| Path traversal in content pipeline | Not touched — no `build-content.mjs` |
+| Secrets in dist/ | Not touched — no env-access code introduced; no build-time secret references in spec text |
+| Dependency supply chain | Not touched — no manifest modified |
+
+**CHANGELOG entry examined.** Contains no sensitive values. References only public file paths and issue IDs internal to this repository.
+
+## Dependency audit
+
+Dependency audit: skipped — no manifest changes (`git diff --stat HEAD -- package.json package-lock.json .nvmrc .pandoc-version` empty).

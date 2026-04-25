@@ -22,7 +22,8 @@ T7 is the first task that meaningfully introduces always-loaded JS (the drawer t
 ## Steps
 
 1. Build `Drawer.astro`:
-   - Hamburger `<button>` in the breadcrumb slot (visible via `@media (max-width: 1023px)`).
+   - **Step-ordering note (resolves MUX-BO-DA3-B / LOW).** Step 16 lands first — `Breadcrumb.astro` doesn't ship the drawer-trigger slot in its T3 deliverable; T7 adds it. Concretely: do Step 16 (modify `Breadcrumb.astro` to declare a `drawer-trigger` named slot inside its flexbox layout) before Step 1's hamburger mount, otherwise the `<slot name="drawer-trigger" />` target doesn't exist and the hamburger has nowhere to land.
+   - Hamburger `<button>` mounted **inside `Breadcrumb.astro`'s component-internal drawer-trigger slot** — not directly in `Base.astro`'s `breadcrumb` slot region. (Resolves MUX-BO-DA2-F / LOW — the placement now agrees with deliverable line 16 "`Breadcrumb.astro` (from T3) updated — gains a slot for the drawer trigger button" and with MUX-BO-ISS-04's resolution that the trigger lives inside `Breadcrumb.astro` so the breadcrumb's flexbox layout owns its placement.) Visibility gated via `@media (max-width: 1023px)` on the button itself.
    - Drawer element: `<aside role="dialog" aria-modal="true" aria-label="Navigation" hidden>` at the root of the body, slides in from the left via CSS `transform: translateX(-100%)` + transition on `open` class.
    - Backdrop: `<div class="drawer-backdrop">` fades in with the drawer.
    - JS island (`client:load` — the drawer must be interactive immediately):

@@ -81,6 +81,9 @@ dist/
 .env
 .env.production
 
+# Build-environment artefacts (e.g. extracted pandoc .deb pulled in by /clean-implement T1)
+*.deb
+
 # Generated content (M2 T4 build-content.mjs writes these from chapters/*.tex)
 src/content/lectures/ch_*.mdx
 src/content/notes/ch_*.mdx

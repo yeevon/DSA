@@ -6,7 +6,7 @@ Each task is a discrete, session-sized unit of work that contributes to closing 
 
 | ID  | Task                                                                  | Status | Depends on   | Est. session size |
 | --- | --------------------------------------------------------------------- | ------ | ------------ | ----------------- |
-| T1  | [Layout shell — three-column grid + responsive scaffold](T1_layout_shell.md) | todo | — | 1 focused session |
+| T1  | [Layout shell — three-column grid + responsive scaffold](T1_layout_shell.md) | ✅ done 2026-04-24 | — | 1 focused session |
 | T2  | [Left-rail chapter nav + completion indicators](T2_left_rail.md)      | todo   | T1           | 1 focused session |
 | T3  | [Top breadcrumb — collection switcher + prev/next + sticky](T3_breadcrumb.md) | todo | T1 | < 1 session |
 | T4  | [Right-rail TOC + scroll-spy island + SectionNav refactor](T4_right_rail_toc.md) | todo | T1 | 1–2 sessions |

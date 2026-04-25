@@ -1,16 +1,66 @@
 ---
-// Base.astro — minimal HTML shell used by every page.
-// Styling lands in M2 T3 (callout components) and follow-on UI work;
-// this layout is intentionally bare so the scaffold has a single
-// place to grow from without committing to a design.
+// src/layouts/Base.astro — M-UX T1 deliverable.
 //
-// M3 T5 — bootstrap mode probe. The inline script imports
-// detectMode() at runtime, sets `<body data-mode="static|interactive">`,
-// and the scoped CSS rule below hides any element flagged
-// `data-interactive-only` when mode is static. T6 + T7 components
-// carry that attribute so they're invisible on the public deploy
-// (where /api/health 404s) and visible in local interactive mode
-// (where the M4 adapter + state service are both reachable).
+// Per ADR-0002 (https://.../adr/0002_ux_layer_mdn_three_column.md):
+// MDN-docs three-column chrome on desktop (≥1024px), single column
+// with mobile-drawer affordance below 1024px. T1 lands the *shell*;
+// T2–T7 fill the named slots:
+//
+//   slot="breadcrumb"  — T3 mounts `Breadcrumb.astro` here. T7
+//                        adds the hamburger drawer-trigger inside
+//                        `Breadcrumb.astro`'s component-internal
+//                        slot (NOT a Base-level slot — resolves
+//                        MUX-BO-ISS-04 / MEDIUM-1).
+//   slot="left-rail"   — T2 mounts the chapter-list nav.
+//   slot=(default)     — chapter content (existing routes flow
+//                        their `<header>` + `<article>` into this
+//                        slot unchanged).
+//   slot="right-rail"  — T4 mounts TOC + scroll-spy + (in
+//                        interactive mode, T6) the annotations
+//                        pane.
+//
+// Slots are declared with no fallback content — chapters that
+// don't fill them render an empty named region without breaking
+// layout (the grid track is reserved either way; emptiness is
+// expected during the M-UX rollout while T2–T7 are still
+// outstanding).
+//
+// M3 contracts preserved verbatim from the prior 51-line shell:
+//
+//   1. Inline script imports `detectMode()` and sets
+//      `<body data-mode="static|interactive">`. This is the T5
+//      bootstrap that gates every `data-interactive-only` element.
+//   2. Global CSS rule
+//        `body[data-mode="static"] [data-interactive-only] { display: none !important; }`
+//      hides interactive-only surfaces on the public deploy. T6/T7
+//      components (annotations, mark-read) carry the attribute and
+//      stay invisible in static mode.
+//   3. The "interactive mode active" floating badge stays — it's
+//      only rendered when `data-mode="interactive"` (via the same
+//      `data-interactive-only` rule).
+//
+// Article-wrapper contract (resolves MUX-BO-ISS-01 / HIGH-1):
+//   This layout does NOT wrap the default slot in `<article>`. The
+//   chapter routes (`src/pages/{lectures,notes,practice}/[id].astro`)
+//   own the `<article>` wrapper. M3's `MarkReadButton.astro`
+//   (line 70) queries `article a[id^="ch_"]` for its
+//   IntersectionObserver — replacing `<article>` with `<div class>`
+//   here would silently break "current section" detection. Every
+//   route's existing `<article>` survives the T1 rewrite untouched;
+//   T1's `<main slot>` simply receives them.
+//
+// Layout grid + Base-only CSS lives inline below. Shared design
+// tokens (accent, font-stack, column widths, breakpoint reference)
+// live in `src/styles/chrome.css` — imported globally so chrome
+// components in T2/T3/T4/T7 reach the same vars. Boundary doc at
+// the top of `chrome.css`.
+//
+// Companion files:
+//   - design_docs/architecture.md §1.6 (Page chrome — UX layer)
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - design_docs/milestones/m_ux_polish/tasks/T1_layout_shell.md
+import '../styles/chrome.css';
+
 interface Props {
   title?: string;
 }
@@ -27,20 +77,137 @@ const { title = 'cs-300' } = Astro.props;
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
     <title>{title}</title>
     <style is:global>
+      /* T5 contract: hide interactive-only surfaces in static mode.
+         Preserved unchanged from the pre-M-UX shell. */
       body[data-mode="static"] [data-interactive-only] {
         display: none !important;
       }
     </style>
+    <style>
+      /* ============================================================
+         Layout grid — T1 deliverable.
+         Base-only rules; component-internal rules live with the
+         components in `src/components/chrome/*` and the shared tokens
+         live in `src/styles/chrome.css`.
+         ============================================================ */
+
+      /* Page-level reset minimum — keep narrow; the visual sweep
+         (deferred per ADR-0002) owns broader typography work. */
+      :global(html),
+      :global(body) {
+        margin: 0;
+        padding: 0;
+      }
+      :global(body) {
+        font-family: var(--mux-font-sans);
+        color: var(--mux-fg);
+        background: var(--mux-surface);
+        line-height: 1.6;
+      }
+
+      /* Three-column desktop grid (≥1024px). Named template areas
+         keep slot wiring legible even when one or more rails are
+         empty during the T2/T3/T4 rollout. */
+      .chrome {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "breadcrumb"
+          "left-rail"
+          "main"
+          "right-rail";
+      }
+
+      .chrome > [data-slot="breadcrumb"] { grid-area: breadcrumb; }
+      .chrome > [data-slot="left-rail"]  { grid-area: left-rail; }
+      .chrome > [data-slot="main"]       { grid-area: main; min-width: 0; }
+      .chrome > [data-slot="right-rail"] { grid-area: right-rail; }
+
+      /* Center column constrains prose width for readability per
+         ADR-0002 ("max-width ~75ch"). The constraint applies inside
+         the `<main>` slot, leaving the rails free to use full track
+         width. */
+      .chrome > [data-slot="main"] {
+        padding: var(--mux-space-6) var(--mux-space-4);
+      }
+      .chrome > [data-slot="main"] > :global(*) {
+        max-width: var(--mux-content-max);
+      }
+      /* Article wrapper (chapter content) gets the same constraint
+         + a margin reset so prose centers within the column. */
+      .chrome > [data-slot="main"] :global(article) {
+        max-width: var(--mux-content-max);
+      }
+
+      /* Rails get their own padding so the slot content (T2/T4) can
+         focus on its own structure without re-doing inset spacing. */
+      .chrome > [data-slot="left-rail"],
+      .chrome > [data-slot="right-rail"] {
+        padding: var(--mux-space-4);
+      }
+
+      /* Breadcrumb slot reserves a row even when empty; T3 mounts
+         the Breadcrumb component which owns its own internal styles. */
+      .chrome > [data-slot="breadcrumb"] {
+        border-bottom: 1px solid var(--mux-border-subtle);
+        background: var(--mux-surface);
+      }
+
+      /* ≥1024px — three-column grid (per ADR-0002). Column widths
+         260/1fr/280 are pinned in `chrome.css` (--mux-col-left-rail,
+         --mux-col-right-rail) and re-stated here because @media
+         queries can't read custom properties as track values. */
+      @media (min-width: 1024px) {
+        .chrome {
+          grid-template-columns: 260px 1fr 280px;
+          grid-template-areas:
+            "breadcrumb breadcrumb breadcrumb"
+            "left-rail  main       right-rail";
+        }
+        .chrome > [data-slot="left-rail"] {
+          border-right: 1px solid var(--mux-border-subtle);
+        }
+        .chrome > [data-slot="right-rail"] {
+          border-left: 1px solid var(--mux-border-subtle);
+        }
+        .chrome > [data-slot="main"] {
+          padding: var(--mux-space-6) var(--mux-space-8);
+        }
+      }
+
+      /* Floating "interactive mode active" badge — preserved from
+         the prior shell. `data-interactive-only` keeps it absent in
+         static mode. */
+      .interactive-badge {
+        position: fixed;
+        bottom: 8px;
+        right: 8px;
+        font-size: .75rem;
+        background: var(--mux-accent);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        z-index: 1000;
+      }
+    </style>
   </head>
   <body data-mode="static">
-    <header><strong>cs-300</strong></header>
-    <main>
-      <slot />
-    </main>
-    <footer></footer>
-    <div data-interactive-only style="position:fixed;bottom:8px;right:8px;font-size:.75rem;background:#16a34a;color:#fff;padding:2px 8px;border-radius:4px;">
-      interactive mode active
+    <div class="chrome">
+      <nav data-slot="breadcrumb" aria-label="Breadcrumb">
+        <slot name="breadcrumb" />
+      </nav>
+      <aside data-slot="left-rail" aria-label="Chapter navigation">
+        <slot name="left-rail" />
+      </aside>
+      <main data-slot="main">
+        <slot />
+      </main>
+      <aside data-slot="right-rail" aria-label="Section navigation and annotations">
+        <slot name="right-rail" />
+      </aside>
     </div>
+    <div data-interactive-only class="interactive-badge">interactive mode active</div>
     <script>
       import { detectMode } from '../lib/mode';
       detectMode().then((mode) => {
