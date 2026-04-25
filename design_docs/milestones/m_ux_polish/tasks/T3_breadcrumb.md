@@ -1,6 +1,6 @@
 # T3 — Top breadcrumb: collection switcher + prev/next + sticky
 
-**Status:** todo
+**Status:** ✅ done 2026-04-24
 **Depends on:** T1 (shell + `breadcrumb` slot)
 **Blocks:** T7 (responsive sweep), T8 (deploy verification)
 

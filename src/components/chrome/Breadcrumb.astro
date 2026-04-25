@@ -1,0 +1,317 @@
+---
+// src/components/chrome/Breadcrumb.astro — M-UX T3 deliverable.
+//
+// Per ADR-0002 (https://.../adr/0002_ux_layer_mdn_three_column.md)
+// and design_docs/architecture.md §1.6, the top breadcrumb is the
+// secondary navigation surface — a sticky `<nav>` that hosts:
+//   1. the path indicator (cs-300 / Lectures / ch_4 — …),
+//   2. the collection switcher (Lectures / Notes / Practice pills),
+//   3. prev/next chapter buttons.
+//
+// This component mounts into the `breadcrumb` slot declared by
+// `src/layouts/Base.astro` (T1) and renders on every chapter route
+// (lectures, notes, practice). T7 will later mount a hamburger
+// drawer-trigger inside this component's internal slot (per
+// MUX-BO-ISS-04 + DA3-B); T3 leaves the structure flexible but does
+// not pre-add the slot — YAGNI per CLAUDE.md.
+//
+// Contract (per T3 spec):
+//   - Pure SSR. No JS required for navigation. Sticky behaviour is
+//     pure CSS (`position: sticky; top: 0`). The collection switcher
+//     and prev/next buttons are plain `<a>` elements with computed
+//     hrefs.
+//   - Path computed from `Astro.url.pathname`. Pattern:
+//     `/{base}/{collection}/{chapter_id}/`. On non-chapter routes
+//     this component is not mounted (chapter routes only — the
+//     index page does not include it).
+//   - Prev/next ordered by `n` (chapter number) — the cs-300 chapter
+//     map skips ch_8 (no ch_8 row in `scripts/chapters.json`), so
+//     ch_7's next is ch_9 by data, not slug-arithmetic.
+//   - At chapter-list boundaries (ch_1 prev, last optional next),
+//     the button renders as a non-link `<span>` with `aria-disabled`
+//     so it remains visible but inert.
+//
+// BASE_URL convention (resolves MUX-BO-ISS-02 / HIGH-2 + MUX-BO-DA-1):
+// every chapter / collection link is constructed via
+// `import.meta.env.BASE_URL`; never hardcode `/DSA/`. Same convention
+// as `src/components/chrome/LeftRail.astro` line 46 and
+// `src/pages/index.astro` line 16. The audit grep
+// (`grep -nE '/DSA/' Breadcrumb.astro`) is documented to allow
+// `//`-comment hits per DA2-E / DA3-A reviewer-eyes policy — this
+// header references `/DSA/` only inside doc-comment lines.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T3_breadcrumb.md
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/layouts/Base.astro (T1 — slot contract)
+//   - src/components/chrome/LeftRail.astro (T2 — sibling chrome)
+//   - scripts/chapters.json (chapter manifest; sort key `n`)
+import chapters from '../../../scripts/chapters.json';
+
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// Closed set per architecture.md §1.6 + ADR-0002 — three collections,
+// title-case label for the breadcrumb path + collection switcher.
+const COLLECTIONS = ['lectures', 'notes', 'practice'] as const;
+type Collection = (typeof COLLECTIONS)[number];
+const COLLECTION_LABEL: Record<Collection, string> = {
+  lectures: 'Lectures',
+  notes: 'Notes',
+  practice: 'Practice',
+};
+
+// Sort by `n` so ch_10 lands after ch_9 (lexicographic on `id` would
+// invert). Same key as LeftRail.astro line 51.
+const sorted = [...chapters].sort((a, b) => a.n - b.n);
+
+// Derive the current collection + chapter id from the URL. Chapter
+// routes are `/{BASE_URL}/{collection}/{chapter-id}/`. Non-chapter
+// routes return null on either field — the component is only mounted
+// on chapter routes, but defensive parsing keeps the build clean if a
+// future caller mounts it elsewhere.
+const path = Astro.url.pathname;
+const match = path.match(/\/(lectures|notes|practice)\/(ch_\d+)\/?$/);
+const currentCollection: Collection | null = match
+  ? (match[1] as Collection)
+  : null;
+const currentChapterId = match ? match[2] : null;
+
+const currentChapter = currentChapterId
+  ? sorted.find((c) => c.id === currentChapterId)
+  : null;
+
+// Prev/next are by `n`-order index — not slug-arithmetic. ch_7's next
+// is ch_9 because that's what the manifest says (no ch_8 row).
+const currentIndex = currentChapter
+  ? sorted.findIndex((c) => c.id === currentChapter.id)
+  : -1;
+const prevChapter = currentIndex > 0 ? sorted[currentIndex - 1] : null;
+const nextChapter =
+  currentIndex >= 0 && currentIndex < sorted.length - 1
+    ? sorted[currentIndex + 1]
+    : null;
+
+// Helper: build a same-collection same-chapter href for a target
+// collection. Used by the collection switcher and prev/next buttons.
+function chapterHref(collection: Collection, chapterId: string): string {
+  return `${baseUrl}/${collection}/${chapterId}/`;
+}
+
+// Resolve the "Lectures" path segment label for the breadcrumb path
+// list. Falls back to the literal collection slug if somehow the URL
+// pattern matches a future collection name (defensive — closed set
+// today).
+const collectionLabel: string = currentCollection
+  ? COLLECTION_LABEL[currentCollection]
+  : '';
+---
+
+<nav class="breadcrumb" aria-label="Chapter context">
+  {currentChapter && currentCollection && (
+    <>
+      <div class="breadcrumb-path">
+        <ol aria-label="Breadcrumb path">
+          <li><span class="path-root">cs-300</span></li>
+          <li>
+            <a href={chapterHref(currentCollection, currentChapter.id)}>{collectionLabel}</a>
+          </li>
+          <li aria-current="page">
+            <span class="path-current">ch_{currentChapter.n} — {currentChapter.subtitle}</span>
+          </li>
+        </ol>
+      </div>
+
+      <div class="breadcrumb-controls">
+        {prevChapter ? (
+          <a
+            class="chapter-button prev"
+            href={chapterHref(currentCollection, prevChapter.id)}
+            rel="prev"
+            aria-label={`Previous chapter: ch_${prevChapter.n} — ${prevChapter.subtitle}`}
+          >
+            <span aria-hidden="true">‹</span>
+            <span class="chapter-button-label">ch_{prevChapter.n}</span>
+          </a>
+        ) : (
+          <span class="chapter-button prev is-disabled" aria-disabled="true">
+            <span aria-hidden="true">‹</span>
+            <span class="chapter-button-label">prev</span>
+          </span>
+        )}
+
+        <ul class="collection-switcher" aria-label="Collection switcher">
+          {COLLECTIONS.map((c) => (
+            <li>
+              <a
+                href={chapterHref(c, currentChapter.id)}
+                class:list={['collection-pill', c === currentCollection && 'is-current']}
+                aria-current={c === currentCollection ? 'page' : undefined}
+              >
+                {COLLECTION_LABEL[c]}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        {nextChapter ? (
+          <a
+            class="chapter-button next"
+            href={chapterHref(currentCollection, nextChapter.id)}
+            rel="next"
+            aria-label={`Next chapter: ch_${nextChapter.n} — ${nextChapter.subtitle}`}
+          >
+            <span class="chapter-button-label">ch_{nextChapter.n}</span>
+            <span aria-hidden="true">›</span>
+          </a>
+        ) : (
+          <span class="chapter-button next is-disabled" aria-disabled="true">
+            <span class="chapter-button-label">next</span>
+            <span aria-hidden="true">›</span>
+          </span>
+        )}
+      </div>
+    </>
+  )}
+</nav>
+
+<style>
+  /* Scoped styles; tokens come from src/styles/chrome.css (imported
+     globally by Base.astro). The Base.astro `[data-slot="breadcrumb"]`
+     wrapper already supplies the bottom border and surface background;
+     this `.breadcrumb` adds sticky behaviour + the inner row layout. */
+
+  .breadcrumb {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--mux-surface);
+    /* The Base layout's data-slot rule already paints a bottom border
+       on the slot wrapper; the inner nav stays flush. */
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--mux-space-3);
+    padding: var(--mux-space-2) var(--mux-space-4);
+    font-size: 0.85rem;
+  }
+
+  .breadcrumb-path ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--mux-space-2);
+  }
+
+  .breadcrumb-path li {
+    display: flex;
+    align-items: center;
+    gap: var(--mux-space-2);
+  }
+
+  /* Slash separator between path segments — pure CSS so no extra
+     <span class="sep"> markup is needed. Skip the first item. */
+  .breadcrumb-path li + li::before {
+    content: '/';
+    color: var(--mux-fg-subtle);
+  }
+
+  .breadcrumb-path a {
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+  }
+
+  .breadcrumb-path a:hover {
+    color: var(--mux-fg);
+    text-decoration: underline;
+  }
+
+  .path-root {
+    color: var(--mux-fg-subtle);
+  }
+
+  .path-current {
+    color: var(--mux-fg);
+    font-weight: 600;
+  }
+
+  .breadcrumb-controls {
+    /* Push controls to the right of the path on wide widths; on narrow
+       widths the wrap drops them onto the next row. */
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--mux-space-2);
+  }
+
+  .collection-switcher {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: var(--mux-space-1);
+    border: 1px solid var(--mux-border-subtle);
+    border-radius: 6px;
+    background: var(--mux-surface-alt);
+    padding: 2px;
+  }
+
+  .collection-switcher li {
+    margin: 0;
+  }
+
+  .collection-pill {
+    display: inline-block;
+    padding: 2px var(--mux-space-3);
+    border-radius: 4px;
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .collection-pill:hover {
+    background: var(--mux-surface);
+    color: var(--mux-fg);
+  }
+
+  .collection-pill.is-current {
+    background: var(--mux-accent-bg);
+    color: var(--mux-fg);
+    font-weight: 600;
+    /* Inset accent ring matches the LeftRail current-chapter idiom. */
+    box-shadow: inset 0 0 0 1px var(--mux-accent);
+  }
+
+  .chapter-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mux-space-1);
+    padding: 2px var(--mux-space-3);
+    border: 1px solid var(--mux-border-subtle);
+    border-radius: 4px;
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+    background: var(--mux-surface);
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .chapter-button:hover {
+    background: var(--mux-surface-alt);
+    color: var(--mux-fg);
+  }
+
+  .chapter-button.is-disabled {
+    color: var(--mux-fg-subtle);
+    background: var(--mux-surface-alt);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .chapter-button-label {
+    font-variant-numeric: tabular-nums;
+  }
+</style>

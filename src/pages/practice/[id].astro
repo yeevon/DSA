@@ -14,6 +14,7 @@ import Example from '../../components/callouts/Example.astro';
 import Aside from '../../components/callouts/Aside.astro';
 import CodeBlock from '../../components/callouts/CodeBlock.astro';
 import LeftRail from '../../components/chrome/LeftRail.astro';
+import Breadcrumb from '../../components/chrome/Breadcrumb.astro';
 
 export async function getStaticPaths() {
   const practice = await getCollection('practice');
@@ -28,6 +29,7 @@ const { Content } = await render(entry);
 ---
 
 <Base title={`${entry.data.title} — Practice`}>
+  <Breadcrumb slot="breadcrumb" />
   <LeftRail slot="left-rail" />
   <header>
     <h1>{entry.data.title} — Practice</h1>
