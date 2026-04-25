@@ -1,5 +1,5 @@
 ---
-// MarkReadButton.astro — M3 T7.
+// MarkReadButton.astro — M3 T7 (refactored M-UX T4 Step 5).
 // Floating button (bottom-left) that toggles the current section's
 // read-status. The "current section" is the section whose header
 // anchor is most recently scrolled past — computed via
@@ -7,7 +7,26 @@
 // anchors.
 //
 // On click: POST or DELETE depending on current state. Fires
-// `cs300:read-status-changed` so SectionNav refreshes its dots.
+// `cs300:read-status-changed` so the right-rail TOC's read-status
+// island (`RightRailReadStatus.astro`) refreshes its indicators.
+//
+// M-UX T4 refactor (resolves MUX-BO-ISS-01 / HIGH-1):
+//   `refreshMarked()` previously read state from
+//   `#section-nav .dot[data-read="true"]` — an undocumented DOM
+//   contract with M3's `SectionNav.astro`. M-UX T4 deletes
+//   `SectionNav` and re-homes its read-status indicators into
+//   `RightRailTOC.astro` (each TOC entry carries
+//   `[data-read-indicator][data-section-id]`). This file's
+//   `refreshMarked()` is re-pointed at the new selector
+//   `[data-read-indicator][data-read="true"]` (Option (a) per T4
+//   Step 5 — the deterministic attribute contract pinned by
+//   MUX-BO-DA-2 and written by `RightRailReadStatus.astro`). The
+//   selector lives in the right-rail TOC's DOM subtree — both rail
+//   and button observe the same `[data-read]` attribute, so on
+//   reload `refreshMarked()` resolves to the same set the indicator
+//   island just painted, and the button correctly renders "Unmark
+//   section" on mount for sections persisted as marked (resolves
+//   the manual reload-state smoke per T4 spec acceptance check).
 //
 // Data-interactive-only per T5 contract.
 ---
@@ -46,13 +65,29 @@
     const markedSet = new Set<string>();
 
     async function refreshMarked() {
-      // Pull from the SectionNav-loaded set if present; else fetch.
-      const nav = document.getElementById('section-nav');
-      if (nav) {
-        nav.querySelectorAll<HTMLElement>('.dot[data-read="true"]').forEach((d) => {
-          if (d.dataset.sectionId) markedSet.add(d.dataset.sectionId);
+      // Read from the right-rail TOC's read-status indicators. The
+      // sibling `RightRailReadStatus` island writes `data-read="true"`
+      // on indicators for sections in the GET /api/read_status
+      // response (the deterministic contract pinned by MUX-BO-DA-2 +
+      // T4 Step 5 Option (a)). Querying the same attribute means
+      // this button mirrors the rail's persisted state on mount —
+      // resolves MUX-BO-ISS-01 / HIGH-1 (no more "Mark section read"
+      // showing on a section the user already marked + reloaded).
+      //
+      // If the TOC isn't on the page (notes/practice routes don't
+      // mount it today), `markedSet` stays empty and the button
+      // defaults to "Mark section read" — same behaviour as before
+      // T4, just sourced from a documented contract instead of a
+      // soon-to-be-deleted DOM contract.
+      document
+        .querySelectorAll<HTMLElement>(
+          '[data-read-indicator][data-read="true"]',
+        )
+        .forEach((indicator) => {
+          if (indicator.dataset.sectionId) {
+            markedSet.add(indicator.dataset.sectionId);
+          }
         });
-      }
       updateButtonState();
     }
 
@@ -88,6 +123,21 @@
     }
 
     refreshMarked();
+
+    // Listen for the right-rail TOC's paint event so the button
+    // state stays in sync with the rail's async GET. Without this,
+    // `refreshMarked()` runs once on mount before the rail's fetch
+    // settles, leaving the button stuck on "Mark section read" for
+    // sections that the rail subsequently paints as marked.
+    // Resolves the reload-state correctness AC per T4 spec
+    // (MUX-BO-ISS-01 / HIGH-1 reload smoke).
+    window.addEventListener('cs300:toc-read-status-painted', () => {
+      // Clear the set first — sections that were marked on a prior
+      // refresh but unmarked elsewhere need to drop out of the set,
+      // not accumulate.
+      markedSet.clear();
+      void refreshMarked();
+    });
 
     btn.addEventListener('click', async () => {
       if (!currentSectionId) {

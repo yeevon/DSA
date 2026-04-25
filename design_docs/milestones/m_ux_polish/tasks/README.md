@@ -9,7 +9,7 @@ Each task is a discrete, session-sized unit of work that contributes to closing 
 | T1  | [Layout shell — three-column grid + responsive scaffold](T1_layout_shell.md) | ✅ done 2026-04-24 | — | 1 focused session |
 | T2  | [Left-rail chapter nav + completion indicators](T2_left_rail.md)      | ✅ done 2026-04-24 | T1 | 1 focused session |
 | T3  | [Top breadcrumb — collection switcher + prev/next + sticky](T3_breadcrumb.md) | ✅ done 2026-04-24 | T1 | < 1 session |
-| T4  | [Right-rail TOC + scroll-spy island + SectionNav refactor](T4_right_rail_toc.md) | todo | T1 | 1–2 sessions |
+| T4  | [Right-rail TOC + scroll-spy island + SectionNav refactor](T4_right_rail_toc.md) | ✅ done 2026-04-24 | T1 | 1–2 sessions |
 | T5  | [Index page rewrite — mastery-dashboard placeholder](T5_index_dashboard.md) | todo | T1, T2 | 1 focused session |
 | T6  | [M3 component re-homing — annotations + mark-read](T6_m3_rehome.md)    | todo   | T4           | 1 focused session |
 | T7  | [Mobile drawer + responsive sweep](T7_mobile_drawer.md)                | todo   | T1, T2, T3, T4, T6 | 1 focused session |

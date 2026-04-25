@@ -6,6 +6,19 @@
 // integration, resolving the embedded <Definition>, <KeyIdea>,
 // <Gotcha>, <Example>, <Aside>, <CodeBlock> JSX tags through T3's
 // callout component library via the `components` prop on <Content />.
+//
+// M-UX T4 update: removes the M3 fixed-left-rail `SectionNav` import
+// + use (deleted in this task). Adds the right-rail TOC trio:
+//   - <RightRailTOC>          — SSR section nav (anchors + read-indicator slots)
+//   - <ScrollSpy>             — JS island, current-section highlight via
+//                               IntersectionObserver
+//   - <RightRailReadStatus>   — JS island, fetches /api/read_status and
+//                               paints `[data-read]` on indicator slots
+// All three mount in `Base.astro`'s `right-rail` slot per T1's slot
+// contract. Lectures route only — notes/practice MDX has no
+// `sections` frontmatter (their schemas don't include it per
+// `src/content.config.ts`), and per T4 spec Notes those collections
+// keep the right rail empty.
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Definition from '../../components/callouts/Definition.astro';
@@ -16,10 +29,12 @@ import Aside from '../../components/callouts/Aside.astro';
 import CodeBlock from '../../components/callouts/CodeBlock.astro';
 import AnnotateButton from '../../components/annotations/AnnotateButton.astro';
 import AnnotationsPane from '../../components/annotations/AnnotationsPane.astro';
-import SectionNav from '../../components/read_status/SectionNav.astro';
 import MarkReadButton from '../../components/read_status/MarkReadButton.astro';
 import LeftRail from '../../components/chrome/LeftRail.astro';
 import Breadcrumb from '../../components/chrome/Breadcrumb.astro';
+import RightRailTOC from '../../components/chrome/RightRailTOC.astro';
+import ScrollSpy from '../../components/chrome/ScrollSpy.astro';
+import RightRailReadStatus from '../../components/chrome/RightRailReadStatus.astro';
 
 export async function getStaticPaths() {
   const lectures = await getCollection('lectures');
@@ -37,6 +52,13 @@ const sectionIds = entry.data.sections.map((s) => s.id);
 <Base title={`${entry.data.title} — Lectures`}>
   <Breadcrumb slot="breadcrumb" />
   <LeftRail slot="left-rail" />
+  <RightRailTOC
+    slot="right-rail"
+    chapterId={entry.data.chapter_id}
+    sections={entry.data.sections}
+  />
+  <ScrollSpy slot="right-rail" />
+  <RightRailReadStatus slot="right-rail" chapterId={entry.data.chapter_id} />
   <header>
     <h1>{entry.data.title} — Lectures</h1>
     <p><em>{entry.data.subtitle}</em></p>
@@ -44,7 +66,6 @@ const sectionIds = entry.data.sections.map((s) => s.id);
   <article>
     <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock }} />
   </article>
-  <SectionNav chapterId={entry.data.chapter_id} sections={entry.data.sections} />
   <AnnotationsPane sectionIds={sectionIds} />
   <AnnotateButton />
   <MarkReadButton />

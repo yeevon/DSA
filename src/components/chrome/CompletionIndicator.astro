@@ -39,7 +39,10 @@
 //   - design_docs/milestones/m_ux_polish/tasks/T2_left_rail.md
 //   - src/components/chrome/LeftRail.astro (sibling, mounts this island)
 //   - src/components/read_status/MarkReadButton.astro (dispatches event)
-//   - src/components/read_status/SectionNav.astro (subscribes to same event)
+//   - src/components/chrome/RightRailReadStatus.astro (M-UX T4 sibling
+//     island that subscribes to the same event for TOC indicator
+//     refresh; deletes M3's `SectionNav` and inherits its listener
+//     responsibility — both islands now react to the toggle event)
 //   - src/pages/api/read_status/index.ts (the fetched endpoint)
 interface Props {
   /**

@@ -1,0 +1,137 @@
+---
+// src/components/chrome/RightRailReadStatus.astro — M-UX T4 deliverable.
+//
+// Inline-script island that populates the read-status indicators on
+// the SSR `RightRailTOC.astro` entries. Carries the read-status
+// fetch + listener logic that previously lived in M3's
+// `src/components/read_status/SectionNav.astro` (deleted in this
+// task — its functionality folds into the right-rail TOC structure
+// per ADR-0002).
+//
+// Pattern note (resolves M-UX-T2-ISS-01 / MEDIUM + M-UX-T2-ISS-03 /
+// LOW carry-over): same justification as `ScrollSpy.astro` — we
+// follow the M3 settled inline-`<script type="module">` pattern
+// instead of T4 spec Step 4's `client:visible`. Builder pick option
+// (a) "spec amendment via implementation precedent."
+//
+// Contract preserved from M3 `SectionNav` (the deleted source):
+//   - Endpoint: `GET /api/read_status?chapter_id=…` returns
+//     `{ section_ids: string[] }`. Wire-compatible with M3 today.
+//   - Refresh on `cs300:read-status-changed` (CustomEvent, no
+//     `detail` payload) — same event `MarkReadButton.astro`
+//     dispatches on toggle. Without this listener the TOC indicator
+//     would stale-render until reload — exactly the cross-component
+//     refresh asymmetry called out in MUX-BO-DA-3.
+//   - Mark indicators with `data-read="true"` when the section is in
+//     the response, `data-read="false"` otherwise. Pinned per
+//     MUX-BO-DA-2 so `MarkReadButton.refreshMarked()` (refactored in
+//     this same task per T4 Step 5 Option (a)) can bind to a
+//     deterministic selector: `[data-read-indicator][data-read="true"]`.
+//
+// data-interactive-only contract: the island root carries the
+// attribute, so it hides entirely in static mode. The
+// `[data-read-indicator]` spans on each TOC entry also carry it,
+// gated by the global rule in `Base.astro`. The TOC links themselves
+// remain visible (matches T2's chapter-link-vs-checkmark-slot gating
+// depth — innermost element only).
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T4_right_rail_toc.md
+//   - src/components/chrome/RightRailTOC.astro (sibling SSR)
+//   - src/components/read_status/MarkReadButton.astro (M3 — both
+//     dispatches the event we listen for AND reads the
+//     `[data-read-indicator][data-read="true"]` selector this
+//     island writes to)
+//   - src/pages/api/read_status/index.ts (the GET endpoint)
+//   - design_docs/architecture.md §3.4 (read-status API contract)
+interface Props {
+  /**
+   * The chapter id this island fetches read status for. Embedded as
+   * a data attribute so the island's `<script>` (hoisted by Astro)
+   * can read it at runtime — the script body itself is shared
+   * across pages, so the per-page chapter id has to live on the
+   * DOM, not in the closure.
+   */
+  chapterId: string;
+}
+
+const { chapterId } = Astro.props;
+---
+
+<div
+  id="cs300-toc-read-status"
+  data-interactive-only
+  data-chapter-id={chapterId}
+  hidden
+></div>
+
+<script>
+  interface ReadStatusResponse {
+    section_ids: string[];
+  }
+
+  const root = document.getElementById('cs300-toc-read-status');
+  // The TOC indicator spans render unconditionally in the SSR pass;
+  // the island just paints the `data-read` attribute on them. If
+  // there's no TOC on this page (notes/practice routes don't mount
+  // it today), nothing to do.
+  const indicators = document.querySelectorAll<HTMLElement>(
+    '.right-rail-toc [data-read-indicator]',
+  );
+
+  if (root && indicators.length > 0) {
+    const chapterId = root.dataset.chapterId ?? '';
+
+    /**
+     * Fetch read_status for the chapter and write `data-read` on
+     * each indicator. Returns silently on any error (static-mode /
+     * offline adapter) so the UI degrades to "no marks" rather than
+     * throwing. Matches M3 `SectionNav`'s prior failure semantics.
+     *
+     * After the paint completes, dispatches
+     * `cs300:toc-read-status-painted` — a SEPARATE event from the
+     * toggle-driven `cs300:read-status-changed` so consumers (e.g.
+     * `MarkReadButton.refreshMarked()`) can re-read the DOM after
+     * the async fetch settles. Using a distinct event name avoids
+     * the loop that would form if this island both listened for and
+     * dispatched the same `cs300:read-status-changed` event.
+     */
+    async function refresh(): Promise<void> {
+      let marked = new Set<string>();
+      try {
+        const res = await fetch(
+          `/api/read_status?chapter_id=${encodeURIComponent(chapterId)}`,
+        );
+        if (res.ok) {
+          const body = (await res.json()) as ReadStatusResponse;
+          marked = new Set(body.section_ids);
+        }
+      } catch {
+        // Network / parse failure — keep `marked` empty; clears any
+        // stale data-read attributes on the next paint.
+      }
+      indicators.forEach((indicator) => {
+        const id = indicator.dataset.sectionId ?? '';
+        indicator.dataset.read = marked.has(id) ? 'true' : 'false';
+      });
+      // Tell downstream consumers the DOM contract has been written.
+      // `MarkReadButton.refreshMarked()` reads the same attribute and
+      // needs to re-run after this fetch completes — otherwise the
+      // post-reload button state races the rail's async paint.
+      window.dispatchEvent(new CustomEvent('cs300:toc-read-status-painted'));
+    }
+
+    // Initial paint — kick the GET fetch on mount.
+    void refresh();
+
+    // Live refresh (resolves MUX-BO-DA-3 + DA2-A). Same event
+    // `MarkReadButton.astro` line ~146 dispatches on toggle;
+    // `SectionNav.astro` line 88 had this listener before its
+    // deletion. Re-running the GET fetch is the simplest correct
+    // implementation; the event carries no `detail` payload (DA-3
+    // explicitly notes this).
+    window.addEventListener('cs300:read-status-changed', () => {
+      void refresh();
+    });
+  }
+</script>

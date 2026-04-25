@@ -1,0 +1,195 @@
+---
+// src/components/chrome/RightRailTOC.astro — M-UX T4 deliverable.
+//
+// Per ADR-0002 (https://.../adr/0002_ux_layer_mdn_three_column.md)
+// and design_docs/architecture.md §1.6, the right rail hosts the
+// in-chapter section TOC + (in interactive mode, T6) the annotations
+// pane. This component is the SSR portion: a `<nav><ul>` of section
+// anchor links derived from the chapter's MDX frontmatter `sections`
+// array (populated by `scripts/build-content.mjs` per
+// `src/content.config.ts` lectures schema).
+//
+// Contract (per T4 spec):
+//   - Pure SSR. No JS required for navigation. Every entry is a real
+//     anchor (`<a href="#anchor">`) the static deploy can resolve.
+//   - Each entry carries `data-section-id` so the sibling read-status
+//     island can target it on `cs300:read-status-changed` events,
+//     and `data-anchor` so the sibling ScrollSpy island can update
+//     `[data-current]` on the matching entry as the reader scrolls.
+//   - Each entry includes a `<span data-read-indicator data-section-id>`
+//     gated via `data-interactive-only` — populated by the read-status
+//     island in interactive mode, hidden by the T1 global rule in
+//     static mode. The TOC link itself stays visible; only the inner
+//     indicator span hides (matches T2's chapter-link-vs-checkmark-slot
+//     gating depth — DA2-D / T1 audit-check #7 on innermost-element
+//     gating).
+//
+// Marked-state contract (resolves MUX-BO-DA-2 / DA2-A):
+//   - Read indicator carries `data-read="true"` when the section is
+//     marked, `data-read="false"` (or omitted) otherwise. This is the
+//     deterministic selector the refactored `MarkReadButton.refreshMarked()`
+//     binds to (Option (a) per T4 Step 5: re-point the selector at
+//     `[data-read-indicator][data-read="true"]`). It also matches M3's
+//     prior `.dot[data-read]` convention from the deleted `SectionNav`,
+//     so the visual semantics carry over.
+//
+// SectionNav refactor (per ADR-0002 + T4 Notes):
+//   - The deleted `src/components/read_status/SectionNav.astro` was a
+//     fixed left-rail TOC with read-status dots. Its read-status fetch
+//     logic + `cs300:read-status-changed` listener migrate into the
+//     sibling `RightRailReadStatus.astro` island below. Its rendering
+//     responsibility (one entry per section + a read-status indicator)
+//     migrates here. No two left rails (M-UX commits to a single left
+//     rail for chapter nav).
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T4_right_rail_toc.md
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/layouts/Base.astro (T1 — slot contract)
+//   - src/components/chrome/ScrollSpy.astro (sibling island; current-section)
+//   - src/components/chrome/RightRailReadStatus.astro (sibling island;
+//     read-status indicator population + live refresh)
+//   - src/components/read_status/MarkReadButton.astro (M3 — refactored
+//     in this task to read state via the new TOC's indicator selector)
+interface Section {
+  id: string;
+  anchor: string;
+  title: string;
+  ord: number;
+}
+
+interface Props {
+  /**
+   * The chapter id this TOC describes (e.g. "ch_4"). Used by the
+   * read-status island for the GET /api/read_status?chapter_id= fetch
+   * (matches M3's deleted `SectionNav` contract verbatim — same
+   * endpoint, same query param, same response shape).
+   */
+  chapterId: string;
+  /**
+   * The chapter's section list, read from the lectures collection's
+   * MDX frontmatter (the `sections` array `scripts/build-content.mjs`
+   * populates per `src/content.config.ts` lectures schema). Sorted by
+   * `ord` ascending so the TOC mirrors the source ordering.
+   */
+  sections: Section[];
+}
+
+const { chapterId, sections } = Astro.props;
+
+// Defensive sort by `ord` — the build script emits in-order today,
+// but pinning it here means a future frontmatter shape change (or an
+// unsorted handwritten override) cannot silently scramble the TOC.
+const ordered = [...sections].sort((a, b) => a.ord - b.ord);
+---
+
+<nav
+  class="right-rail-toc"
+  aria-label="In-chapter sections"
+  data-chapter-id={chapterId}
+>
+  <h3>On this page</h3>
+  <ul>
+    {ordered.map((s) => (
+      <li>
+        <a
+          href={`#${s.anchor}`}
+          class="toc-link"
+          data-section-id={s.id}
+          data-anchor={s.anchor}
+        >
+          <span
+            class="read-indicator"
+            data-read-indicator
+            data-section-id={s.id}
+            data-interactive-only
+            aria-hidden="true"
+          ></span>
+          <span class="toc-label">{s.title}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>
+
+<style>
+  /* Scoped styles; tokens come from src/styles/chrome.css (imported
+     globally by Base.astro). */
+  .right-rail-toc {
+    font-size: 0.85rem;
+  }
+
+  .right-rail-toc h3 {
+    /* Section heading idiom mirrors LeftRail's `.group h3` — small
+       caps, de-emphasized. */
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+    margin: 0 0 var(--mux-space-2) 0;
+    padding: 0 var(--mux-space-2);
+  }
+
+  .right-rail-toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .right-rail-toc li {
+    margin: 0;
+  }
+
+  .toc-link {
+    display: flex;
+    align-items: center;
+    gap: var(--mux-space-2);
+    padding: var(--mux-space-1) var(--mux-space-3);
+    border-radius: 4px;
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+    line-height: 1.35;
+  }
+
+  .toc-link:hover {
+    background: var(--mux-surface-alt);
+    color: var(--mux-fg);
+  }
+
+  /* Current-section highlight applied by the ScrollSpy island via
+     [data-current="true"]. Distinct from hover via the accent
+     left-bar idiom — same shape as LeftRail's `.is-current` rule
+     so chrome surfaces share visual language. */
+  .toc-link[data-current="true"] {
+    background: var(--mux-accent-bg);
+    color: var(--mux-fg);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--mux-accent);
+  }
+
+  .toc-label {
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .read-indicator {
+    /* Mirrors M3's deleted `SectionNav .dot` shape so the visual
+       carry-over is exact: small dot, neutral by default, accent
+       when `data-read="true"`. Reserve the inline space so the
+       label doesn't reflow when the indicator paints. */
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--mux-border);
+    flex-shrink: 0;
+    /* `display: inline-block` keeps width/height on the inline span
+       even when the [data-interactive-only] rule is removed (the
+       outer flex still needs a non-zero size). */
+    display: inline-block;
+  }
+
+  .read-indicator[data-read="true"] {
+    background: var(--mux-accent);
+  }
+</style>

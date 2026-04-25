@@ -1,0 +1,138 @@
+---
+// src/components/chrome/ScrollSpy.astro — M-UX T4 deliverable.
+//
+// Inline-script island that observes the chapter's section anchors
+// and toggles `[data-current="true"]` on the matching TOC entry in
+// `RightRailTOC.astro` as the reader scrolls. SSR-rendered TOC works
+// without this island; ScrollSpy is the enhancement layer.
+//
+// Pattern note (resolves M-UX-T2-ISS-01 / MEDIUM + M-UX-T2-ISS-03 /
+// LOW carry-over): T4 spec Step 3 and the original carry-over
+// recommended `client:visible` (Astro framework-island directive).
+// We follow the M3 settled inline-`<script type="module">` pattern
+// instead — same as `MarkReadButton`, `AnnotateButton`,
+// `AnnotationsPane`, T2's `CompletionIndicator`. Rationale:
+// consistency with every existing island in the project, no new
+// runtime dep (no Preact/React/Vue/Svelte added just to host one
+// directive), and Astro hoists inline `<script>` blocks into the
+// shared chunk anyway. The carry-over Builder-pick was option (a)
+// "spec amendment via implementation precedent"; this header records
+// the decision so a future audit can flip the carry-over to RESOLVED
+// without re-litigating.
+//
+// Selector contract (resolves MUX-BO-DA2-D / LOW + MUX-BO-DA3-D /
+// LOW): we observe `article a[id^="ch_"]` — exactly the same query
+// `MarkReadButton.astro` line 70 uses. This is intentional:
+//   1. Anchors are emitted by the pandoc Lua filter as
+//      `<a id="ch_N-section-slug">` per architecture.md §1.
+//   2. Scoping to `article` survives a future rename or a bare-id
+//      collision elsewhere on the page (left-rail chapter ids, etc.).
+//   3. Pinning the prefix `ch_` filters out any other `<a id>` the
+//      callout components might emit incidentally.
+// A future `<article>`-wrapper rename or `ch_`-prefix change surfaces
+// as a HIGH ScrollSpy regression immediately rather than silently
+// no-op'ing.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T4_right_rail_toc.md
+//   - src/components/chrome/RightRailTOC.astro (sibling SSR — populates
+//     the `[data-anchor]`/`[data-section-id]` attributes this island
+//     resolves against)
+//   - src/components/read_status/MarkReadButton.astro (uses the same
+//     `article a[id^="ch_"]` selector — kept symmetric on purpose)
+---
+
+<div id="cs300-scroll-spy" hidden></div>
+
+<script>
+  // The TOC is SSR; the spy is purely additive. If either side is
+  // missing (route mounted ScrollSpy without RightRailTOC, or vice
+  // versa), bail quietly — the static TOC still works on its own.
+  const toc = document.querySelector<HTMLElement>('.right-rail-toc');
+  const anchors = document.querySelectorAll<HTMLElement>(
+    'article a[id^="ch_"]',
+  );
+
+  if (toc && anchors.length > 0) {
+    const tocLinks = new Map<string, HTMLElement>();
+    toc
+      .querySelectorAll<HTMLElement>('.toc-link[data-anchor]')
+      .forEach((link) => {
+        const anchor = link.dataset.anchor;
+        if (anchor) tocLinks.set(anchor, link);
+      });
+
+    /**
+     * Clear `[data-current]` from every TOC link, then mark the
+     * passed anchor's link as current. Single-source-of-truth for
+     * the highlight so two simultaneously-intersecting headings
+     * cannot both show as active.
+     *
+     * Guard (resolves M-UX-T4-ISS-01 / MEDIUM): the observer watches
+     * every `article a[id^="ch_"]` (e.g. 111 anchors on ch_4) but
+     * `tocLinks` only carries the section-level entries the lectures
+     * frontmatter declares (e.g. 68 on ch_4). When a non-TOC
+     * subsection anchor is the topmost intersecting one, we'd
+     * otherwise iterate the TOC and clear every `data-current`
+     * without setting a new one — the highlight would blank out
+     * while the reader scrolls deep inside a long section. Bailing
+     * early when `anchorId` isn't in `tocLinks` preserves the
+     * previously-highlighted entry, which matches the docstring
+     * below "If none intersect (e.g. between two long sections),
+     * keep the current highlight rather than clearing — the
+     * previous section is still the most relevant context."
+     */
+    function setCurrent(anchorId: string): void {
+      if (!tocLinks.has(anchorId)) return;
+      tocLinks.forEach((link, key) => {
+        if (key === anchorId) {
+          link.dataset.current = 'true';
+        } else {
+          delete link.dataset.current;
+        }
+      });
+    }
+
+    /**
+     * IntersectionObserver callback: pick the topmost intersecting
+     * heading inside the viewport's upper third and mark it current.
+     * If none intersect (e.g. between two long sections), keep the
+     * current highlight rather than clearing — the previous section
+     * is still the most relevant context.
+     */
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Prefer entries that are intersecting; among those, pick
+        // the one closest to the top of the viewport.
+        const intersecting = entries.filter((e) => e.isIntersecting);
+        if (intersecting.length === 0) return;
+        intersecting.sort(
+          (a, b) =>
+            a.target.getBoundingClientRect().top -
+            b.target.getBoundingClientRect().top,
+        );
+        const top = intersecting[0];
+        if (top.target.id) {
+          setCurrent(top.target.id);
+        }
+      },
+      // rootMargin tuned so a section is "current" once its heading
+      // crosses into roughly the upper third of the viewport, and
+      // stays current until it scrolls off the top. The asymmetric
+      // bottom margin (-66%) keeps the highlight from briefly
+      // jumping to the next section as a heading first peeks in
+      // from below. Pinned per T4 Notes.
+      { rootMargin: '0px 0px -66% 0px' },
+    );
+
+    anchors.forEach((a) => observer.observe(a));
+
+    // Initial paint: if no observer entry has fired yet (page just
+    // loaded, no scroll), highlight the first TOC entry so the rail
+    // isn't blank above the fold.
+    const firstAnchor = anchors[0];
+    if (firstAnchor && firstAnchor.id) {
+      setCurrent(firstAnchor.id);
+    }
+  }
+</script>
