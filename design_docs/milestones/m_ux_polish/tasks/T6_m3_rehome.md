@@ -1,6 +1,6 @@
 # T6 — M3 component re-homing: annotations + mark-read
 
-**Status:** todo
+**Status:** ✅ done 2026-04-25
 **Depends on:** T4 (right rail must exist for annotations to land in)
 **Blocks:** T7 (responsive sweep), T8 (deploy verification)
 

@@ -19,6 +19,49 @@
 // `sections` frontmatter (their schemas don't include it per
 // `src/content.config.ts`), and per T4 spec Notes those collections
 // keep the right rail empty.
+//
+// M-UX T6 update: re-homes the M3 surfaces into their chrome slots
+// (per ADR-0002 + architecture.md §1.6, T6 spec):
+//   - <AnnotationsPane>  — moves into the `right-rail` slot, AFTER
+//                          <RightRailReadStatus>. The pane no longer
+//                          free-floats; it flows in the rail track.
+//   - <MarkReadButton>   — JSX import lands in the `default` slot
+//                          ABOVE the article body. Visual position
+//                          stays floating bottom-left per Step 4
+//                          option (i) — the M3 `position: fixed`
+//                          CSS is preserved, so re-homing the JSX
+//                          import is the only change. Decision
+//                          captured per spec procedure — the test
+//                          revealed (i) reads cleanly inside the
+//                          new chrome (button still discoverable,
+//                          doesn't clash with the rail at desktop,
+//                          accent colour matches the chrome's
+//                          green). MarkReadButton's M3 granularity
+//                          (per-section, not per-chapter — option
+//                          (b) per spec Notes) is preserved by
+//                          keeping the single mount; the button's
+//                          IntersectionObserver auto-targets the
+//                          current visible section.
+//   - <AnnotateButton>   — unchanged in place (floating,
+//                          selection-anchored). The new chrome's
+//                          stacking context doesn't clip it
+//                          because its `position: fixed` lives at
+//                          the body level, not inside the
+//                          `right-rail` aside's stacking context.
+// All M3 event + selector contracts preserved verbatim:
+//   - `cs300:read-status-changed` — dispatched by MarkReadButton on
+//     toggle, listened to by RightRailReadStatus + CompletionIndicator.
+//   - `cs300:toc-read-status-painted` — dispatched by
+//     RightRailReadStatus, listened to by MarkReadButton.
+//   - `cs300:annotation-added` — dispatched by AnnotateButton on
+//     POST success, listened to by AnnotationsPane.
+//   - `[data-read-indicator][data-read="true"]` — selector
+//     MarkReadButton.refreshMarked() reads, painted by
+//     RightRailReadStatus.
+//   - `data-interactive-only` — preserved on every re-homed
+//     component (gating contract from M3 T5).
+// Lectures-only scope per T6 spec Step 2 (MUX-BO-ISS-05 / MEDIUM-2);
+// notes / practice get the chrome but no annotations / mark-read.
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Definition from '../../components/callouts/Definition.astro';
@@ -59,6 +102,8 @@ const sectionIds = entry.data.sections.map((s) => s.id);
   />
   <ScrollSpy slot="right-rail" />
   <RightRailReadStatus slot="right-rail" chapterId={entry.data.chapter_id} />
+  <AnnotationsPane slot="right-rail" sectionIds={sectionIds} />
+  <MarkReadButton />
   <header>
     <h1>{entry.data.title} — Lectures</h1>
     <p><em>{entry.data.subtitle}</em></p>
@@ -66,7 +111,5 @@ const sectionIds = entry.data.sections.map((s) => s.id);
   <article>
     <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock }} />
   </article>
-  <AnnotationsPane sectionIds={sectionIds} />
   <AnnotateButton />
-  <MarkReadButton />
 </Base>

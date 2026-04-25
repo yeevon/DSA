@@ -11,7 +11,7 @@ Each task is a discrete, session-sized unit of work that contributes to closing 
 | T3  | [Top breadcrumb — collection switcher + prev/next + sticky](T3_breadcrumb.md) | ✅ done 2026-04-24 | T1 | < 1 session |
 | T4  | [Right-rail TOC + scroll-spy island + SectionNav refactor](T4_right_rail_toc.md) | ✅ done 2026-04-24 | T1 | 1–2 sessions |
 | T5  | [Index page rewrite — mastery-dashboard placeholder](T5_index_dashboard.md) | ✅ done 2026-04-25 | T1, T2 | 1 focused session |
-| T6  | [M3 component re-homing — annotations + mark-read](T6_m3_rehome.md)    | todo   | T4           | 1 focused session |
+| T6  | [M3 component re-homing — annotations + mark-read](T6_m3_rehome.md)    | ✅ done 2026-04-25 | T4           | 1 focused session |
 | T7  | [Mobile drawer + responsive sweep](T7_mobile_drawer.md)                | todo   | T1, T2, T3, T4, T6 | 1 focused session |
 | T8  | [Deploy verification — 37 pages, size budget, no regressions](T8_deploy_verification.md) | todo | T7 | < 1 session |
 

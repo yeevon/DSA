@@ -1,15 +1,45 @@
 ---
-// AnnotationsPane.astro — M3 T6.
-// Fixed right-side pane listing annotations for the visible
-// chapter's sections. Subscribes to a `cs300:annotation-added`
-// CustomEvent fired by AnnotateButton so the pane refreshes
-// without a full reload.
+// AnnotationsPane.astro — M3 T6 (re-homed M-UX T6).
+// Pane listing annotations for the visible chapter's sections.
+// Subscribes to a `cs300:annotation-added` CustomEvent fired by
+// AnnotateButton so the pane refreshes without a full reload.
 //
 // Receives `sectionIds: string[]` from the parent chapter route.
 // Each annotation row shows: section short-id + truncated text
 // snippet + delete X.
 //
 // Tagged `data-interactive-only` so static-mode CSS hides it.
+//
+// M-UX T6 re-home (per ADR-0002 + architecture.md §1.6):
+//   - Mount point moves from a free-floating bottom-of-route position
+//     into the lectures route's `right-rail` slot, after T4's
+//     `RightRailTOC` + `RightRailReadStatus`. Lectures-only per
+//     T6 spec Step 2 (MUX-BO-ISS-05 / MEDIUM-2 pinned scope).
+//   - The prior CSS was `position: fixed; top: 64px; right: 0;
+//     width: 260px;` — a free-floating overlay that made sense in
+//     the bare 51-line `Base.astro` shell M3 shipped against. The
+//     T1 chrome reserves a real right-rail track (T4-mounted TOC +
+//     read-status), so the pane now flows naturally inside that
+//     track instead of overlaying. Only structural / positioning
+//     CSS changes — props (`sectionIds: string[]`), the GET/DELETE
+//     `/api/annotations` calls, the `cs300:annotation-added`
+//     listener, the DOM ids (`#annotations-pane`,
+//     `#annotations-list`), and the row markup are unchanged. T6
+//     spec line 52 explicitly authorises "structural / positioning
+//     changes (e.g., outer wrapper class names)" while flagging
+//     prop / fetch edits as a HIGH regression — this re-home is
+//     within the authorised surface.
+//
+// Companion files:
+//   - src/components/annotations/AnnotateButton.astro (sibling,
+//     dispatches `cs300:annotation-added` on POST success)
+//   - src/components/chrome/RightRailTOC.astro (sibling — same
+//     `right-rail` slot, mounts above this pane)
+//   - src/components/chrome/RightRailReadStatus.astro (sibling —
+//     same `right-rail` slot, mounts above this pane)
+//   - src/pages/lectures/[id].astro (mount site)
+//   - design_docs/milestones/m_ux_polish/tasks/T6_m3_rehome.md
+//   - design_docs/architecture.md §1.6, §3.4 (annotations API)
 interface Props {
   sectionIds: string[];
 }
@@ -23,27 +53,66 @@ const { sectionIds } = Astro.props;
 </aside>
 
 <style>
+  /* Flow-positioned inside the T1 `right-rail` slot. The slot
+     applies its own padding (Base.astro:147) so this component
+     focuses on its own typography + row separators. The previous
+     `position: fixed; top: 64px; right: 0; width: 260px; z-index:
+     900;` rules are removed — the right-rail track now reserves
+     real space for this pane (per ADR-0002 + architecture.md §1.6),
+     so an overlay is both unnecessary and would clash with the
+     T4 RightRailTOC sibling above. Border-top + spacing separate
+     this pane visually from the TOC stacked above it.
+
+     Tokens come from `src/styles/chrome.css` (imported globally by
+     Base.astro). */
   #annotations-pane {
-    position: fixed;
-    top: 64px;
-    right: 0;
-    width: 260px;
-    max-height: 80vh;
+    margin-top: var(--mux-space-4);
+    padding-top: var(--mux-space-3);
+    border-top: 1px solid var(--mux-border-subtle);
+    font-size: 0.85rem;
+    color: var(--mux-fg-muted);
+    /* Bound the visible pane height so a chapter with many
+       annotations doesn't push the right rail below the page fold;
+       internal scroll preserves the M3 affordance of "see all
+       annotations without leaving the page" without forcing the
+       rail to grow unboundedly. */
+    max-height: 50vh;
     overflow-y: auto;
-    background: #fff;
-    border-left: 1px solid #d1d5db;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, .05);
-    padding: 12px;
-    font-size: .85rem;
-    z-index: 900;
   }
-  #annotations-pane header { margin-bottom: 8px; color: #4b5563; }
+  #annotations-pane header {
+    margin-bottom: var(--mux-space-2);
+    /* Match RightRailTOC's `h3` heading idiom (small caps, subtle
+       colour) so the right rail reads as one visual stack. */
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+  }
+  #annotations-pane header strong { font-weight: inherit; }
   #annotations-list { list-style: none; padding: 0; margin: 0; }
-  #annotations-list li { padding: 6px 0; border-top: 1px solid #f3f4f6; display: flex; gap: 6px; align-items: flex-start; }
+  #annotations-list li {
+    padding: var(--mux-space-2) 0;
+    border-top: 1px solid var(--mux-border-subtle);
+    display: flex;
+    gap: var(--mux-space-2);
+    align-items: flex-start;
+  }
   #annotations-list li:first-child { border-top: 0; }
-  #annotations-list li.empty { color: #9ca3af; font-style: italic; }
-  #annotations-list .snippet { flex: 1; }
-  #annotations-list .delete-btn { background: none; border: 0; color: #dc2626; cursor: pointer; padding: 2px 6px; }
+  #annotations-list li.empty {
+    color: var(--mux-fg-subtle);
+    font-style: italic;
+  }
+  #annotations-list .snippet { flex: 1; overflow-wrap: anywhere; }
+  #annotations-list .delete-btn {
+    background: none;
+    border: 0;
+    color: #dc2626;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 1rem;
+    line-height: 1;
+  }
 </style>
 
 <script>

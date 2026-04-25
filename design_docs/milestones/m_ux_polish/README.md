@@ -21,8 +21,8 @@ Replace the bare 51-line `Base.astro` shell + 62-line two-table `index.astro` wi
 - [x] **Per-chapter completion indicators** in the left rail — Canvas-style checkmark gated via `data-interactive-only` (T5 contract), populated from `read_status` table in interactive mode, hidden in static mode. (T2 issue file)
 - [x] **Top breadcrumb** — sticky on scroll, shows path (`cs-300 / Lectures / ch_4 — Lists, Stacks, Queues`), hosts collection switcher (Lectures / Notes / Practice) + prev/next chapter buttons. (T3 issue file)
 - [x] **Right-rail in-chapter TOC** — section anchors SSR-rendered from MDX frontmatter (`sections` array), scroll-spy enhancement as a JS island that toggles `data-current` via `IntersectionObserver`. M3's `SectionNav` is refactored into this slot (no two left rails). (T4 issue file)
-- [ ] **Annotations pane re-homed** to right rail (below TOC) in interactive mode, with the `data-interactive-only` contract preserved.
-- [ ] **Mark-read button re-homed** to the chapter content header (or per-section, per T6's call), `data-interactive-only` preserved.
+- [x] **Annotations pane re-homed** to right rail (below TOC) in interactive mode, with the `data-interactive-only` contract preserved. (T6 issue file)
+- [x] **Mark-read button re-homed** to the chapter content header (or per-section, per T6's call), `data-interactive-only` preserved. (T6 issue file)
 - [x] **Index page** is the mastery-dashboard placeholder — chapter cards grouped Required/Optional in static mode; "recently read" + "due for review" `data-interactive-only` slots that M5 fills when the review queue lands. Replaces the current two-table layout. (T5 issue file)
 - [ ] **Mobile (<1024px)** — single column with hamburger drawer for the left rail; right-rail TOC moves to a collapsed `<details>` summary at content top. Responsive transition tested at 1280, 1024, 768, 375 widths.
 - [ ] **Deploy contract preserved** — site still ships 37 prerendered pages; `dist/client/` size budget within +50KB of pre-M-UX baseline; M3 surfaces still gated on `data-interactive-only` and invisible in static mode; no server-only code leaks into the client bundle.
@@ -38,7 +38,7 @@ Broken out into individual files under [`tasks/`](tasks/README.md).
 | T3  | [Top breadcrumb — collection switcher + prev/next + sticky](tasks/T3_breadcrumb.md) | ✅ done 2026-04-24 |
 | T4  | [Right-rail TOC + scroll-spy island + SectionNav refactor](tasks/T4_right_rail_toc.md) | ✅ done 2026-04-24 |
 | T5  | [Index page rewrite — mastery-dashboard placeholder](tasks/T5_index_dashboard.md) | ✅ done 2026-04-25 |
-| T6  | [M3 component re-homing — annotations + mark-read](tasks/T6_m3_rehome.md) | todo |
+| T6  | [M3 component re-homing — annotations + mark-read](tasks/T6_m3_rehome.md) | ✅ done 2026-04-25 |
 | T7  | [Mobile drawer + responsive sweep](tasks/T7_mobile_drawer.md) | todo |
 | T8  | [Deploy verification — 37 pages, size budget, no regressions](tasks/T8_deploy_verification.md) | todo |
 
