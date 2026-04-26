@@ -130,3 +130,74 @@ collection-aware navigation, landing pages, functional-test
 harness); collapsible sections were considered but kept out of
 T9 scope to avoid touching the M3 ScrollSpy + read-tracking
 contracts in a polish task.
+
+## §UX-3 — Interactive-mode Selenium harness extension
+
+**What.** Extend `scripts/smoke-screenshots.py` (or
+`scripts/functional-tests.py`) with a `--mode=interactive` flag
+that boots against `npm run dev` (where `/api/health` is reachable
+and `detectMode()` flips to `'interactive'`). Add ActionChains-driven
+interaction smokes: hamburger click → drawer slide-in observed,
+drawer-link-click → drawer closes, Tab focus-trap inside open drawer,
+Esc closes, backdrop-click closes, round-trip select → annotate →
+reload → annotation persists in the rail, mark-read button click →
+read-indicator dot paints + bullet flips state.
+
+**Status today.** Static-mode-only harness is sufficient for
+layout-at-viewport coverage; the interactive-mode round-trip is
+structurally inferable (M3 component scripts byte-identical at the
+source level — verified across T6 + T7 + T8 audits) but never
+literally smoke-tested end-to-end.
+
+**Why deferred.** Real signal is "user reports interactive-mode
+regression on push" or "M5 lands and needs end-to-end interactive
+coverage as part of its DoD." Either trigger justifies the harness
+extension; pre-trigger work is speculative.
+
+**Trigger to promote.** As above.
+
+**Cost of promotion.** ~1 focused session — extend
+`_selenium_helpers.py` to also support `npm run dev`, add the
+interaction-matrix config block, add `--mode` switch + a couple of
+ActionChains helper functions.
+
+**Surfaced 2026-04-25** by M-UX T8 (deferral declared) +
+propagated by the M-UX milestone-level deep review (M-UX-DR-04).
+
+## §UX-4 — Replace SSR-embedded section-id JSON with `GET /api/sections` endpoint
+
+**What.** `src/components/chrome/CompletionIndicator.astro` currently
+inlines a per-page `<script type="application/json">` payload mapping
+every chapter id to its section-id list. The payload is the same on
+every page (12 chapters × ~57 sections each → ~12 KB JSON × 36 chapter
+routes ≈ ~432 KB cumulative in `dist/client/`). Move the data behind a
+new `GET /api/sections` endpoint that the island fetches once per
+chapter on mount, the same way `RightRailReadStatus` already fetches
+`/api/read_status?chapter_id=…`. This shrinks the static bundle by
+~432 KB (~10% of current `dist/client/`).
+
+**Status today.** Acceptable cost vs the alternative (a new API
+contract in the M3 surface that doesn't exist yet); the +432 KB sits
+inside the +756 KB cumulative M-UX delta and isn't blocking anything.
+
+**Why deferred.** The cleanest landing is alongside M5's review-queue
+work — M5 will likely need the same per-section data for its scheduling
+surface, so building the endpoint as part of M5's API design avoids
+double-implementing it. Pre-M5, the savings aren't worth the
+M3-style API design + implementation cost.
+
+**Trigger to promote.** Either (a) measurable budget pressure (e.g.
+cumulative `dist/client/` approaches a hosting-tier limit), or (b) M5
+lands an API surface that subsumes the data, at which point
+CompletionIndicator switches to the M5 endpoint as a near-free
+follow-up.
+
+**Cost of promotion.** ~1 session if M5 already added a
+section-list endpoint that returns the same shape; ~2–3 sessions if
+the endpoint has to be designed + added in isolation (pick a
+schema, add the route handler, update CompletionIndicator's fetch +
+event-listener wiring, regen Drizzle schema if it touches state, update
+functional-test harness with a fetch-vs-inline assertion).
+
+**Surfaced 2026-04-25** by M-UX T2 (M-UX-T2-ISS-02) +
+re-surfaced at milestone close by the M-UX deep review (M-UX-DR-05).

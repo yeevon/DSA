@@ -7,11 +7,12 @@ idioms; `std::vector`, `std::list`, `std::unordered_map`, etc.) and is
 supplemented with material aimed at real DSA mastery rather than
 course-passing.
 
-> **Status — Milestones 1 + 2 + 3 ✅ closed 2026-04-24.** All six
-> SNHU-required chapters (ch_1–ch_6) augmented with CLRS + MIT OCW
+> **Status — Milestones 1 + 2 + 3 ✅ closed 2026-04-24, M-UX ✅ closed 2026-04-25.**
+> All six SNHU-required chapters (ch_1–ch_6) augmented with CLRS + MIT OCW
 > material; site migrated from Jekyll to **Astro 6**, deployed via
-> GitHub Actions to <https://yeevon.github.io/DSA/> (37 prerendered
-> chapter routes + index). Content pipeline: `chapters/*.tex` →
+> GitHub Actions to <https://yeevon.github.io/DSA/> (now **40 prerendered
+> pages** = 36 chapter routes + 3 collection-landing pages + 1
+> dashboard index). Content pipeline: `chapters/*.tex` →
 > pandoc 3.1.3 + a small Lua filter →
 > `src/content/{lectures,notes,practice}/*.mdx` → Astro static build
 > with KaTeX math + Shiki syntax highlighting + a 5-component
@@ -21,20 +22,36 @@ course-passing.
 > `data-interactive-only` CSS contract that hides them on the
 > public deploy and lights them up in local mode (where the
 > companion `aiw-mcp` server from M4 will eventually run).
+> **M-UX (UI/UX polish, T1–T9)** rebuilt the chrome from a 51-line
+> bare shell into the MDN-docs three-column layout: left-rail chapter
+> nav (collection-aware), sticky breadcrumb with collection switcher
+> + prev/next + functional links to collection-landing pages, right-rail
+> in-chapter TOC (top-level numbered sections) with IntersectionObserver
+> scroll-spy, mobile drawer below 1024px (CSS-only single-DOM-tree per
+> T7 cycle 2), mastery-dashboard placeholder index. M3 surfaces (annotations
+> pane, mark-read button, read-status indicators, section nav) re-homed
+> into the new chrome with all four event contracts (`cs300:read-status-changed`,
+> `cs300:toc-read-status-painted`, `cs300:annotation-added`,
+> `cs300:drawer-toggle`) preserved. M-UX added a **Selenium verification
+> harness** (`scripts/smoke-screenshots.py` + `scripts/functional-tests.py`,
+> headless Chrome with isolated `/tmp/cs300-smoke-*` profile) that runs
+> 19 functional-test cases / 30 assertions on every code-task gate;
+> caught + fixed a real sticky-breadcrumb regression at milestone close.
 > Optional chapters (ch_7, ch_9–ch_13) ship as committed-but-
 > un-augmented; deeper review is deferred to the post-build
 > content audit. **M4 (question generation) is now active** —
-> question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'sl
+> question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'s
 > `aiw-mcp` server running cs-300's workflow modules from
 > `./workflows/`; the first surface that actually flips
 > `detectMode()` to `'interactive'`. M4 is gated on an upstream
 > feature ([`aiw_workflow_discovery_issue.md`](aiw_workflow_discovery_issue.md))
 > for external workflow module discovery. Interactive features further out (M5–M7: FSRS
 > spaced repetition, in-browser code execution, narrated audio)
-> are designed but not built. UI/UX polish (Canvas-style left-nav +
-> structured chapter pane) is parked at
+> are designed but not built. Two M-UX residuals (collapsible
+> chapter sections; CompletionIndicator JSON → `GET /api/sections`
+> endpoint, ~432 KB savings) parked in
 > [`design_docs/nice_to_have.md`](design_docs/nice_to_have.md)
-> until M3+ chrome dependencies surface. See
+> §UX-2 / §UX-4 with explicit M5-coupled promotion triggers. See
 > [`design_docs/milestones/`](design_docs/milestones/) for the
 > operational plan and
 > [`design_docs/architecture.md`](design_docs/architecture.md) for
