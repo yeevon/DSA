@@ -1,12 +1,9 @@
 # M4 — Phase 4: Question generation (`aiw-mcp` + cs-300 workflows)
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 4
-**Status:** todo (gated on upstream feature — see Carry-over)
+**Status:** todo — **unblocked 2026-04-25** (jmdl-ai-workflows v0.2.0 shipped 2026-04-24 with M16 "External workflow module discovery"; `AIW_EXTRA_WORKFLOW_MODULES` env-var loader + `--workflow-module` CLI flag are live; the cs-300-filed feature request at `aiw_workflow_discovery_issue.md` was deleted at unblock time per its own author note)
 **Depends on:** M3 (state service must exist to receive generated
-questions; `POST /api/questions/bulk` must be live), and the upstream
-[`aiw_workflow_discovery_issue.md`](../../../aiw_workflow_discovery_issue.md)
-shipping in `jmdl-ai-workflows` so `aiw-mcp` can discover cs-300's
-workflow modules.
+questions; `POST /api/questions/bulk` must be live).
 **Unblocks:** M5 (review loop needs persisted questions to schedule)
 
 ## Goal
@@ -134,12 +131,14 @@ play.
 
 ## Carry-over from prior milestones
 
-- [ ] **Upstream gate:** M4 is blocked on `jmdl-ai-workflows`
-      shipping the external workflow module discovery feature
-      ([`aiw_workflow_discovery_issue.md`](../../../aiw_workflow_discovery_issue.md)
-      at the cs-300 root). Without it, `aiw-mcp` only discovers
-      workflows under `ai_workflows.workflows.<name>` — cs-300's
-      domain-specific modules cannot register. Owner: cs-300 user
-      (also the upstream maintainer); this file is deleted from the
-      cs-300 root once the feature ships and M4 task specs cite the
-      released version.
+- [x] **Upstream gate (RESOLVED 2026-04-25).** ✅ jmdl-ai-workflows
+      v0.2.0 shipped 2026-04-24 with M16 "External workflow module
+      discovery". The env-var loader (`AIW_EXTRA_WORKFLOW_MODULES`,
+      comma-separated dotted module paths) + mirroring CLI flag
+      (`--workflow-module pkg.workflows.foo`, repeatable) are now
+      live; `aiw-mcp` imports each named module at startup so its
+      `register("name", build)` calls fire. cs-300 launches with
+      `AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,cs300.workflows.grade`
+      pointing at this repo's `./workflows/` package. Original
+      feature-request file `aiw_workflow_discovery_issue.md`
+      deleted from cs-300 root at unblock per its own author note.

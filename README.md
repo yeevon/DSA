@@ -39,13 +39,15 @@ course-passing.
 > caught + fixed a real sticky-breadcrumb regression at milestone close.
 > Optional chapters (ch_7, ch_9–ch_13) ship as committed-but-
 > un-augmented; deeper review is deferred to the post-build
-> content audit. **M4 (question generation) is now active** —
-> question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'s
+> content audit. **M4 (question generation) — unblocked 2026-04-25,
+> next up** — question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'s
 > `aiw-mcp` server running cs-300's workflow modules from
 > `./workflows/`; the first surface that actually flips
-> `detectMode()` to `'interactive'`. M4 is gated on an upstream
-> feature ([`aiw_workflow_discovery_issue.md`](aiw_workflow_discovery_issue.md))
-> for external workflow module discovery. Interactive features further out (M5–M7: FSRS
+> `detectMode()` to `'interactive'`. The upstream external-workflow-
+> module discovery feature cs-300 was waiting on shipped in
+> jmdl-ai-workflows v0.2.0 (2026-04-24, upstream M16) — `aiw-mcp`
+> now loads `cs300.workflows.*` via the `AIW_EXTRA_WORKFLOW_MODULES`
+> env var. Interactive features further out (M5–M7: FSRS
 > spaced repetition, in-browser code execution, narrated audio)
 > are designed but not built. Two M-UX residuals (collapsible
 > chapter sections; CompletionIndicator JSON → `GET /api/sections`
@@ -207,7 +209,7 @@ Settled tech worth flagging up front:
 - **Content build:** pandoc + a Lua filter, `chapters/*.tex` →
   `src/content/*.mdx`.
 - **State:** SQLite (Drizzle ORM), local-only.
-- **Bridge:** `aiw-mcp` (jmdl-ai-workflows ≥0.1.3, Python ≥3.12) over the streamable-HTTP transport on port 8080, browser ↔ cs-300 workflow modules.
+- **Bridge:** `aiw-mcp` (jmdl-ai-workflows ≥0.2.0, Python ≥3.12) over the streamable-HTTP transport on port 8080, browser ↔ cs-300 workflow modules. v0.2.0 (2026-04-24) shipped the `AIW_EXTRA_WORKFLOW_MODULES` external-workflow-module discovery feature cs-300 was waiting on; M4 unblocked 2026-04-25.
 - **Scheduling:** FSRS via `ts-fsrs`.
 - **Audio:** pre-generated TTS MP3s + sentence-timestamp JSON.
 - **Question generation:** local Ollama; no cloud LLM APIs at
