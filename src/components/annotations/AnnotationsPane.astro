@@ -36,14 +36,21 @@
 //     (the right-rail track itself reorders above main at <1024px
 //     via Base.astro grid template-areas). T7 wraps the existing
 //     `<aside id="annotations-pane">` in a `<details
-//     class="annotations-mobile-collapse" open>` element rendered
-//     in EVERY viewport — at ≥1024px the `<summary>` is CSS-hidden
-//     and the `<details open>` keeps the inner aside fully visible
-//     (browser default for open details). At <1024px the summary
-//     is visible + tappable. Initial paint is `open` (matches T7
-//     step 4 + the parallel decision in RightRailTOC: open by
-//     default at mobile makes content instantly visible without an
-//     extra tap; the user can manually collapse).
+//     class="annotations-mobile-collapse" data-interactive-only>`
+//     element (no `open` attribute on the parsed DOM — see line 82
+//     source). The desktop-open boot script below (`is:inline`)
+//     calls `details.open = true` ONLY when
+//     `matchMedia('(min-width: 1024px)').matches`, so:
+//       - At ≥1024px the script flips `open=true` synchronously
+//         after parse; the `<summary>` is CSS-hidden and the inner
+//         aside renders fully (avoids the regression where a
+//         CSS-hidden summary would leave the pane collapsed at
+//         desktop).
+//       - At <1024px the script no-ops; the parsed-DOM default
+//         (closed) holds. Users tap the summary to expand. This
+//         matches ADR-0002 + T7 spec line 19 "collapsed by default."
+//     Same boot-script pattern as RightRailTOC's mobile-collapse
+//     wrap; the two are kept in lockstep at the 1024px breakpoint.
 //   - Single-DOM-tree approach (vs spec's twice-render lean):
 //     AnnotationsPane carries `id="annotations-pane"` +
 //     `id="annotations-list"` ids that the script's

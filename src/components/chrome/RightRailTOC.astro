@@ -47,22 +47,36 @@
 //     "moves to a collapsed `<details>` summary at content top."
 //     The right-rail track itself reorders above main at <1024px
 //     (Base.astro grid template-areas). T7 wraps this nav inside a
-//     `<details class="toc-mobile-collapse" open>` element rendered
-//     in EVERY viewport — at ≥1024px the `<summary>` is CSS-hidden
-//     and the `open` attribute keeps content visible (browser
-//     default for `<details open>`). At <1024px the summary is
-//     visible and tappable; on initial paint the `<details>` is
-//     `open` (matches the spec's "collapsed by default" being a
-//     UX choice — leaving it open by default at mobile makes the
-//     TOC instantly visible without an extra tap, which respects
-//     ADR-0002's reader-workflow priority "open chapter, jump
-//     around sections, annotate"). Users can collapse manually
-//     with the summary toggle. The single-DOM-tree approach (vs
-//     spec's "twice-render" suggestion in T7 step 3) avoids the
-//     id-collision risk on the sibling RightRailReadStatus island
-//     (#cs300-toc-read-status) and the AnnotationsPane (#annotations-
-//     pane); class-based selectors (.right-rail-toc, [data-anchor],
-//     [data-read-indicator]) work fine with one tree.
+//     `<details class="toc-mobile-collapse">` element (no `open`
+//     attribute on the parsed DOM — see line 108 source) rendered
+//     in EVERY viewport. The desktop-open boot script below
+//     (`is:inline`) calls `details.open = true` ONLY when
+//     `matchMedia('(min-width: 1024px)').matches`, so:
+//       - At ≥1024px the script flips `open=true` synchronously
+//         after parse; the `<summary>` is CSS-hidden and content
+//         renders fully. (Without the flip, the CSS-hidden summary
+//         would leave a `<details>`-collapsed pane invisible at
+//         desktop — that was the regression T7 was guarding.)
+//       - At <1024px the script no-ops; the parsed-DOM default
+//         (closed) holds. Users tap the summary to expand. This
+//         matches ADR-0002 + T7 spec line 18 "collapsed by default."
+//     Users can collapse manually at desktop or expand manually at
+//     mobile via the summary toggle either way.
+//   - Single-DOM-tree approach (vs spec's "twice-render" suggestion
+//     in T7 step 3): one TOC instance is mounted in the right-rail
+//     slot, with the mobile-collapse `<details>` wrap toggled by
+//     CSS + the boot script above. Twice-rendering THIS component
+//     would not directly collide with RightRailReadStatus's id
+//     `#cs300-toc-read-status` (that island is a SIBLING, not
+//     embedded inside RightRailTOC) — but it WOULD duplicate the
+//     `[data-anchor]` + `[data-read-indicator]` selector targets
+//     ScrollSpy + RightRailReadStatus query, fragmenting the single
+//     paint surface. AnnotationsPane (the other right-rail member)
+//     has the same single-tree requirement for its own
+//     `#annotations-pane` + `#annotations-list` ids. Wrapping in
+//     one `<details>` and gating with @media + the boot script
+//     keeps every selector unique per page, mirroring T7 cycle 2's
+//     LeftRail single-tree resolution.
 //
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T4_right_rail_toc.md

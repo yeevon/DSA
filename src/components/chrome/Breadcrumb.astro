@@ -20,9 +20,18 @@
 //
 // Contract (per T3 spec):
 //   - Pure SSR. No JS required for navigation. Sticky behaviour is
-//     pure CSS (`position: sticky; top: 0`). The collection switcher
-//     and prev/next buttons are plain `<a>` elements with computed
-//     hrefs.
+//     pure CSS but lives on the OUTER slot wrapper
+//     (`<nav data-slot="breadcrumb">` in Base.astro) — see Base.astro's
+//     `.chrome > [data-slot="breadcrumb"] { position: sticky; ... }`
+//     rule. T8 cycle 1 moved sticky out of this inner nav per
+//     M-UX-T3-ISS-01: the inner nav's containing block was its own
+//     slot wrapper at the wrapper's auto-sized height — zero stick
+//     range. The slot wrapper is a direct grid child of `.chrome`
+//     (which has `min-height: 100vh` + tall content), giving real
+//     stick range. Verified via headless-browser scroll test in
+//     `.smoke/screenshots/lectures-ch4-1280x800-midscroll-T3.png`.
+//     The collection switcher and prev/next buttons are plain `<a>`
+//     elements with computed hrefs.
 //   - Path computed from `Astro.url.pathname`. Pattern:
 //     `/{base}/{collection}/{chapter_id}/`. On non-chapter routes
 //     this component is not mounted (chapter routes only — the
@@ -186,16 +195,14 @@ const collectionLabel: string = currentCollection
 <style>
   /* Scoped styles; tokens come from src/styles/chrome.css (imported
      globally by Base.astro). The Base.astro `[data-slot="breadcrumb"]`
-     wrapper already supplies the bottom border and surface background;
-     this `.breadcrumb` adds sticky behaviour + the inner row layout. */
+     wrapper supplies the bottom border, the surface background, AND
+     the sticky positioning (`position: sticky; top: 0; z-index: 50`
+     moved out of this inner nav at T8 cycle 1 per M-UX-T3-ISS-01 —
+     the outer slot wrapper has the real stick range because it's a
+     direct grid child of `.chrome` (`min-height: 100vh` + tall page
+     content). This inner `.breadcrumb` only owns the row layout. */
 
   .breadcrumb {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: var(--mux-surface);
-    /* The Base layout's data-slot rule already paints a bottom border
-       on the slot wrapper; the inner nav stays flush. */
     display: flex;
     align-items: center;
     flex-wrap: wrap;

@@ -169,8 +169,24 @@ const { title = 'cs-300' } = Astro.props;
       }
 
       /* Breadcrumb slot reserves a row even when empty; T3 mounts
-         the Breadcrumb component which owns its own internal styles. */
+         the Breadcrumb component which owns its own internal styles.
+         T8 cycle 1 (M-UX-T3-ISS-01 / MEDIUM): sticky positioning lives
+         on this OUTER slot wrapper, not on the inner `<nav
+         class="breadcrumb">` Breadcrumb.astro emits. The slot wrapper
+         is a direct grid child of `.chrome` (which has `min-height:
+         100vh` plus tall content), so its containing block has real
+         stick range. The inner nav previously carried `position:
+         sticky` but its containing block was THIS outer wrapper —
+         which was auto-sized to the inner nav's own height, leaving
+         zero stick range. T8's harness scroll-test (.smoke/screenshots
+         /lectures-ch4-1280x800-midscroll-T3.png) confirmed the
+         breadcrumb scrolled out of view alongside the chapter
+         content; moving sticky here is the option (a) fix the T3
+         issue file recommended. */
       .chrome > [data-slot="breadcrumb"] {
+        position: sticky;
+        top: 0;
+        z-index: 50;
         border-bottom: 1px solid var(--mux-border-subtle);
         background: var(--mux-surface);
       }
