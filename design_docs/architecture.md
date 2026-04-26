@@ -140,6 +140,21 @@ Resolved in [ADR-0002](adr/0002_ux_layer_mdn_three_column.md), 2026-04-24, after
 
 **M3 `SectionNav` refactor.** Current implementation (T7) ships `SectionNav` as a fixed left rail. Per ADR-0002, M-UX T4 pulls its functionality into the right-rail TOC structure. The old left-rail position becomes the chapter-list nav. No two left rails.
 
+**Collection-landing pages (M-UX T9 D5).** Each of the three collections also has a list-landing page rendered via `HomeLayout.astro`: `/lectures/`, `/notes/`, `/practice/`. These render the same chapter-card grid the index page uses (Required ch_1–ch_6 / Optional ch_7, ch_9–ch_13), with the home collection's link highlighted on each card via the `highlight` prop on `ChapterCard.astro`. The breadcrumb's middle path segment (`Lectures` / `Notes` / `Practice`) on chapter routes links to these landing pages. Total prerendered surface post-M-UX: **40 pages** = 36 chapter routes (12 chapters × 3 collections) + 3 collection-landing pages + 1 dashboard index. Cumulative `dist/client/` size delta vs pre-M-UX baseline: +756 KB / +17.5%.
+
+**Right-rail TOC filter (M-UX b29d409).** TOC filters MDX `sections` frontmatter to top-level numbered sections (`^\d+\.\d+\s` regex — e.g. "1.1 Arrays and Vectors", "1.6 Vector Resize") so subsection titles ("Declaring a vector", "Common errors") stay reachable in-article via in-page scroll without cluttering the rail. ScrollSpy's `setCurrent()` guard ignores non-TOC anchors so subsection scroll doesn't blank the current top-level highlight.
+
+### §1.7 Verification gates (M-UX-introduced infra)
+
+Every code task in cs-300 must satisfy CLAUDE.md's "Code-task verification is non-inferential" non-negotiable: build success is not evidence of runtime correctness. M-UX added two harness scripts that the auditor runs at every code-task gate plus the milestone-close gate:
+
+- **`scripts/smoke-screenshots.py`** (M-UX T7 cycle 2) — Selenium 4 driving headless Chrome (`--headless=new`) with isolated `/tmp/cs300-smoke-*` user-data-dir + ephemeral debugging port (zero conflict with the user's interactive Chrome). Captures PNGs across the smoke route matrix in `scripts/smoke-routes.json` at 4–5 viewports per route (375, 768, 1024, 1280, 2560). Output: `.smoke/screenshots/` (gitignored). Auditor opens 3+ screenshots per audit and cites visual evidence inline.
+- **`scripts/functional-tests.py`** (M-UX T9 D6) — Selenium-driven assertion harness reading `scripts/functional-tests.json`. Six assertion types: `attr` (string/regex match on attribute), `count` (selector cardinality), `rect` / `getBoundingClientRect` (with `op` ∈ {`==`,`<=`,`>=`,`<`,`>`,`between`} after optional pre-scroll), `href-pattern` (regex over href), `aria-current` (presence + value), `text-pattern` (regex over `textContent`). Exits 0 on all-pass, non-zero on any failure. Currently 19 test cases / 30 assertions covering the M-UX chrome contracts (centered-chrome wide-viewport, sticky rails after scroll, LeftRail collection-aware hrefs, breadcrumb functional links, RHS-TOC top-level filter, landing-page card highlights).
+- **`scripts/_selenium_helpers.py`** — shared Chrome flag set + `assert_preview_reachable()` helper used by both harnesses.
+- **`requirements-dev.txt`** — `selenium==4.43.0` pin (dep-audit clean: 0 CVEs across 15 transitive packages, wheel SHA256 verified at T7 gate).
+
+**Boundary.** The harness runs against `npm run preview` (static mode) by default — captures layout-at-viewport behaviour for every chapter route + the index + the three collection-landing pages. **Interactive-mode coverage** (annotation round-trip, mark-read paint, drawer keyboard navigation, focus-trap) is NOT yet exercised by the harness — deferred to `nice_to_have.md §UX-3` with explicit promotion trigger ("user-reported interactive-mode regression on push" or "M5 lands and needs end-to-end interactive coverage as part of its DoD").
+
 ### Audio (Phase 7 forward-compat)
 
 TTS MP3s and sentence-timestamp JSON live alongside MDX:

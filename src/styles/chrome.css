@@ -84,12 +84,18 @@
      viewport (rails snug to viewport edges). */
   --mux-chrome-max: 1400px;
 
-  /* M-UX T9 D2 — sticky-rail offset. Measured from the rendered
-     breadcrumb (inner `.breadcrumb` row at `padding: var(--mux-space-2)
-     var(--mux-space-4)` + 0.85rem font-size + line-height: 1.4 lands
-     at ~52px). The rails are sticky-pinned this far below the
-     viewport top so they sit right under the sticky breadcrumb
-     instead of overlapping it. If breadcrumb padding/font sizes
-     change, re-measure and update this token. */
-  --mux-breadcrumb-height: 52px;
+  /* M-UX T9 D2 — sticky-rail offset. Re-measured 2026-04-25 from
+     the rendered `.chrome > [data-slot="breadcrumb"]` slot wrapper
+     at viewport 1280×800 via the functional-test harness's
+     `breadcrumb-height-matches-token` invariant: actual rendered
+     height = 44.91px (T8 sticky-rule relocation moved padding
+     semantics from inner nav to outer slot wrapper, shrinking the
+     reserved space ~7px from the originally hand-measured 52px).
+     Token rounded to 46px (1px hairline buffer). The rails are
+     sticky-pinned this far below the viewport top so they sit
+     right under the sticky breadcrumb instead of overlapping it.
+     If breadcrumb padding/font sizes change, the harness's
+     `breadcrumb-height-matches-token` test fires; re-measure and
+     update both the token and the test bound. */
+  --mux-breadcrumb-height: 46px;
 }

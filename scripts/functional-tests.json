@@ -308,5 +308,52 @@
         "all": true
       }
     ]
+  },
+  {
+    "name": "breadcrumb-height-matches-token",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "rect",
+        "selector": ".chrome > [data-slot=\"breadcrumb\"]",
+        "prop": "height",
+        "op": "between",
+        "expected": [44, 48]
+      }
+    ]
+  },
+  {
+    "name": "drawer-trigger-visible-mobile",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "asserts": [
+      {
+        "type": "rect",
+        "selector": "#drawer-trigger",
+        "prop": "width",
+        "op": ">",
+        "expected": 0
+      },
+      {
+        "type": "attr",
+        "selector": "#drawer-trigger",
+        "name": "aria-controls",
+        "expected": "drawer"
+      }
+    ]
+  },
+  {
+    "name": "rhs-toc-collapsed-mobile-default",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "details.toc-mobile-collapse",
+        "name": "open",
+        "expected": null
+      }
+    ]
   }
 ]
