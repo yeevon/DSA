@@ -1,9 +1,10 @@
 # M4 — Phase 4: Question generation (`aiw-mcp` + cs-300 workflows)
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 4
-**Status:** todo — **unblocked 2026-04-25** (jmdl-ai-workflows v0.2.0 shipped 2026-04-24 with M16 "External workflow module discovery"; `AIW_EXTRA_WORKFLOW_MODULES` env-var loader + `--workflow-module` CLI flag are live; the cs-300-filed feature request at `aiw_workflow_discovery_issue.md` was deleted at unblock time per its own author note)
+**Status:** todo — **re-blocked 2026-04-25** on a follow-up upstream patch (M16 follow-up). The pre-flight smoke against jmdl-ai-workflows v0.2.0 surfaced four undocumented convention hooks (builder-returns-uncompiled, `initial_state` fallback hardcoded to literal class name `PlannerInput`, MCP `payload`-wrapping wire shape, `FINAL_STATE_KEY` honoring possibly-defective). Two diagnoses: (1) documentation gap — the discovery-issue spec cs-300 itself authored against the framework's docs didn't capture #1/#2/#4; (2) layer-leaky dispatch — `_dispatch._build_initial_state` falls back to the planner's literal class name. Full smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md); upstream feature request to address both diagnoses filed at [`../../../aiw_workflow_convention_hooks_issue.md`](../../../aiw_workflow_convention_hooks_issue.md).
 **Depends on:** M3 (state service must exist to receive generated
-questions; `POST /api/questions/bulk` must be live).
+questions; `POST /api/questions/bulk` must be live) + the upstream
+follow-up patch above.
 **Unblocks:** M5 (review loop needs persisted questions to schedule)
 
 ## Goal
@@ -131,14 +132,23 @@ play.
 
 ## Carry-over from prior milestones
 
-- [x] **Upstream gate (RESOLVED 2026-04-25).** ✅ jmdl-ai-workflows
-      v0.2.0 shipped 2026-04-24 with M16 "External workflow module
-      discovery". The env-var loader (`AIW_EXTRA_WORKFLOW_MODULES`,
-      comma-separated dotted module paths) + mirroring CLI flag
-      (`--workflow-module pkg.workflows.foo`, repeatable) are now
-      live; `aiw-mcp` imports each named module at startup so its
-      `register("name", build)` calls fire. cs-300 launches with
-      `AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,cs300.workflows.grade`
-      pointing at this repo's `./workflows/` package. Original
-      feature-request file `aiw_workflow_discovery_issue.md`
-      deleted from cs-300 root at unblock per its own author note.
+- [x] **Upstream gate, round 1 (M16 — RESOLVED 2026-04-25).** ✅
+      jmdl-ai-workflows v0.2.0 shipped 2026-04-24 with M16
+      "External workflow module discovery". The env-var loader
+      (`AIW_EXTRA_WORKFLOW_MODULES`, comma-separated dotted module
+      paths) + mirroring CLI flag (`--workflow-module
+      pkg.workflows.foo`, repeatable) are now live; `aiw-mcp`
+      imports each named module at startup so its `register("name",
+      build)` calls fire. cs-300 verified end-to-end via the
+      pre-flight smoke (see `issues/m4_unblock_smoke.md`). Original
+      discovery feature-request file `aiw_workflow_discovery_issue.md`
+      deleted from cs-300 root at M16 unblock per its own author note.
+- [ ] **Upstream gate, round 2 (M16 follow-up — OPEN).** Smoke
+      surfaced four undocumented hooks the M16 surface didn't
+      cover; blocking M4 until upstream patch lands. Spec at
+      [`../../../aiw_workflow_convention_hooks_issue.md`](../../../aiw_workflow_convention_hooks_issue.md).
+      Owner: cs-300 user (also the upstream maintainer). On
+      patch ship, this checkbox flips `[x]`, M4 status flips
+      `todo → unblocked YYYY-MM-DD`, the convention-hooks
+      issue file is deleted from cs-300 root, and T01 of the
+      M4 task breakout proceeds against the cleaned surface.

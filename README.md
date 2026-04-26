@@ -39,17 +39,22 @@ course-passing.
 > caught + fixed a real sticky-breadcrumb regression at milestone close.
 > Optional chapters (ch_7, ch_9–ch_13) ship as committed-but-
 > un-augmented; deeper review is deferred to the post-build
-> content audit. **M4 (question generation) — unblocked 2026-04-25,
-> next up** — question gen via [`jmdl-ai-workflows`](https://pypi.org/project/jmdl-ai-workflows/)'s
-> `aiw-mcp` server running cs-300's workflow modules from
-> `./workflows/`; the first surface that actually flips
-> `detectMode()` to `'interactive'`. The upstream external-workflow-
-> module discovery feature cs-300 was waiting on shipped in
-> jmdl-ai-workflows v0.2.0 (2026-04-24, upstream M16) — `aiw-mcp`
-> now loads `cs300.workflows.*` via the `AIW_EXTRA_WORKFLOW_MODULES`
-> env var. Interactive features further out (M5–M7: FSRS
-> spaced repetition, in-browser code execution, narrated audio)
-> are designed but not built. Two M-UX residuals (collapsible
+> content audit. **M4 (question generation) — re-blocked 2026-04-25
+> on an M16 follow-up upstream patch.** M16 (external workflow
+> module discovery) shipped in jmdl-ai-workflows v0.2.0 (2026-04-24)
+> — `aiw-mcp` now loads `cs300.workflows.*` via the
+> `AIW_EXTRA_WORKFLOW_MODULES` env var, verified end-to-end by
+> cs-300's pre-flight smoke. The smoke also surfaced four
+> undocumented convention hooks (builder return type, `initial_state`
+> hardcoded fallback to the planner's literal class name, MCP
+> wire-shape wrapping, `FINAL_STATE_KEY` honoring) that M4 task
+> breakout needs to be written against; rather than encode the
+> warts in cs-300's M4 specs, the upstream framework gets a
+> follow-up patch (documentation pass + dispatch cleanup —
+> [`aiw_workflow_convention_hooks_issue.md`](aiw_workflow_convention_hooks_issue.md))
+> and M4 unblocks again when it ships. Interactive features further
+> out (M5–M7: FSRS spaced repetition, in-browser code execution,
+> narrated audio) are designed but not built. Two M-UX residuals (collapsible
 > chapter sections; CompletionIndicator JSON → `GET /api/sections`
 > endpoint, ~432 KB savings) parked in
 > [`design_docs/nice_to_have.md`](design_docs/nice_to_have.md)
