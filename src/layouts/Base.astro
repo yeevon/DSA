@@ -18,6 +18,13 @@
 //   slot="right-rail"  — T4 mounts TOC + scroll-spy + (in
 //                        interactive mode, T6) the annotations
 //                        pane.
+//   slot="drawer"      — T7 mounts the mobile-drawer overlay
+//                        (`Drawer.astro`'s aside + backdrop). Lives
+//                        OUTSIDE `.chrome` so the fixed-position
+//                        drawer escapes the sticky-breadcrumb
+//                        stacking context (z-index: 50). Empty when
+//                        no consumer fills it — index page does not
+//                        mount a drawer (no left rail to drawer-ify).
 //
 // Slots are declared with no fallback content — chapters that
 // don't fill them render an empty named region without breaking
@@ -107,20 +114,34 @@ const { title = 'cs-300' } = Astro.props;
 
       /* Three-column desktop grid (≥1024px). Named template areas
          keep slot wiring legible even when one or more rails are
-         empty during the T2/T3/T4 rollout. */
+         empty during the T2/T3/T4 rollout.
+
+         Mobile (<1024px) re-order (T7): the right-rail slot moves
+         ABOVE main so the in-chapter TOC (T4) + AnnotationsPane
+         (T6), each wrapped in a `<details>` collapsed-by-default,
+         appear at content top per ADR-0002 + architecture.md §1.6.
+         At <1024px the left-rail slot is removed from the grid
+         flow (`grid-area` is no longer named in the template
+         below) and the `<aside>` itself becomes a fixed
+         off-canvas drawer — see the dedicated @media block lower
+         in this file (T7 cycle 2 refactor; resolves
+         M-UX-T7-ISS-02 + ISS-03 by collapsing the cycle 1
+         twice-render into a single DOM tree). */
       .chrome {
         display: grid;
         min-height: 100vh;
         grid-template-columns: 1fr;
+        /* Mobile template (<1024px): no left-rail track. The aside
+           still exists in the document, but it's pulled out of the
+           grid flow and styled `position: fixed` by the @media
+           block below so it can slide in/out as the drawer. */
         grid-template-areas:
           "breadcrumb"
-          "left-rail"
-          "main"
-          "right-rail";
+          "right-rail"
+          "main";
       }
 
       .chrome > [data-slot="breadcrumb"] { grid-area: breadcrumb; }
-      .chrome > [data-slot="left-rail"]  { grid-area: left-rail; }
       .chrome > [data-slot="main"]       { grid-area: main; min-width: 0; }
       .chrome > [data-slot="right-rail"] { grid-area: right-rail; }
 
@@ -157,7 +178,11 @@ const { title = 'cs-300' } = Astro.props;
       /* ≥1024px — three-column grid (per ADR-0002). Column widths
          260/1fr/280 are pinned in `chrome.css` (--mux-col-left-rail,
          --mux-col-right-rail) and re-stated here because @media
-         queries can't read custom properties as track values. */
+         queries can't read custom properties as track values.
+         At desktop the left-rail aside reclaims its `grid-area`
+         placement (the mobile template above intentionally omits
+         it so the aside doesn't reserve track space when it's
+         repositioned as the off-canvas drawer at <1024px). */
       @media (min-width: 1024px) {
         .chrome {
           grid-template-columns: 260px 1fr 280px;
@@ -166,6 +191,7 @@ const { title = 'cs-300' } = Astro.props;
             "left-rail  main       right-rail";
         }
         .chrome > [data-slot="left-rail"] {
+          grid-area: left-rail;
           border-right: 1px solid var(--mux-border-subtle);
         }
         .chrome > [data-slot="right-rail"] {
@@ -173,6 +199,59 @@ const { title = 'cs-300' } = Astro.props;
         }
         .chrome > [data-slot="main"] {
           padding: var(--mux-space-6) var(--mux-space-8);
+        }
+      }
+
+      /* T7 cycle 2 — Mobile drawer (single DOM tree).
+         At <1024px, the SAME `<aside data-slot="left-rail">` that
+         renders as the desktop left rail becomes a fixed off-canvas
+         drawer. CSS handles the slide; `Drawer.astro`'s JS island
+         toggles `body.drawer-open` when the hamburger
+         (`DrawerTrigger.astro`) fires `cs300:drawer-toggle`. No
+         second LeftRail mount: the duplicate-id finding
+         (M-UX-T7-ISS-03) and the +700 KB twice-rendered JSON
+         payload (M-UX-T7-ISS-02) both vanish.
+
+         z-index 9999 keeps the drawer above the backdrop (9998 in
+         Drawer.astro) and above the body-level interactive
+         affordances (z=1000), which `body.drawer-open` rules
+         further suppress to belt-and-braces level.
+
+         Width capped at min(280px, 85vw) so narrow phones don't
+         get a drawer that covers the whole screen and so 280px
+         matches `--mux-col-left-rail` on desktop (visual register
+         is identical when the user resizes across the breakpoint).
+
+         The aside is rendered in the document but its
+         `transform: translateX(-100%)` keeps it off-screen until
+         `body.drawer-open` flips the transform to translateX(0).
+         Index page has no left-rail content (its slot is empty) so
+         the rules are inert there.
+
+         Empty-rail discipline: when the `<aside>` is empty (e.g.
+         the index page never mounts a LeftRail), the rule still
+         applies but the off-canvas aside is invisible + has no
+         focusables, so it's truly inert.
+         */
+      @media (max-width: 1023.98px) {
+        .chrome > [data-slot="left-rail"] {
+          position: fixed;
+          top: 0;
+          left: 0;
+          height: 100vh;
+          width: min(280px, 85vw);
+          max-width: 320px;
+          padding: var(--mux-space-3) var(--mux-space-4);
+          background: var(--mux-surface);
+          border-right: 1px solid var(--mux-border-subtle);
+          box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+          transform: translateX(-100%);
+          transition: transform 200ms ease;
+          z-index: 9999;
+          overflow-y: auto;
+        }
+        :global(body.drawer-open) .chrome > [data-slot="left-rail"] {
+          transform: translateX(0);
         }
       }
 
@@ -190,6 +269,37 @@ const { title = 'cs-300' } = Astro.props;
         border-radius: 4px;
         z-index: 1000;
       }
+
+      /* T7 — Mobile responsive sweep.
+         Center column padding tightens at narrow widths so prose
+         doesn't hit the viewport edge but also doesn't waste a
+         third of the screen on inset. Typography stays at the base
+         size; ADR-0002 explicitly defers full-typography sweep to a
+         post-M-UX follow-on. */
+      @media (max-width: 767.98px) {
+        .chrome > [data-slot="main"] {
+          padding: var(--mux-space-4) var(--mux-space-3);
+        }
+      }
+
+      /* T7 — When the drawer is open at <1024px, lock body scroll
+         and suppress the body-level fixed-position interactive
+         affordances so they don't paint on top of the drawer overlay
+         (drawer aside z-index sits inside its own root stacking
+         context via the `slot="drawer"` placement; the body-level
+         z=1000 elements live outside that context and would
+         otherwise occlude the drawer at the bottom of the viewport).
+         The static-mode public deploy never reaches this state —
+         AnnotateButton + MarkReadButton + interactive-badge all
+         carry `data-interactive-only`, hidden in static mode. */
+      :global(body.drawer-open) {
+        overflow: hidden;
+      }
+      :global(body.drawer-open #annotate-button),
+      :global(body.drawer-open #mark-read-button),
+      :global(body.drawer-open .interactive-badge) {
+        display: none !important;
+      }
     </style>
   </head>
   <body data-mode="static">
@@ -197,7 +307,11 @@ const { title = 'cs-300' } = Astro.props;
       <nav data-slot="breadcrumb" aria-label="Breadcrumb">
         <slot name="breadcrumb" />
       </nav>
-      <aside data-slot="left-rail" aria-label="Chapter navigation">
+      <aside id="drawer" data-slot="left-rail" aria-label="Chapter navigation">
+        {/* `id="drawer"` is the focus-trap + aria-controls target for
+            DrawerTrigger.astro at <1024px. T7 cycle 2: this is the
+            ONE LeftRail mount; CSS in this file slides it in/out as
+            the drawer at <1024px. At desktop the id is harmless. */}
         <slot name="left-rail" />
       </aside>
       <main data-slot="main">
@@ -207,6 +321,16 @@ const { title = 'cs-300' } = Astro.props;
         <slot name="right-rail" />
       </aside>
     </div>
+    {/* Drawer overlay slot (M-UX T7). Rendered OUTSIDE `.chrome` so
+        the drawer's `position: fixed` element does not inherit the
+        sticky-breadcrumb stacking context (`position: sticky;
+        z-index: 50` would otherwise trap z-index inside the
+        breadcrumb's local layer, leaving body-level `z-index: 1000`
+        siblings — AnnotateButton, MarkReadButton, the interactive
+        badge — painting on top of the open drawer). T7's
+        `Drawer.astro` mounts here. Empty slot has zero markup
+        impact when no consumer fills it. */}
+    <slot name="drawer" />
     <div data-interactive-only class="interactive-badge">interactive mode active</div>
     <script>
       import { detectMode } from '../lib/mode';

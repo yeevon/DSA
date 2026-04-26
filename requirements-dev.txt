@@ -1,0 +1,17 @@
+# cs-300 dev-only Python dependencies.
+#
+# Authored by M-UX T7 cycle 2 (2026-04-25) — adds the Selenium
+# screenshot harness used by `scripts/smoke-screenshots.py` for
+# non-inferential browser smokes. See the harness header + the
+# scripts/smoke-screenshots.md doc for usage.
+#
+# Install into a project-local virtualenv (PEP 668 prevents global
+# installs on Debian/Ubuntu):
+#
+#     python3 -m venv .venv
+#     .venv/bin/pip install -r requirements-dev.txt
+#
+# These are NOT site dependencies (the Astro build doesn't import
+# Python). They only run during developer / auditor smoke sessions.
+
+selenium==4.43.0

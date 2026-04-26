@@ -1,0 +1,120 @@
+---
+// src/components/chrome/DrawerTrigger.astro — M-UX T7 deliverable.
+//
+// Hamburger button that opens / closes the mobile drawer. Mounted
+// inside `Breadcrumb.astro`'s `drawer-trigger` named slot so the
+// breadcrumb's flexbox layout owns the button's placement (per
+// MUX-BO-DA2-F + breakout-audit MUX-BO-ISS-04 resolution + T7 spec
+// step 1 line 26 "inside `Breadcrumb.astro`'s component-internal
+// drawer-trigger slot — not directly in `Base.astro`'s `breadcrumb`
+// slot region").
+//
+// **Two-component split.** The actual drawer overlay (the aside +
+// backdrop + open/close logic) lives in `Drawer.astro`, mounted at
+// body level via `Base.astro`'s `slot="drawer"`. This file is
+// trigger-only. See `Drawer.astro`'s header docstring for the
+// rationale: a single Astro component cannot route to two parent
+// slots simultaneously, but the spec + breakout audit firmly fix
+// the BUTTON inside breadcrumb (so the breadcrumb's flex layout
+// owns its placement) and the ASIDE at body root (so the drawer's
+// `position: fixed` element escapes the sticky-breadcrumb's
+// `z-index: 50` stacking context).
+//
+// **Communication** (per `Drawer.astro` header):
+// click dispatches `cs300:drawer-toggle` CustomEvent; the sibling
+// `Drawer.astro` island listens. No detail payload — toggle (open
+// if closed, close if open). Same custom-event idiom as the rest
+// of M3 / M-UX (`cs300:read-status-changed`, `cs300:annotation-
+// added`, `cs300:toc-read-status-painted`).
+//
+// **Visibility gate** (T7 spec step 1 line 26 + step 16 "Hamburger
+// visible only at <1024px"): the @media (max-width: 1023.98px)
+// rule on the button itself flips display from `none` to
+// `inline-flex`. At ≥1024px the button is removed from layout AND
+// from the tab order so keyboard users at desktop don't reach a
+// dead trigger.
+//
+// **Accessibility** (T7 spec step 7):
+//   - `aria-controls="drawer"` ties the button to the aside.
+//   - `aria-expanded` reflects open state — toggled by Drawer.astro
+//     in its open() / close() functions.
+//   - `aria-label="Open navigation"` reads as a friendly name for
+//     screen readers (the visible glyph is the three-bar icon ☰).
+//   - `id="drawer-trigger"` is the focus-restore target on close
+//     (Drawer.astro's lastFocused fallback).
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T7_mobile_drawer.md
+//   - src/components/chrome/Drawer.astro (T7 sibling — the overlay)
+//   - src/components/chrome/Breadcrumb.astro (T3 — drawer-trigger
+//     slot host)
+---
+
+<button
+  type="button"
+  id="drawer-trigger"
+  class="drawer-trigger"
+  aria-controls="drawer"
+  aria-expanded="false"
+  aria-label="Open navigation"
+>
+  <span class="drawer-trigger-icon" aria-hidden="true">☰</span>
+</button>
+
+<style>
+  /* Tokens come from src/styles/chrome.css (imported globally by
+     Base.astro). */
+  .drawer-trigger {
+    /* Hidden at desktop — drawer affordance is mobile-only. The
+       1024px breakpoint matches `Base.astro`'s grid breakpoint
+       (chrome.css `--mux-bp-desktop`). 1023.98px keeps the rule
+       tight against the desktop boundary so a viewport at exactly
+       1024px gets the desktop layout. */
+    display: none;
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--mux-border-subtle);
+    border-radius: 4px;
+    padding: var(--mux-space-1) var(--mux-space-2);
+    color: var(--mux-fg);
+    cursor: pointer;
+    line-height: 1;
+    font-size: 1.1rem;
+  }
+
+  .drawer-trigger:hover {
+    background: var(--mux-surface-alt);
+  }
+
+  .drawer-trigger:focus-visible {
+    outline: 2px solid var(--mux-accent);
+    outline-offset: 2px;
+  }
+
+  .drawer-trigger-icon {
+    display: inline-block;
+    line-height: 1;
+  }
+
+  @media (max-width: 1023.98px) {
+    .drawer-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Trigger script — emits `cs300:drawer-toggle` on click. The
+   * Drawer.astro island catches the event and runs the open/close
+   * logic. Inline `<script>` so the trigger is interactive on first
+   * paint; matches the rest of M-UX/M3's no-framework JS island
+   * pattern.
+   */
+  const trigger = document.getElementById('drawer-trigger');
+  trigger?.addEventListener('click', () => {
+    window.dispatchEvent(new CustomEvent('cs300:drawer-toggle'));
+  });
+</script>

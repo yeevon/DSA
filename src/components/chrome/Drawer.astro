@@ -1,0 +1,297 @@
+---
+// src/components/chrome/Drawer.astro — M-UX T7 deliverable.
+//
+// Mobile-drawer overlay support: a backdrop element + a JS island
+// that toggles `body.drawer-open` so the SAME `<aside data-slot=
+// "left-rail">` rendered by `<LeftRail slot="left-rail" />` becomes
+// a slide-in drawer at <1024px. Per ADR-0002 + architecture.md §1.6
+// (Page chrome — Mobile (<1024px) — single column / left rail
+// collapses to hamburger drawer in the breadcrumb bar).
+//
+// **Cycle 2 refactor (2026-04-25 — closes M-UX-T7-ISS-02 + ISS-03).**
+// Cycle 1 twice-rendered LeftRail (a desktop instance in the left-
+// rail slot + a drawer instance in this Drawer's <slot />). That
+// produced duplicate `id="cs300-completion-indicator"` /
+// `id="cs300-completion-indicator-data"` per chapter route (HTML5
+// invalid; ISS-03) and inflated dist/client/ by ~700 KB driven by
+// the doubled CompletionIndicator JSON payload (ISS-02). Cycle 2
+// collapses the two LeftRail mounts into ONE: the existing
+// `<LeftRail slot="left-rail" />` IS the drawer at <1024px. CSS in
+// `Base.astro` repositions the SAME aside as a `position: fixed`
+// element off-canvas at <1024px, sliding it into view when
+// `body.drawer-open` is set. Single DOM tree → no duplicate IDs,
+// no duplicate JSON payload, ~700 KB recovered.
+//
+// **What this component now renders:**
+//   1. The drawer backdrop element (`<div id="drawer-backdrop">`).
+//      Stays at body level (mounted via `Base.astro`'s `slot=
+//      "drawer"`) so its `position: fixed; z-index: 9998` paints
+//      across the full viewport without inheriting the sticky-
+//      breadcrumb stacking context.
+//   2. The JS island (inline `<script>`). Listens for
+//      `cs300:drawer-toggle` from `DrawerTrigger.astro`, toggles
+//      `body.drawer-open` + `aria-hidden` on the existing left-rail
+//      aside, manages focus trap targeting that same aside, manages
+//      Escape / backdrop-click / link-click close paths.
+//
+// **What this component no longer renders:**
+//   - The drawer aside element. The aside that becomes the drawer
+//     IS the existing `<aside data-slot="left-rail">` rendered by
+//     `Base.astro`. Stretched into a fixed off-canvas element at
+//     <1024px via Base.astro CSS rules. Single DOM tree.
+//   - A drawer-internal `<slot />`. Cycle 1 had one to host the
+//     duplicate `<LeftRail />`; cycle 2 deletes it because the
+//     route files no longer pass children to <Drawer>.
+//   - A drawer-close button. The drawer-trigger hamburger doubles
+//     as the close affordance: it's the focus-restore target on
+//     close, and `aria-expanded` on it reflects open/closed state.
+//     A separate close button inside the drawer was a cycle 1
+//     additive that became redundant once the aside IS the drawer
+//     (the aside has no "header" of its own — just the chapter list).
+//
+// **Two-component split (preserved from cycle 1).**
+// `Drawer.astro` (this file) + `DrawerTrigger.astro` (sibling)
+// remain split because the trigger button must mount inside
+// `Breadcrumb.astro`'s `drawer-trigger` slot, while the backdrop
+// must mount at body level via Base.astro's `slot="drawer"`. A
+// single Astro component cannot route to two parent slots.
+// Communication via `cs300:drawer-toggle` CustomEvent — no shared
+// state, no JS-to-JS imports.
+//
+// **Behaviour contract** (per T7 spec Step 1):
+//   - Click trigger → `body.drawer-open` set; backdrop fades in;
+//     left-rail aside slides in (CSS in Base.astro); trigger's
+//     `aria-expanded="true"`; aside's `aria-hidden="false"`; focus
+//     moves into the drawer (first focusable inside the aside).
+//   - Click backdrop OR press Escape → reverse: classes removed,
+//     aria-* flipped, focus restored to the trigger button.
+//   - Click any link inside the drawer → same close path
+//     (navigating to a chapter dismisses the drawer naturally).
+//   - Focus trap: while open, Tab cycles through focusables inside
+//     the aside; first ↔ last wrap around. Shift+Tab reverses.
+//
+// **JS island sizing** (per T7 spec line 58): native DOM APIs only,
+// no framework. Inline `<script>` (Astro hoists into the shared
+// chunk).
+//
+// **No animation framework**: native CSS transitions only. Slide-
+// in is `transform: translateX(...)` + transition (rules live in
+// Base.astro alongside the rest of the breakpoint-specific layout).
+// Backdrop fade is `opacity` + transition (rules in this file).
+//
+// **z-index discipline**: aside z-index 9999 (Base.astro), backdrop
+// 9998 (this file). Body-level fixed-position siblings
+// (AnnotateButton, MarkReadButton, interactive-badge — all
+// z-index: 1000) are CSS-suppressed by `body.drawer-open` rules in
+// Base.astro so the open drawer is never occluded.
+//
+// **Static-mode posture.** The drawer + trigger render in both
+// modes; SSR drawer-list is the static-mode mobile chapter-nav.
+// CompletionIndicator stays inside LeftRail (as it was in T2),
+// gated on `data-interactive-only` for the checkmarks; it now
+// renders ONCE per page (not twice), which IS the cycle 2 fix.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T7_mobile_drawer.md
+//   - design_docs/milestones/m_ux_polish/issues/T7_issue.md
+//     (M-UX-T7-ISS-02 + ISS-03 — closed by cycle 2)
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/layouts/Base.astro (CSS rules that turn the existing
+//     `aside[data-slot="left-rail"]` into the drawer at <1024px)
+//   - src/components/chrome/Breadcrumb.astro (drawer-trigger slot)
+//   - src/components/chrome/DrawerTrigger.astro (the hamburger)
+//   - src/components/chrome/LeftRail.astro (zero-diff vs cycle 1;
+//     the existing left-rail content IS the drawer at <1024px)
+---
+
+<div
+  id="drawer-backdrop"
+  class="drawer-backdrop"
+  data-drawer-backdrop
+  aria-hidden="true"
+  hidden
+></div>
+
+<style>
+  /* Tokens come from src/styles/chrome.css (imported globally by
+     Base.astro). The backdrop is hidden by default at every viewport
+     via the `hidden` attribute; CSS only governs the fade transition
+     once JS removes `hidden` and adds `.open`. */
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 200ms ease;
+    z-index: 9998;
+  }
+
+  .drawer-backdrop[hidden] {
+    /* Browser default for `[hidden]` is `display: none` — when the
+       backdrop is fully closed (post-transition), keep it removed
+       from the layout entirely. The JS island removes `hidden`
+       BEFORE adding `.open` so the fade-in transition runs. */
+    display: none;
+  }
+
+  .drawer-backdrop.open {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  /**
+   * Drawer JS island (M-UX T7, cycle 2 refactor).
+   *
+   * Cycle 2 simplification: the drawer aside IS the existing
+   * `<aside data-slot="left-rail">` rendered by Base.astro. This
+   * island no longer manages a separate aside element — it manages
+   * `body.drawer-open` (which CSS in Base.astro reads to slide the
+   * left-rail aside into view) plus `aria-*` state on the aside
+   * itself, the backdrop element, and the trigger button.
+   *
+   * Native DOM APIs only — no framework, no animation library.
+   * Inline `<script>` so the trigger is interactive on first paint.
+   *
+   * State lives entirely on the DOM (`body.drawer-open` class +
+   * `aria-expanded` on trigger + `aria-hidden` on aside + `.open`
+   * on backdrop). No JS module-level state; multiple identical
+   * page-loads cannot diverge.
+   *
+   * Communication with `DrawerTrigger.astro` (sibling) flows
+   * through a `cs300:drawer-toggle` CustomEvent. Same idiom as
+   * every other M3 / M-UX inter-island contract.
+   */
+
+  // The drawer aside IS the existing left-rail. Base.astro renders
+  // it at body level (well, inside .chrome) with the
+  // `data-slot="left-rail"` attribute; we query by that selector so
+  // we don't depend on a specific id. Falls back to a no-op guard
+  // if the aside is missing (e.g. index page, where there's no
+  // drawer to open in the first place).
+  const aside = document.querySelector<HTMLElement>(
+    'aside[data-slot="left-rail"]',
+  );
+  const backdrop = document.getElementById('drawer-backdrop');
+
+  if (aside && backdrop) {
+    /**
+     * Tracks the element that had focus before the drawer opened so
+     * we can restore on close. Falls back to the trigger button if
+     * focus was somewhere unexpected.
+     */
+    let lastFocused: HTMLElement | null = null;
+
+    /**
+     * Resolve the focusable elements inside the drawer aside at the
+     * time of trap evaluation. Re-queried on every Tab press so any
+     * late-injected content (e.g. CompletionIndicator paint) is
+     * included.
+     */
+    function focusables(): HTMLElement[] {
+      if (!aside) return [];
+      return Array.from(
+        aside.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute('hidden') && el.offsetParent !== null);
+    }
+
+    function open(): void {
+      if (!aside || !backdrop) return;
+      lastFocused = document.activeElement as HTMLElement | null;
+      backdrop.hidden = false;
+      // Force a reflow before adding `.open` so the fade-in
+      // transition runs from the initial `opacity: 0` state rather
+      // than skipping straight to opacity 1.
+      void backdrop.offsetWidth;
+      backdrop.classList.add('open');
+      aside.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('drawer-open');
+      const trigger = document.getElementById('drawer-trigger');
+      trigger?.setAttribute('aria-expanded', 'true');
+      // Move focus into the drawer for the focus-trap loop. Pick
+      // the first focusable element inside the aside (typically the
+      // first chapter link). Predictable + immediately accessible.
+      const items = focusables();
+      items[0]?.focus();
+    }
+
+    function close(): void {
+      if (!aside || !backdrop) return;
+      backdrop.classList.remove('open');
+      aside.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('drawer-open');
+      const trigger = document.getElementById('drawer-trigger');
+      trigger?.setAttribute('aria-expanded', 'false');
+      // Restore focus to whatever was focused before the drawer
+      // opened — typically the trigger button.
+      const restore = lastFocused ?? document.getElementById('drawer-trigger');
+      // Hide-after-transition so the slide-out animation can run
+      // before the backdrop disappears from the layout. 200ms
+      // matches the CSS transition duration on both backdrop opacity
+      // and aside transform.
+      window.setTimeout(() => {
+        if (backdrop && !backdrop.classList.contains('open')) {
+          backdrop.hidden = true;
+        }
+      }, 200);
+      restore?.focus();
+    }
+
+    function toggle(): void {
+      if (document.body.classList.contains('drawer-open')) {
+        close();
+      } else {
+        open();
+      }
+    }
+
+    // Trigger contract — DrawerTrigger.astro fires this event on
+    // click. No detail payload (open if closed, close if open).
+    window.addEventListener('cs300:drawer-toggle', toggle as EventListener);
+
+    // Backdrop click closes the drawer.
+    backdrop.addEventListener('click', close);
+
+    // Escape closes; Tab cycles focus inside the drawer aside.
+    document.addEventListener('keydown', (e) => {
+      if (!document.body.classList.contains('drawer-open')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+      }
+      if (e.key === 'Tab') {
+        const items = focusables();
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey) {
+          if (active === first || !aside.contains(active)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (active === last || !aside.contains(active)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    });
+
+    // Clicking any link inside the drawer aside closes it (so
+    // navigating to a chapter dismisses the drawer naturally).
+    aside.addEventListener('click', (e) => {
+      // Only react when the drawer is open — at desktop, the aside
+      // is the static left-rail and link clicks are normal nav
+      // without any close behaviour to run.
+      if (!document.body.classList.contains('drawer-open')) return;
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest('a[href]')) {
+        close();
+      }
+    });
+  }
+</script>

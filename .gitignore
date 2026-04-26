@@ -63,6 +63,13 @@ playwright-report/
 playwright/.cache/
 
 # ------------------------------------------------------------------
+# Selenium screenshot harness (M-UX T7 cycle 2 — scripts/smoke-screenshots.py).
+# Keep `.smoke/.gitkeep` so the directory exists in fresh clones, but
+# ignore captured screenshots themselves — regenerable build artifacts.
+# ------------------------------------------------------------------
+.smoke/screenshots/
+
+# ------------------------------------------------------------------
 # Editor / IDE
 # ------------------------------------------------------------------
 .vscode/

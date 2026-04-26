@@ -5,6 +5,17 @@
 // Practice MDX is plain markdown (no callouts in the source);
 // the components map is included for symmetry but most practice
 // content won't reach for the callout JSX tags.
+//
+// M-UX T7 update: adds the mobile-drawer wiring (DrawerTrigger
+// inside Breadcrumb's `drawer-trigger` slot + <Drawer slot="drawer">
+// at body level — backdrop + JS island only). Practice routes have
+// no right-rail content (no `sections` frontmatter on the practice
+// collection per src/content.config.ts), so the right-rail slot
+// stays empty as in T6. **Cycle 2 refactor (2026-04-25):** the
+// drawer no longer twice-renders LeftRail. The single
+// `<LeftRail slot="left-rail" />` IS the drawer at <1024px via
+// CSS rules in Base.astro that reposition the existing aside as a
+// fixed off-canvas element. Resolves M-UX-T7-ISS-02 + ISS-03.
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Definition from '../../components/callouts/Definition.astro';
@@ -15,6 +26,8 @@ import Aside from '../../components/callouts/Aside.astro';
 import CodeBlock from '../../components/callouts/CodeBlock.astro';
 import LeftRail from '../../components/chrome/LeftRail.astro';
 import Breadcrumb from '../../components/chrome/Breadcrumb.astro';
+import Drawer from '../../components/chrome/Drawer.astro';
+import DrawerTrigger from '../../components/chrome/DrawerTrigger.astro';
 
 export async function getStaticPaths() {
   const practice = await getCollection('practice');
@@ -29,8 +42,11 @@ const { Content } = await render(entry);
 ---
 
 <Base title={`${entry.data.title} — Practice`}>
-  <Breadcrumb slot="breadcrumb" />
+  <Breadcrumb slot="breadcrumb">
+    <DrawerTrigger slot="drawer-trigger" />
+  </Breadcrumb>
   <LeftRail slot="left-rail" />
+  <Drawer slot="drawer" />
   <header>
     <h1>{entry.data.title} — Practice</h1>
     <p><em>{entry.data.subtitle}</em></p>

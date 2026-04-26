@@ -10,10 +10,13 @@
 //
 // This component mounts into the `breadcrumb` slot declared by
 // `src/layouts/Base.astro` (T1) and renders on every chapter route
-// (lectures, notes, practice). T7 will later mount a hamburger
-// drawer-trigger inside this component's internal slot (per
-// MUX-BO-ISS-04 + DA3-B); T3 leaves the structure flexible but does
-// not pre-add the slot — YAGNI per CLAUDE.md.
+// (lectures, notes, practice). T7 added the `drawer-trigger` named
+// slot (per MUX-BO-ISS-04 + DA3-B + DA2-F): the hamburger button
+// from `Drawer.astro` lands here so the breadcrumb's flexbox layout
+// owns its placement. The slot is rendered inside `.breadcrumb`'s
+// flex row, ahead of the path indicator, so on narrow widths the
+// hamburger sits at the leading edge. Visibility is gated via CSS
+// `@media (max-width: 1023.98px)` on the button itself (T7).
 //
 // Contract (per T3 spec):
 //   - Pure SSR. No JS required for navigation. Sticky behaviour is
@@ -107,6 +110,12 @@ const collectionLabel: string = currentCollection
 ---
 
 <nav class="breadcrumb" aria-label="Chapter context">
+  {/* T7 drawer-trigger slot. Empty when no consumer (e.g. a future
+      breadcrumb consumer that doesn't need the drawer); on chapter
+      routes, T7's `Drawer.astro` mounts here so the hamburger
+      button sits at the leading edge of the breadcrumb's flex row.
+      Visibility of the consumer button is CSS-gated to <1024px. */}
+  <slot name="drawer-trigger" />
   {currentChapter && currentCollection && (
     <>
       <div class="breadcrumb-path">

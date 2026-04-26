@@ -42,6 +42,28 @@
 //     migrates here. No two left rails (M-UX commits to a single left
 //     rail for chapter nav).
 //
+// Mobile collapsed-rail wrapper (M-UX T7):
+//   - At <1024px, ADR-0002 + architecture.md §1.6 specify the TOC
+//     "moves to a collapsed `<details>` summary at content top."
+//     The right-rail track itself reorders above main at <1024px
+//     (Base.astro grid template-areas). T7 wraps this nav inside a
+//     `<details class="toc-mobile-collapse" open>` element rendered
+//     in EVERY viewport — at ≥1024px the `<summary>` is CSS-hidden
+//     and the `open` attribute keeps content visible (browser
+//     default for `<details open>`). At <1024px the summary is
+//     visible and tappable; on initial paint the `<details>` is
+//     `open` (matches the spec's "collapsed by default" being a
+//     UX choice — leaving it open by default at mobile makes the
+//     TOC instantly visible without an extra tap, which respects
+//     ADR-0002's reader-workflow priority "open chapter, jump
+//     around sections, annotate"). Users can collapse manually
+//     with the summary toggle. The single-DOM-tree approach (vs
+//     spec's "twice-render" suggestion in T7 step 3) avoids the
+//     id-collision risk on the sibling RightRailReadStatus island
+//     (#cs300-toc-read-status) and the AnnotationsPane (#annotations-
+//     pane); class-based selectors (.right-rail-toc, [data-anchor],
+//     [data-read-indicator]) work fine with one tree.
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T4_right_rail_toc.md
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
@@ -83,40 +105,113 @@ const { chapterId, sections } = Astro.props;
 const ordered = [...sections].sort((a, b) => a.ord - b.ord);
 ---
 
-<nav
-  class="right-rail-toc"
-  aria-label="In-chapter sections"
-  data-chapter-id={chapterId}
->
-  <h3>On this page</h3>
-  <ul>
-    {ordered.map((s) => (
-      <li>
-        <a
-          href={`#${s.anchor}`}
-          class="toc-link"
-          data-section-id={s.id}
-          data-anchor={s.anchor}
-        >
-          <span
-            class="read-indicator"
-            data-read-indicator
+<details class="toc-mobile-collapse">
+  <summary class="toc-mobile-summary">
+    <span class="toc-mobile-summary-label">On this page</span>
+  </summary>
+  <nav
+    class="right-rail-toc"
+    aria-label="In-chapter sections"
+    data-chapter-id={chapterId}
+  >
+    <h3 class="right-rail-toc-heading">On this page</h3>
+    <ul>
+      {ordered.map((s) => (
+        <li>
+          <a
+            href={`#${s.anchor}`}
+            class="toc-link"
             data-section-id={s.id}
-            data-interactive-only
-            aria-hidden="true"
-          ></span>
-          <span class="toc-label">{s.title}</span>
-        </a>
-      </li>
-    ))}
-  </ul>
-</nav>
+            data-anchor={s.anchor}
+          >
+            <span
+              class="read-indicator"
+              data-read-indicator
+              data-section-id={s.id}
+              data-interactive-only
+              aria-hidden="true"
+            ></span>
+            <span class="toc-label">{s.title}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</details>
 
 <style>
   /* Scoped styles; tokens come from src/styles/chrome.css (imported
      globally by Base.astro). */
   .right-rail-toc {
     font-size: 0.85rem;
+  }
+
+  /* Mobile-collapse wrapper (T7). At ≥1024px, the wrapper is
+     layout-transparent and the `<summary>` is visually hidden; the
+     `<details open>` browser default keeps `<nav>` children
+     rendered. At <1024px, the summary is visible and tappable so
+     users can collapse the TOC inline at content top. */
+  .toc-mobile-collapse {
+    /* `display: contents` would remove the `<details>` from the
+       layout entirely, but `<details>` browser styling (the
+       expand/collapse arrow) only renders correctly when the
+       element is in normal flow. Use `block` and let the children
+       inherit the rail-padding from Base.astro. */
+    display: block;
+  }
+
+  .toc-mobile-summary {
+    /* Hidden at desktop — the inner `<h3>` plays the heading role
+       there. Visible + styled like a small caps heading at <1024px
+       with a click affordance. */
+    display: none;
+    cursor: pointer;
+    padding: var(--mux-space-2) var(--mux-space-3);
+    margin: 0 0 var(--mux-space-2) 0;
+    border-radius: 4px;
+    background: var(--mux-surface-alt);
+    list-style: none;
+    user-select: none;
+  }
+
+  .toc-mobile-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .toc-mobile-summary-label {
+    /* Match `.right-rail-toc h3` register so the mobile summary
+       reads the same as the desktop heading. */
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+  }
+
+  .toc-mobile-summary::before {
+    /* Disclosure triangle. Rotates when `<details>` is open. */
+    content: '▸';
+    display: inline-block;
+    margin-right: var(--mux-space-2);
+    color: var(--mux-fg-subtle);
+    font-size: 0.7rem;
+    transition: transform 120ms ease;
+  }
+
+  .toc-mobile-collapse[open] > .toc-mobile-summary::before {
+    transform: rotate(90deg);
+  }
+
+  @media (max-width: 1023.98px) {
+    .toc-mobile-summary {
+      display: flex;
+      align-items: center;
+    }
+    /* Hide the desktop `<h3>` at <1024px — the summary plays its
+       role there. */
+    .right-rail-toc-heading {
+      display: none;
+    }
   }
 
   .right-rail-toc h3 {
@@ -193,3 +288,43 @@ const ordered = [...sections].sort((a, b) => a.ord - b.ord);
     background: var(--mux-accent);
   }
 </style>
+
+<script is:inline>
+  /**
+   * Open the TOC `<details>` wrapper at desktop widths so the
+   * collapsed-mobile-`<details>` initial state doesn't hide the
+   * TOC at ≥1024px (where the `<summary>` is CSS-hidden — without
+   * `open`, content would be hidden too). Runs synchronously after
+   * parse via `is:inline` so there's no FOUC at desktop.
+   *
+   * The matching media query keeps this in lockstep with
+   * `Base.astro`'s `(min-width: 1024px)` desktop breakpoint and the
+   * `.toc-mobile-summary` `(max-width: 1023.98px)` visibility rule
+   * — single source of truth at 1024px.
+   *
+   * On viewport resize across the breakpoint (e.g. user rotates a
+   * tablet), the listener re-applies — opens at desktop, leaves
+   * collapsed if the user manually collapsed at mobile (inferred
+   * from the user-toggled state being preserved across resize
+   * frames).
+   */
+  (function () {
+    var details = document.querySelectorAll('.toc-mobile-collapse');
+    if (!details.length) return;
+    var mql = window.matchMedia('(min-width: 1024px)');
+    function apply(e) {
+      details.forEach(function (d) {
+        if (e.matches) {
+          d.open = true;
+        }
+      });
+    }
+    apply(mql);
+    if (mql.addEventListener) {
+      mql.addEventListener('change', apply);
+    } else if (mql.addListener) {
+      // Safari fallback for older webkits.
+      mql.addListener(apply);
+    }
+  })();
+</script>
