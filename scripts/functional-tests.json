@@ -282,5 +282,31 @@
         "all": true
       }
     ]
+  },
+  {
+    "name": "rhs-toc-top-level-only-ch1",
+    "url": "/DSA/lectures/ch_1/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "text-pattern",
+        "selector": ".right-rail-toc a.toc-link .toc-label",
+        "expected": "^\\d+\\.\\d+\\s",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "rhs-toc-top-level-only-ch4",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "text-pattern",
+        "selector": ".right-rail-toc a.toc-link .toc-label",
+        "expected": "^\\d+\\.\\d+\\s",
+        "all": true
+      }
+    ]
   }
 ]

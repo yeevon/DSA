@@ -366,6 +366,40 @@ def _run_aria_current(driver: webdriver.Chrome, spec: dict[str, Any]) -> Asserti
     return AssertionResult(ok, detail)
 
 
+def _run_text_pattern(driver: webdriver.Chrome, spec: dict[str, Any]) -> AssertionResult:
+    """text-pattern — every matched element's textContent matches the regex.
+
+    Used for asserting visible text shape (e.g. RHS TOC entries must
+    start with `N.N ` numbering — top-level sections only, no h3
+    subsections).
+    """
+    selector = spec["selector"]
+    expected = spec["expected"]
+    require_all = bool(spec.get("all", True))
+    elements = driver.find_elements(By.CSS_SELECTOR, selector)
+    if not elements:
+        return AssertionResult(False, f"text-pattern: selector {selector!r} matched 0 elements")
+    pattern = re.compile(expected)
+    bad: list[str] = []
+    for el in elements:
+        text = (el.text or "").strip()
+        if not pattern.search(text):
+            bad.append(text)
+    if require_all:
+        ok = not bad
+        detail = (
+            f"text-pattern: {selector!r} ({len(elements)} elems) all-match {expected!r}; "
+            f"non-matching={bad if bad else '∅'}"
+        )
+    else:
+        ok = len(bad) < len(elements)
+        detail = (
+            f"text-pattern: {selector!r} ({len(elements)} elems) any-match {expected!r}; "
+            f"non-matching={bad if bad else '∅'}"
+        )
+    return AssertionResult(ok, detail)
+
+
 _RUNNERS: dict[str, Any] = {
     "attr": _run_attr,
     "count": _run_count,
@@ -373,6 +407,7 @@ _RUNNERS: dict[str, Any] = {
     "getBoundingClientRect": _run_rect,  # alias to match spec wording
     "href-pattern": _run_href_pattern,
     "aria-current": _run_aria_current,
+    "text-pattern": _run_text_pattern,
 }
 
 

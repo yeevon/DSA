@@ -117,6 +117,17 @@ const { chapterId, sections } = Astro.props;
 // but pinning it here means a future frontmatter shape change (or an
 // unsorted handwritten override) cannot silently scramble the TOC.
 const ordered = [...sections].sort((a, b) => a.ord - b.ord);
+
+// Filter to top-level sections only (titles starting with `N.N ` —
+// e.g. "1.1 Arrays and Vectors", "1.6 Vector resize"). Subsection
+// titles like "Declaring a vector" or "Common errors" are excluded
+// from the TOC to keep navigation focused; their anchors still exist
+// in the article and remain reachable via in-page scroll, but they
+// don't clutter the rail. ScrollSpy's `setCurrent()` guard (added in
+// T4 cycle 2) already ignores non-TOC anchors, so subsection scroll
+// doesn't clear the current top-level highlight.
+const TOP_LEVEL_TITLE = /^\d+\.\d+\s/;
+const topLevel = ordered.filter((s) => TOP_LEVEL_TITLE.test(s.title));
 ---
 
 <details class="toc-mobile-collapse">
@@ -130,7 +141,7 @@ const ordered = [...sections].sort((a, b) => a.ord - b.ord);
   >
     <h3 class="right-rail-toc-heading">On this page</h3>
     <ul>
-      {ordered.map((s) => (
+      {topLevel.map((s) => (
         <li>
           <a
             href={`#${s.anchor}`}
