@@ -66,3 +66,23 @@ and `viewports`.
 - No interaction smokes (click hamburger, Tab focus-trap, etc.).
   Screenshots only. Adding interaction support is straightforward
   (Selenium `ActionChains`); deferred to a follow-on.
+
+## Sibling: `scripts/functional-tests.py`
+
+Added at M-UX T9 (2026-04-25). Same Selenium + headless + isolated-
+profile setup (driver factory extracted into `scripts/_selenium_helpers.py`)
+but instead of saving PNGs it runs machine-checkable assertions
+against the live DOM and exits non-zero on any failure. Intended for
+gate-time runs in code-task audits where "does the rail still
+sticky?" needs to be a script exit code, not a human eye on a PNG.
+
+```bash
+.venv/bin/python scripts/functional-tests.py \
+    --config scripts/functional-tests.json \
+    --base-url http://localhost:4321
+```
+
+Config schema + assertion types are documented in the module
+docstring at the top of `scripts/functional-tests.py`. Initial T9
+suite covers chrome centering, sticky rails, LeftRail collection-
+awareness, breadcrumb links, and collection landing pages.

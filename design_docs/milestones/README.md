@@ -23,7 +23,7 @@ what definition of done.
 | M5    | [Phase 5 — Review loop (FSRS)](m5_phase5_review_loop/README.md)     | todo                  | —                    |
 | M6    | [Phase 6 — Code execution](m6_phase6_code_exec/README.md)           | todo                  | —                    |
 | M7    | [Phase 7 — Audio narration](m7_phase7_audio/README.md)              | todo                  | —                    |
-| M-UX  | [UX polish — chrome + chapter pane](m_ux_polish/README.md)          | ✅ closed 2026-04-25  | —                    |
+| M-UX  | [UX polish — chrome + chapter pane](m_ux_polish/README.md)          | ✅ closed 2026-04-25 (re-closed after T9 polish) | —          |
 
 The dependency graph is mostly linear: M1 → M2 → M3 fan-outs to M4
 → M5 (M5 needs question persistence + a review queue) and to M6

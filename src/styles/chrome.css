@@ -76,4 +76,20 @@
   --mux-space-4: 16px;
   --mux-space-6: 24px;
   --mux-space-8: 32px;
+
+  /* M-UX T9 D1 — chrome max-width (centered container). On viewports
+     wider than this, `.chrome` is centered with auto margins so the
+     three-column grid doesn't float apart with whitespace columns
+     between rails and content. At ≤ this width the grid fills the
+     viewport (rails snug to viewport edges). */
+  --mux-chrome-max: 1400px;
+
+  /* M-UX T9 D2 — sticky-rail offset. Measured from the rendered
+     breadcrumb (inner `.breadcrumb` row at `padding: var(--mux-space-2)
+     var(--mux-space-4)` + 0.85rem font-size + line-height: 1.4 lands
+     at ~52px). The rails are sticky-pinned this far below the
+     viewport top so they sit right under the sticky breadcrumb
+     instead of overlapping it. If breadcrumb padding/font sizes
+     change, re-measure and update this token. */
+  --mux-breadcrumb-height: 52px;
 }

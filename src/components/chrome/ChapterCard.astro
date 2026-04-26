@@ -26,13 +26,27 @@
 // are reviewer-eyes per DA2-E / DA3-A; only `href` hardcoding is a
 // regression.
 //
+// M-UX T9 update (2026-04-25): adds the optional `highlight` prop so
+// the new collection landing pages (`/DSA/lectures/`, `/DSA/notes/`,
+// `/DSA/practice/`) can emphasise the page's collection on each card
+// — that collection's link gets the `is-current-collection` class
+// (filled accent treatment); the other two stay as subtle text links.
+// Default behaviour (no `highlight` prop) is unchanged: all three
+// links render with the original subtle styling, preserving the
+// index page's existing card shape verbatim.
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T5_index_dashboard.md
+//   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D5)
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
-//   - src/pages/index.astro (sole consumer today; M5 may add another)
+//   - src/pages/index.astro (original consumer)
+//   - src/pages/lectures/index.astro / notes/index.astro /
+//     practice/index.astro (T9 — landing pages, pass `highlight=`)
 //   - src/components/chrome/DashboardSlot.astro (sibling primitive
 //     for the `data-interactive-only` empty-state wrapper)
 //   - scripts/chapters.json (the props' source of truth)
+
+type Collection = 'lectures' | 'notes' | 'practice';
 
 interface Props {
   /** Chapter slug — `ch_4`. Used as the URL segment for all three collection links. */
@@ -46,10 +60,22 @@ interface Props {
   /** Manifest `required` flag. Not rendered (the parent groups by it) but accepted so
    * a single object spread from `chapters.json` rows works without prop pruning. */
   required?: boolean;
+  /** Optional collection emphasis — when set, the named collection link gets the
+   * `is-current-collection` accent treatment. Used by the T9 collection landing pages.
+   * Omitted on the index page so card behaviour stays identical to the cycle-1 shape. */
+  highlight?: Collection;
 }
 
-const { id, n, title, subtitle } = Astro.props;
+const { id, n, title, subtitle, highlight } = Astro.props;
 const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// Build per-collection link classes. When `highlight` is set, the
+// matching collection's `<a>` gets `is-current-collection`; otherwise
+// every link renders with the default subtle treatment. Helper keeps
+// the JSX below readable.
+function linkClass(c: Collection): string {
+  return c === highlight ? 'is-current-collection' : '';
+}
 ---
 
 <article class="chapter-card" data-chapter-id={id}>
@@ -71,9 +97,9 @@ const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
   </header>
   <p class="chapter-card-subtitle">{title}</p>
   <ul class="chapter-card-links">
-    <li><a href={`${baseUrl}/lectures/${id}/`}>Lectures</a></li>
-    <li><a href={`${baseUrl}/notes/${id}/`}>Notes</a></li>
-    <li><a href={`${baseUrl}/practice/${id}/`}>Practice</a></li>
+    <li><a href={`${baseUrl}/lectures/${id}/`} class={linkClass('lectures')}>Lectures</a></li>
+    <li><a href={`${baseUrl}/notes/${id}/`} class={linkClass('notes')}>Notes</a></li>
+    <li><a href={`${baseUrl}/practice/${id}/`} class={linkClass('practice')}>Practice</a></li>
   </ul>
 </article>
 
@@ -157,6 +183,28 @@ const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
   .chapter-card-links a:hover {
     color: var(--mux-accent-strong);
     border-bottom-color: var(--mux-accent);
+  }
+
+  /* T9 D5 — emphasised collection link on the collection landing pages
+     (`/DSA/lectures/`, `/notes/`, `/practice/`). The matching link
+     gets a filled accent treatment so the user's eye lands on the
+     "open this collection for ch_N" target; the other two stay as
+     subtle text. Index page never sets `highlight=` so the rule is
+     inert there. */
+  .chapter-card-links a.is-current-collection {
+    background: var(--mux-accent-bg);
+    color: var(--mux-accent-strong);
+    font-weight: 600;
+    padding: 2px var(--mux-space-2);
+    border-radius: 4px;
+    border-bottom-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--mux-accent);
+  }
+
+  .chapter-card-links a.is-current-collection:hover {
+    color: var(--mux-fg);
+    background: var(--mux-accent);
+    border-bottom-color: transparent;
   }
 
   /* Visually hidden — used so screen readers hear "Chapter 4 — Lists,

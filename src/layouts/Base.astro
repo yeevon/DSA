@@ -62,10 +62,34 @@
 // components in T2/T3/T4/T7 reach the same vars. Boundary doc at
 // the top of `chrome.css`.
 //
+// M-UX T9 update (2026-04-25): two CSS-only refinements per spec
+// D1 + D2.
+//   D1 — centered chrome on wide viewports. `.chrome` gets
+//        `max-width: var(--mux-chrome-max); margin-inline: auto` so
+//        at >1400px the three-column grid stays centered instead of
+//        stretching across the whole viewport (rails were floating
+//        100s of pixels away from content edges on 2560px+ displays).
+//        At ≤1400px the existing 260px / 1fr / 280px grid is unchanged
+//        — rails snug to viewport edges as before.
+//   D2 — sticky rails with internal scroll at ≥1024px. The left and
+//        right rails (aside[data-slot="left-rail"], aside[data-slot=
+//        "right-rail"]) follow the user down long chapters via
+//        `position: sticky`. `align-self: start` is non-negotiable —
+//        without it the sticky aside fills its grid cell and has zero
+//        stick range. Top offset is `var(--mux-breadcrumb-height)`
+//        so the rails sit directly under the sticky breadcrumb. The
+//        rails are also given `max-height: calc(100vh - breadcrumb -
+//        gutter)` + `overflow-y: auto` so a 12-item chapter list +
+//        TOC + annotations pane scrolls inside the rail rather than
+//        overflowing the viewport on 768px-tall displays.
+// Mobile (<1024px) drawer behaviour is unchanged — sticky rules sit
+// inside the existing ≥1024px @media block.
+//
 // Companion files:
 //   - design_docs/architecture.md §1.6 (Page chrome — UX layer)
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
 //   - design_docs/milestones/m_ux_polish/tasks/T1_layout_shell.md
+//   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D1+D2)
 import '../styles/chrome.css';
 
 interface Props {
@@ -139,6 +163,24 @@ const { title = 'cs-300' } = Astro.props;
           "breadcrumb"
           "right-rail"
           "main";
+        /* T9 D1 — centered chrome on wide viewports. At ≤1400px the
+           grid fills the viewport (max-width is inert when the
+           viewport is narrower than `--mux-chrome-max`). At >1400px
+           `margin-inline: auto` centers the grid + leaves equal
+           gutters to the viewport edges so the three columns don't
+           drift apart. Width: 100% keeps the inline-size at the
+           parent's full track when below the cap.
+
+           Note: this does NOT break the sticky breadcrumb. The
+           breadcrumb's containing block is `.chrome` (because it's
+           a direct grid child); `position: sticky; top: 0` measures
+           from the viewport top, so the breadcrumb still pins to
+           the top of the viewport when the user scrolls. The
+           `min-height: 100vh` + tall page content keep its stick
+           range intact (T8 cycle 1's M-UX-T3-ISS-01 fix preserved). */
+        max-width: var(--mux-chrome-max);
+        margin-inline: auto;
+        width: 100%;
       }
 
       .chrome > [data-slot="breadcrumb"] { grid-area: breadcrumb; }
@@ -215,6 +257,46 @@ const { title = 'cs-300' } = Astro.props;
         }
         .chrome > [data-slot="main"] {
           padding: var(--mux-space-6) var(--mux-space-8);
+        }
+
+        /* T9 D2 — sticky rails on desktop. Both asides become
+           position: sticky so they follow the user down long
+           chapters (ch_4 lectures has ~80 sections; without sticky
+           rails the user scrolls past the chapter nav 200 lines in
+           and has no quick path back to other chapters or to the
+           in-chapter TOC).
+
+           - `position: sticky; top: var(--mux-breadcrumb-height)`
+             pins the rail directly under the sticky breadcrumb.
+           - `align-self: start` is CRITICAL. Without it the sticky
+             aside fills its grid cell (default `align-self: stretch`
+             on grid items) so its bottom edge is at the bottom of
+             the cell — there's nothing to "stick" because the
+             element height equals the scroll container height,
+             leaving zero stick range. With `align-self: start` the
+             aside shrink-wraps to its content height and gets real
+             stick range.
+           - `max-height: calc(100vh - breadcrumb - gutter)` + scroll
+             so a 12-item chapter list + TOC + annotations pane that
+             together exceed the viewport height (768px-tall windows
+             are common) scroll inside the rail rather than off-
+             screen. The gutter (var(--mux-space-2)) is a small
+             safety margin so the bottom edge doesn't kiss the
+             viewport edge.
+
+           The @media wrapper means these rules don't apply at
+           <1024px, where the left-rail aside is repositioned as a
+           fixed off-canvas drawer (see the existing max-width:
+           1023.98px block below) and the right-rail aside is in
+           normal flow above main. Sticky behaviour on a fixed-
+           position drawer would be meaningless. */
+        .chrome > [data-slot="left-rail"],
+        .chrome > [data-slot="right-rail"] {
+          position: sticky;
+          top: var(--mux-breadcrumb-height);
+          align-self: start;
+          max-height: calc(100vh - var(--mux-breadcrumb-height) - var(--mux-space-2));
+          overflow-y: auto;
         }
       }
 

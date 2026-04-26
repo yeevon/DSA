@@ -1,7 +1,7 @@
 # M-UX — UI/UX polish: chrome + chapter pane
 
 **Maps to:** sidecar — promoted from [`nice_to_have.md`](../../nice_to_have.md) 2026-04-24, not in original `interactive_notes_roadmap.md` phasing.
-**Status:** ✅ done 2026-04-25
+**Status:** ✅ done 2026-04-25 (re-closed after T9 layout polish; was ✅ done 2026-04-25 after T1–T8, briefly re-opened 2026-04-25 for T9)
 **Depends on:** M3 (the chrome must hold the M3 client surfaces; M3 closed 2026-04-24)
 **Unblocks:** —
 **Reference design:** [ADR-0002](../../adr/0002_ux_layer_mdn_three_column.md)
@@ -25,7 +25,7 @@ Replace the bare 51-line `Base.astro` shell + 62-line two-table `index.astro` wi
 - [x] **Mark-read button re-homed** to its chrome slot (default slot, above article body — visual position keeps M3's floating bottom-left per spec MUX-BO-DA-6 option (i); position decision documented in T6 issue file), `data-interactive-only` preserved. (T6 issue file; wording fix M-UX-T6-ISS-02 landed in T7)
 - [x] **Index page** is the mastery-dashboard placeholder — chapter cards grouped Required/Optional in static mode; "recently read" + "due for review" `data-interactive-only` slots that M5 fills when the review queue lands. Replaces the current two-table layout. (T5 issue file)
 - [x] **Mobile (<1024px)** — single column with hamburger drawer for the left rail; right-rail TOC moves to a collapsed `<details>` summary at content top. Responsive transition tested at 1280, 1024, 768, 375 widths. (T7 issue file)
-- [x] **Deploy contract preserved** — site still ships 37 prerendered pages; M3 surfaces still gated on `data-interactive-only` and invisible in static mode; no server-only code leaks into the client bundle. `dist/client/` cumulative size delta vs pre-M-UX baseline measured at +817 KB / +18.9% (was +1.42 MB before T7 cycle 2's single-DOM-tree refactor recovered 618 KB; the literal +50KB figure cited in early M-UX scoping was a back-of-envelope guess before the layered chrome scope was understood, identified as somewhat arbitrary by the user). Residual delta dominated by the CompletionIndicator SSR-embed manifest (~432 KB) which T2-ISS-02 owns as a future architectural cleanup candidate; not a milestone blocker. Sticky breadcrumb scroll regression (M-UX-T3-ISS-01) caught + fixed during T8 deploy verification. (T8 issue file + [`design_docs/m_ux_deploy_verification.md`](../../m_ux_deploy_verification.md))
+- [x] **Deploy contract preserved** — site ships **40 prerendered pages** (37 chapter routes + 3 collection-landing pages added in T9); M3 surfaces still gated on `data-interactive-only` and invisible in static mode; no server-only code leaks into the client bundle. `dist/client/` cumulative size delta vs pre-M-UX baseline measured at **+873 KB / +20.2%** post-T9 (was +817 KB / +18.9% post-T8; T9 added +56 KB for the 3 new landing pages + ChapterCard highlight CSS + breadcrumb-link CSS + sticky-rail CSS + chrome-max container token; was +1.42 MB before T7 cycle 2's single-DOM-tree refactor recovered 618 KB; the literal +50KB figure cited in early M-UX scoping was a back-of-envelope guess before the layered chrome scope was understood, identified as somewhat arbitrary by the user). Residual delta dominated by the CompletionIndicator SSR-embed manifest (~432 KB) which T2-ISS-02 owns as a future architectural cleanup candidate; not a milestone blocker. Sticky breadcrumb scroll regression (M-UX-T3-ISS-01) caught + fixed during T8 deploy verification. T9 added the Selenium functional-test harness (`scripts/functional-tests.py`) — 17 test cases / 28 assertions covering wide-viewport, sticky-rail, cross-collection, and breadcrumb-link contracts at gate-time. (T8 issue file + T9 issue file + [`design_docs/m_ux_deploy_verification.md`](../../m_ux_deploy_verification.md))
 
 ## Tasks
 
@@ -41,6 +41,7 @@ Broken out into individual files under [`tasks/`](tasks/README.md).
 | T6  | [M3 component re-homing — annotations + mark-read](tasks/T6_m3_rehome.md) | ✅ done 2026-04-25 |
 | T7  | [Mobile drawer + responsive sweep](tasks/T7_mobile_drawer.md) | ✅ done 2026-04-25 |
 | T8  | [Deploy verification — 37 pages, size budget, no regressions](tasks/T8_deploy_verification.md) | ✅ done 2026-04-25 |
+| T9  | [Layout polish + functional-test harness](tasks/T9_layout_polish.md) | ✅ done 2026-04-25 |
 
 See [`tasks/README.md`](tasks/README.md) for ordering guidance and the critical path (T1 → T4 → T6 → T7 → T8). Mirror status changes between the per-task file and the table above.
 

@@ -63,9 +63,12 @@ LIMITATIONS THIS CYCLE:
 COMPANION FILES
   - scripts/smoke-routes.json   default smoke matrix
   - scripts/smoke-screenshots.md installation + usage doc
+  - scripts/_selenium_helpers.py shared driver factory (M-UX T9 — also
+                                 used by scripts/functional-tests.py)
   - requirements-dev.txt         selenium pin
   - .smoke/.gitkeep              keep the dir, ignore screenshots
   - design_docs/milestones/m_ux_polish/tasks/T7_mobile_drawer.md (cycle 2)
+  - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (helper extract)
   - design_docs/milestones/m_ux_polish/issues/T7_issue.md (M-UX-T7-ISS-01)
 """
 
@@ -78,15 +81,22 @@ import shutil
 import sys
 import tempfile
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
+
+# Shared driver factory + preview-reachability check live in a sibling
+# helper module (extracted in M-UX T9) so this harness and
+# `scripts/functional-tests.py` use the exact same headless +
+# isolated-profile Chrome setup. Adding a new Chrome flag ripples to
+# both harnesses by editing one file.
+from _selenium_helpers import (  # type: ignore[import-not-found]
+    assert_preview_reachable,
+    build_driver,
+)
 
 
 @dataclass
@@ -166,60 +176,6 @@ def load_routes(config_path: Path) -> list[Route]:
         viewports = [Viewport(w=v["w"], h=v["h"]) for v in entry["viewports"]]
         routes.append(Route(url=entry["url"], name=entry["name"], viewports=viewports))
     return routes
-
-
-def assert_preview_reachable(base_url: str) -> None:
-    """Fail loudly if the preview server isn't already running.
-
-    The harness deliberately does NOT spawn `npm run preview` itself —
-    cycle 2 prefers an explicit "run preview in another terminal,
-    then run the harness" flow so the user can keep observing dev-mode
-    state. Call this once at startup so the user gets a clear error
-    instead of a Chrome timeout.
-    """
-    try:
-        with urllib.request.urlopen(base_url, timeout=3) as resp:  # nosec B310
-            if resp.status != 200:
-                raise RuntimeError(
-                    f"Preview server at {base_url} returned status {resp.status}; "
-                    "expected 200."
-                )
-    except (urllib.error.URLError, ConnectionRefusedError, TimeoutError) as exc:
-        raise SystemExit(
-            f"ERROR: preview server not reachable at {base_url}.\n"
-            "Start it with `npm run preview` in another terminal, "
-            "then re-run this script.\n"
-            f"(underlying error: {exc})"
-        ) from exc
-
-
-def build_driver(user_data_dir: Path, no_sandbox: bool) -> webdriver.Chrome:
-    """Launch a headless Chrome with an isolated profile.
-
-    Cycle 2 invocation contract:
-      - Headless (`--headless=new`).
-      - Isolated user-data-dir under /tmp/cs300-smoke-<pid>.
-      - No --remote-debugging-port (let chromedriver pick).
-      - --no-sandbox is opt-in via the CLI; default ON for this
-        environment per the harness header.
-    """
-    opts = Options()
-    opts.add_argument("--headless=new")
-    opts.add_argument(f"--user-data-dir={user_data_dir}")
-    if no_sandbox:
-        opts.add_argument("--no-sandbox")
-    # Disable GPU for headless Linux (cheap correctness; no perf
-    # regression at this scale).
-    opts.add_argument("--disable-gpu")
-    # Disable dev-shm usage (Linux containers have a tiny /dev/shm by
-    # default; many headless Chrome flake-guides recommend this).
-    opts.add_argument("--disable-dev-shm-usage")
-    # Quiet mode — Chrome's stdout is otherwise very chatty.
-    opts.add_argument("--log-level=3")
-    # Pin language so any locale-sensitive UI is deterministic across
-    # runs.
-    opts.add_argument("--lang=en-US")
-    return webdriver.Chrome(options=opts)
 
 
 def capture_route(

@@ -52,11 +52,28 @@
 // `//`-comment hits per DA2-E / DA3-A reviewer-eyes policy — this
 // header references `/DSA/` only inside doc-comment lines.
 //
+// M-UX T9 update (2026-04-25): functional breadcrumb links per spec
+// D4 + AC7/AC8/AC9. Three changes:
+//   1. The `cs-300` root segment becomes a real `<a>` linking to
+//      `${baseUrl}/` (home). Was a non-link `<span>` in the cycle-1
+//      shell — clicked text led nowhere.
+//   2. The middle path segment (`Lectures` / `Notes` / `Practice`)
+//      now links to the corresponding collection LANDING page
+//      (`${baseUrl}/${collection}/`, T9 D5) — was previously
+//      hyperlinked to the same-collection chapter page (a no-op
+//      navigation since the user was already on that page).
+//   3. The current chapter title segment was already a `<span
+//      aria-current="page">` (correct) — preserved verbatim. The
+//      AC9 assertion just verifies it stays that way.
+// Collection-switcher pills + prev/next buttons untouched.
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T3_breadcrumb.md
+//   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D4)
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
 //   - src/layouts/Base.astro (T1 — slot contract)
 //   - src/components/chrome/LeftRail.astro (T2 — sibling chrome)
+//   - src/pages/{lectures,notes,practice}/index.astro (T9 — link targets)
 //   - scripts/chapters.json (chapter manifest; sort key `n`)
 import chapters from '../../../scripts/chapters.json';
 
@@ -109,6 +126,17 @@ function chapterHref(collection: Collection, chapterId: string): string {
   return `${baseUrl}/${collection}/${chapterId}/`;
 }
 
+// T9 D4 — href for the breadcrumb's middle path segment. Points at
+// the collection LANDING page (T9 D5), not the same-collection
+// chapter page (which is where the user already is).
+function collectionLandingHref(collection: Collection): string {
+  return `${baseUrl}/${collection}/`;
+}
+
+// T9 D4 — home href for the leading `cs-300` crumb. Trailing slash
+// preserved so Astro's auto-route resolution doesn't 301 the link.
+const homeHref = `${baseUrl}/`;
+
 // Resolve the "Lectures" path segment label for the breadcrumb path
 // list. Falls back to the literal collection slug if somehow the URL
 // pattern matches a future collection name (defensive — closed set
@@ -129,12 +157,21 @@ const collectionLabel: string = currentCollection
     <>
       <div class="breadcrumb-path">
         <ol aria-label="Breadcrumb path">
-          <li><span class="path-root">cs-300</span></li>
           <li>
-            <a href={chapterHref(currentCollection, currentChapter.id)}>{collectionLabel}</a>
+            {/* T9 D4 / AC7: cs-300 root is a real link to home. */}
+            <a class="path-root" href={homeHref}>cs-300</a>
           </li>
-          <li aria-current="page">
-            <span class="path-current">ch_{currentChapter.n} — {currentChapter.subtitle}</span>
+          <li>
+            {/* T9 D4 / AC8: middle segment links to the new collection
+                landing page (D5), not the same-collection chapter page.
+                Text reflects the current collection (Lectures/Notes/Practice). */}
+            <a href={collectionLandingHref(currentCollection)}>{collectionLabel}</a>
+          </li>
+          <li>
+            {/* T9 D4 / AC9: current chapter is a non-link <span> with
+                aria-current="page". Already correct in cycle 1; verified
+                + preserved. */}
+            <span class="path-current" aria-current="page">ch_{currentChapter.n} — {currentChapter.subtitle}</span>
           </li>
         </ol>
       </div>
@@ -244,7 +281,12 @@ const collectionLabel: string = currentCollection
     text-decoration: underline;
   }
 
-  .path-root {
+  /* T9 D4 — `.path-root` is now an <a>; the .breadcrumb-path a rule
+     above handles the muted color + hover/underline behaviour. We
+     keep this rule for the de-emphasised subtle tone the cycle-1
+     <span> had so the leading crumb stays visually quieter than the
+     middle "Lectures" segment. */
+  a.path-root {
     color: var(--mux-fg-subtle);
   }
 

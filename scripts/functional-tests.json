@@ -1,0 +1,286 @@
+[
+  {
+    "name": "chrome-centered-2560",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 2560, "h": 1080 },
+    "asserts": [
+      {
+        "type": "rect",
+        "selector": ".chrome",
+        "prop": "width",
+        "op": "<=",
+        "expected": 1400
+      },
+      {
+        "type": "rect",
+        "selector": ".chrome",
+        "prop": "left",
+        "op": ">=",
+        "expected": 100
+      }
+    ]
+  },
+  {
+    "name": "chrome-fills-1024",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1024, "h": 768 },
+    "asserts": [
+      {
+        "type": "rect",
+        "selector": ".chrome",
+        "prop": "width",
+        "op": "between",
+        "expected": [1000, 1024]
+      },
+      {
+        "type": "rect",
+        "selector": ".chrome",
+        "prop": "left",
+        "op": "==",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "left-rail-sticky-after-scroll-ch4",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "scroll": 2000,
+    "asserts": [
+      {
+        "type": "rect",
+        "selector": "aside[data-slot=\"left-rail\"]",
+        "prop": "top",
+        "op": "between",
+        "expected": [0, 100]
+      }
+    ]
+  },
+  {
+    "name": "right-rail-sticky-after-scroll-ch4",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "scroll": 2000,
+    "asserts": [
+      {
+        "type": "rect",
+        "selector": "aside[data-slot=\"right-rail\"]",
+        "prop": "top",
+        "op": "between",
+        "expected": [0, 100]
+      }
+    ]
+  },
+  {
+    "name": "leftrail-collection-aware-notes",
+    "url": "/DSA/notes/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "href-pattern",
+        "selector": "aside[data-slot=\"left-rail\"] a.chapter-link",
+        "expected": "/DSA/notes/ch_\\d+/$",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "leftrail-collection-aware-practice",
+    "url": "/DSA/practice/ch_7/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "href-pattern",
+        "selector": "aside[data-slot=\"left-rail\"] a.chapter-link",
+        "expected": "/DSA/practice/ch_\\d+/$",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "breadcrumb-cs300-link",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".breadcrumb-path a.path-root",
+        "expected": 1
+      },
+      {
+        "type": "href-pattern",
+        "selector": ".breadcrumb-path a.path-root",
+        "expected": "/DSA/$"
+      }
+    ]
+  },
+  {
+    "name": "breadcrumb-collection-link-notes",
+    "url": "/DSA/notes/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "href-pattern",
+        "selector": ".breadcrumb-path li:nth-child(2) a",
+        "expected": "/DSA/notes/$"
+      },
+      {
+        "type": "attr",
+        "selector": ".breadcrumb-path li:nth-child(2) a",
+        "name": "textContent",
+        "expected": "^Notes$",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "breadcrumb-collection-link-lectures",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "href-pattern",
+        "selector": ".breadcrumb-path li:nth-child(2) a",
+        "expected": "/DSA/lectures/$"
+      },
+      {
+        "type": "attr",
+        "selector": ".breadcrumb-path li:nth-child(2) a",
+        "name": "textContent",
+        "expected": "^Lectures$",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "breadcrumb-collection-link-practice",
+    "url": "/DSA/practice/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "href-pattern",
+        "selector": ".breadcrumb-path li:nth-child(2) a",
+        "expected": "/DSA/practice/$"
+      },
+      {
+        "type": "attr",
+        "selector": ".breadcrumb-path li:nth-child(2) a",
+        "name": "textContent",
+        "expected": "^Practice$",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "breadcrumb-current-page-no-link",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "aria-current",
+        "selector": ".breadcrumb-path .path-current",
+        "expected": "page"
+      },
+      {
+        "type": "count",
+        "selector": ".breadcrumb-path a[aria-current=\"page\"]",
+        "expected": 0
+      },
+      {
+        "type": "count",
+        "selector": ".breadcrumb-path span.path-current[aria-current=\"page\"]",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "landing-page-lectures-renders",
+    "url": "/DSA/lectures/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card",
+        "expected": 12
+      }
+    ]
+  },
+  {
+    "name": "landing-page-notes-renders",
+    "url": "/DSA/notes/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card",
+        "expected": 12
+      }
+    ]
+  },
+  {
+    "name": "landing-page-practice-renders",
+    "url": "/DSA/practice/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card",
+        "expected": 12
+      }
+    ]
+  },
+  {
+    "name": "landing-page-highlight-lectures",
+    "url": "/DSA/lectures/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "expected": 12
+      },
+      {
+        "type": "href-pattern",
+        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "expected": "/DSA/lectures/ch_\\d+/$",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "landing-page-highlight-notes",
+    "url": "/DSA/notes/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "expected": 12
+      },
+      {
+        "type": "href-pattern",
+        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "expected": "/DSA/notes/ch_\\d+/$",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "landing-page-highlight-practice",
+    "url": "/DSA/practice/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "expected": 12
+      },
+      {
+        "type": "href-pattern",
+        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "expected": "/DSA/practice/ch_\\d+/$",
+        "all": true
+      }
+    ]
+  }
+]

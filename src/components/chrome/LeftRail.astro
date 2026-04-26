@@ -32,10 +32,23 @@
 // Sort key is `n` (chapter number) so ch_10 sorts after ch_9 —
 // not lexicographic on `id` (which would sort ch_10 before ch_9).
 //
+// M-UX T9 update (2026-04-25): collection-aware chapter hrefs per
+// spec D3 + AC5/AC6. The cycle-1 LeftRail hardcoded `lectures/` in
+// every chapter href, so clicking a chapter from a notes or practice
+// page jumped the user back to lectures — a usability paper-cut for
+// any user who's reading notes or practice across chapters. We now
+// derive the current collection from `Astro.url.pathname` (same
+// regex Breadcrumb uses) and use it in the href construction.
+// CompletionIndicator wiring + read-status indicator behaviour +
+// M3 contracts are unchanged — only the chapter-link `href` template
+// changes.
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T2_left_rail.md
+//   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D3)
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
 //   - src/layouts/Base.astro (T1 — slot contract)
+//   - src/components/chrome/Breadcrumb.astro (T3 — same regex pattern)
 //   - src/components/chrome/CompletionIndicator.astro (sibling island)
 //   - scripts/chapters.json (chapter manifest; also consumed by
 //     M3 T4 seed helper and src/pages/index.astro)
@@ -59,6 +72,16 @@ const optional = sorted.filter((c) => !c.required);
 const path = Astro.url.pathname;
 const chapterSlugMatch = path.match(/\/(lectures|notes|practice)\/(ch_\d+)\/?$/);
 const currentChapterId = chapterSlugMatch ? chapterSlugMatch[2] : null;
+
+// T9 D3 — current collection slug. Used to build chapter hrefs that
+// preserve the user's current collection context. Falls back to
+// `lectures` if the LeftRail is somehow mounted on a non-chapter
+// route (defensive — chapter routes are the only consumer today).
+// Same regex Breadcrumb.astro uses to derive its `currentCollection`.
+type Collection = 'lectures' | 'notes' | 'practice';
+const currentCollection: Collection = chapterSlugMatch
+  ? (chapterSlugMatch[1] as Collection)
+  : 'lectures';
 
 // Pull per-chapter section ids from the lectures collection so the
 // CompletionIndicator island can evaluate the "all sections marked"
@@ -85,7 +108,7 @@ for (const c of sorted) {
       {required.map((c) => (
         <li>
           <a
-            href={`${baseUrl}/lectures/${c.id}/`}
+            href={`${baseUrl}/${currentCollection}/${c.id}/`}
             aria-current={c.id === currentChapterId ? 'page' : undefined}
             class:list={['chapter-link', c.id === currentChapterId && 'is-current']}
           >
@@ -105,7 +128,7 @@ for (const c of sorted) {
       {optional.map((c) => (
         <li>
           <a
-            href={`${baseUrl}/lectures/${c.id}/`}
+            href={`${baseUrl}/${currentCollection}/${c.id}/`}
             aria-current={c.id === currentChapterId ? 'page' : undefined}
             class:list={['chapter-link', c.id === currentChapterId && 'is-current']}
           >

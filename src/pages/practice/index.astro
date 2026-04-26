@@ -1,0 +1,111 @@
+---
+// src/pages/practice/index.astro — M-UX T9 deliverable D5.
+//
+// Sibling of `src/pages/lectures/index.astro` for the practice
+// collection. Renders at `/DSA/practice/`. See the lectures landing-
+// page header for the design rationale shared by all three landing
+// pages.
+//
+// `highlight="practice"` emphasises the Practice link on each chapter
+// card; Lectures + Notes stay as subtle text. Otherwise structurally
+// identical to the sibling pages.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D5)
+//   - src/pages/lectures/index.astro / notes/index.astro (siblings)
+//   - src/components/chrome/ChapterCard.astro
+import HomeLayout from '../../layouts/HomeLayout.astro';
+import ChapterCard from '../../components/chrome/ChapterCard.astro';
+import chapters from '../../../scripts/chapters.json';
+
+const sorted = [...chapters].sort((a, b) => a.n - b.n);
+const required = sorted.filter((c) => c.required);
+const optional = sorted.filter((c) => !c.required);
+---
+
+<HomeLayout title="Practice — cs-300">
+  <header class="home-header">
+    <h1>Practice</h1>
+    <p class="home-blurb">
+      Practice prompts and exercises sourced from <code>chapters/ch_N/practice.md</code>.
+    </p>
+  </header>
+
+  <section class="chapter-group" aria-labelledby="practice-required-heading">
+    <h2 id="practice-required-heading" class="chapter-group-heading">Required</h2>
+    <p class="chapter-group-blurb">SNHU CS 300 syllabus.</p>
+    <div class="chapter-grid">
+      {required.map((c) => (
+        <ChapterCard
+          id={c.id}
+          n={c.n}
+          title={c.title}
+          subtitle={c.subtitle}
+          required={c.required}
+          highlight="practice"
+        />
+      ))}
+    </div>
+  </section>
+
+  <section class="chapter-group" aria-labelledby="practice-optional-heading">
+    <h2 id="practice-optional-heading" class="chapter-group-heading">Optional</h2>
+    <p class="chapter-group-blurb">Depth chapters; outside the graded path.</p>
+    <div class="chapter-grid">
+      {optional.map((c) => (
+        <ChapterCard
+          id={c.id}
+          n={c.n}
+          title={c.title}
+          subtitle={c.subtitle}
+          required={c.required}
+          highlight="practice"
+        />
+      ))}
+    </div>
+  </section>
+</HomeLayout>
+
+<style>
+  .home-header {
+    margin: 0 0 var(--mux-space-8) 0;
+  }
+
+  .home-header h1 {
+    margin: 0 0 var(--mux-space-2) 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .home-blurb {
+    margin: 0;
+    color: var(--mux-fg-muted);
+    font-size: 0.95rem;
+  }
+
+  .chapter-group {
+    margin: 0 0 var(--mux-space-8) 0;
+  }
+
+  .chapter-group-heading {
+    margin: 0 0 var(--mux-space-1) 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+  }
+
+  .chapter-group-blurb {
+    margin: 0 0 var(--mux-space-4) 0;
+    font-size: 0.875rem;
+    color: var(--mux-fg-subtle);
+  }
+
+  .chapter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--mux-space-4);
+  }
+</style>

@@ -10,6 +10,32 @@
     ]
   },
   {
+    "url": "/DSA/lectures/",
+    "name": "lectures-landing",
+    "viewports": [
+      { "w": 2560, "h": 1080 },
+      { "w": 1280, "h": 800 },
+      { "w": 768, "h": 1024 },
+      { "w": 375, "h": 812 }
+    ]
+  },
+  {
+    "url": "/DSA/notes/",
+    "name": "notes-landing",
+    "viewports": [
+      { "w": 1280, "h": 800 },
+      { "w": 375, "h": 812 }
+    ]
+  },
+  {
+    "url": "/DSA/practice/",
+    "name": "practice-landing",
+    "viewports": [
+      { "w": 1280, "h": 800 },
+      { "w": 375, "h": 812 }
+    ]
+  },
+  {
     "url": "/DSA/lectures/ch_1/",
     "name": "lectures-ch1",
     "viewports": [
@@ -23,6 +49,7 @@
     "url": "/DSA/lectures/ch_4/",
     "name": "lectures-ch4",
     "viewports": [
+      { "w": 2560, "h": 1080 },
       { "w": 1280, "h": 800 },
       { "w": 1024, "h": 768 },
       { "w": 768, "h": 1024 },
