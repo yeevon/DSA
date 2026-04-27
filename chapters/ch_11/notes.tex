@@ -34,13 +34,20 @@ Root relaxed: may have as few as 1 key. \textbf{2-3-4 tree} = order 4
 
 \subsection*{Node skeleton}
 \begin{lstlisting}[language=C++]
-struct BTNode {
-    bool isLeaf;
-    std::vector<int>       keys;      // up to m-1
-    std::vector<BTNode*>   children;  // up to m
+template<int Order>     // Order = max children = m
+struct BTreeNode {
+    int numKeys = 0;
+    int keys[Order - 1];                    // sorted, up to m-1
+    BTreeNode* children[Order] = {};        // null in leaves
+    BTreeNode* parent = nullptr;
+    bool isLeaf() const  { return children[0] == nullptr; }
+    bool isFull() const  { return numKeys == Order - 1; }
 };
 \end{lstlisting}
-Node arrays kept sorted; binary-search within a node.
+Node arrays kept sorted; binary-search within a node. Lectures.tex
+uses the same templated fixed-array form (compile-time fanout
+$\Rightarrow$ better cache behaviour); a \texttt{std::vector}-based
+form is equivalent but pays a heap-pointer indirection per node.
 
 \subsection*{Height}
 Fully packed: $n \approx m^{h+1} \Rightarrow h = O(\log_m n)$.

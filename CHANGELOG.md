@@ -152,6 +152,155 @@ non-decisions (a question raised and intentionally postponed).
   \S10.15 decision table, \S10.16 forward direction). Dep audit:
   skipped --- no manifest changes.
 
+- **Added** **ch_11 OCW augmentation pass (Step 3 of the per-chapter
+  review loop, against `design_docs/chapter_reviews/ch_11_gaps.md`).**
+  `chapters/ch_11/lectures.tex` 432 → 1607 lines (+1175 lines,
+  ~+272% growth --- well over the gap report's ~+583 estimate, in
+  line with the ch_7 / ch_9 / ch_10 precedent of every ADD landing
+  at full depth rather than summary-only). `chapters/ch_11/notes.tex`
+  142 → 149 lines (+7 lines, S0.2 alignment only). Page count
+  9 → 25 (gap-report target was ~22-25). Optional-chapter framing
+  (per `feedback_chapter_review_autonomy.md` 2026-04-25 update)
+  waives both the 40-page cap and the 3-5 bounded-additions rule.
+  Defaults applied on all three DECIDE items in the gap report
+  (notes.tex full templated alignment; B+ half-section; 2-3-4 $\leftrightarrow$
+  red-black notebox-only). Primary source: \textbf{CLRS Ch.~18}
+  (OCW 6.006 Spring 2020 does not cover B-trees).
+  **Sections touched:**
+  - **Header (S1+S2):** new opening `ideabox` "Chapter map" matching
+    ch_1 / ch_7 / ch_9 / ch_10 template --- *Where this sits in
+    CS 300* (shallow-and-wide tree register vs ch.~9's balanced
+    binary trees; memory-hierarchy motivation), *What you add to
+    your toolkit* (minimum-degree $t$ / order $K$ bridge,
+    height bound, preemptive split, preemptive merge, B+ trees,
+    production-where-they-show-up enumeration), 7-item *Mastery
+    checklist*, *Looking ahead* paragraph (forward-refs to ch.~12
+    set ADT + \S11.6 + \S11.7). Existing one-paragraph "Why
+    B-trees exist" frame retained as a follow-on second `ideabox`.
+    Lines 11--98.
+  - **S0 housekeeping (all four items landed):**
+    - \textbf{S0.1.} `defnbox` minimum-occupancy floor clause added
+      ($\lceil K/2 \rceil - 1$ keys minimum on non-root nodes,
+      root exception called out in a new follow-on `notebox`).
+    - \textbf{S0.2.} `notes.tex` skeleton aligned with lectures.tex's
+      templated `BTreeNode<Order>` form (replaces the previous
+      `std::vector`-based `BTNode`); annotated to call out the
+      compile-time-fanout vs heap-pointer-indirection trade.
+    - \textbf{S0.3.} New "Helper primitives" `lstlisting` block in
+      \S11.1 implementing `indexOfKey` / `containsKey` /
+      `btreeChildForKey` / `btreeInsertIntoLeaf` /
+      `btreeInsertKeyWithChildren` / `removeKey` / `btreeGetMinKey`
+      with brief but runnable-shape bodies. Listings later in the
+      chapter call into these as black-box primitives.
+    - \textbf{S0.4.} \S11.5 closing chapter-takeaway `ideabox`
+      rewritten to enumerate the four sub-algorithms (search /
+      preemptive-split insert / preemptive-merge remove /
+      rotation+fusion) per the ch_10 unification convention; new
+      "Looking ahead" forward-refs paragraph pointing at ch.~12
+      (set ADT, B-tree / B+ tree as disk-side implementation
+      choice) and \S11.6 (forward direction beyond cs-300).
+  - **\S11.1 (CLRS-register augmentation):** new `notebox` bridging
+    CLRS minimum-degree $t$ to chapter's order $K$ ($K = 2t$,
+    bounds translation); new `defnbox` for the height bound
+    $h \le \log_t \frac{n+1}{2}$ with worst-case-occupancy proof
+    sketch (CLRS Theorem 18.1); new `defnbox` for the disk-access
+    model (DAM) + `notebox` with concrete sizing examples (1\,KB /
+    4\,KB / 16\,KB pages, 64-byte cache-line for in-memory
+    B-trees); new "A 3-level B-tree of order 4 --- the running
+    picture" subsection with TikZ diagram (root + 2 internal +
+    6 leaves, 16 keys total) annotated to read off all five
+    structural invariants on the picture.
+  - **\S11.2 (CLRS-register augmentation):** new "B-TREE-SEARCH ---
+    the general form" subsection with templated recursive C++
+    implementation generalising the existing 2-3-4-special
+    listing; in-node linear-vs-binary scan choice called out in a
+    `notebox` with a binary-search-within-node listing; new
+    "Cost --- CPU vs disk decomposition" subsection with a
+    4-row tabular separating disk reads from CPU comparisons and
+    showing that B-tree CPU equals balanced-binary-tree CPU when
+    binary in-node search is used.
+  - **\S11.3 (CLRS-register augmentation):** new "Why preemptive
+    top-down?" `notebox` justifying the single-pass invariant
+    over Knuth's bottom-up; new "B-TREE-SPLIT-CHILD --- the CLRS
+    form" subsection with templated implementation generalising
+    the order-4 `btreeSplit`; new "B-TREE-INSERT-NONFULL ---
+    the recursive descent" subsection with both
+    `btreeInsertNonFull` and the public `btreeInsertCLRS` that
+    handles root-split. New "Preemptive split during descent ---
+    before / after" TikZ diagram showing the descent move
+    (full child split before entering, median promoted, descent
+    target picked from the two halves). New `examplebox` worked
+    insert sequence (10, 20, 30, 40, 5, 15, 25, 35, 45 into an
+    empty $K=4$ tree, 6 frames, two splits including the
+    root-split height-growth event).
+  - **\S11.4 (CLRS-register augmentation):** new "The CLRS 4-case
+    deletion taxonomy" subsection formalising what was previously
+    scattered prose --- structured `defnbox` covering case 1
+    (key in leaf), case 2 (key in internal: 2a predecessor, 2b
+    successor, 2c fuse children), case 3 (key not in current
+    node: 3a rotate-from-sibling, 3b fuse-with-sibling), and the
+    root-fusion height-shrink special case. New "Why preemptive
+    merge during descent?" `notebox` (mirror of the preemptive-
+    split argument). New "Picture: rotation from sibling vs.\
+    fusion with sibling" TikZ subsection with paired before /
+    after diagrams of cases 3a and 3b on the same starting
+    configuration.
+  - **\S11.5 (B+ expansion + 4-case examplebox):** "B+ trees ---
+    the production refinement" `notebox` expanded to a half-section
+    with `defnbox` (formal B+ definition: data-only-at-leaves,
+    linked-list-of-leaves, higher fanout via routing-keys-only
+    internal nodes), B-tree-vs-B+ comparison `tabular`
+    (8 rows: data location, routing duplication, fanout, range
+    scan, sequential scan, point-query depth, production use,
+    insert/delete invariance), side-by-side TikZ diagram showing
+    where data lives + the leaf-level forward link via dashed
+    arrow, and a "Why B+ wins for databases" `notebox` framing
+    range-query cost as $O(R)$ vs $O(R \log_K n)$ on classic
+    B-trees. New `examplebox` worked deletion trace exercising
+    all four CLRS cases on a populated $K = 4$ tree (delete 50,
+    20, 5, 10, 25, 35, 40 across 7 frames, hitting cases 1 / 2a /
+    3a / 2b / 3a / 3b in sequence with explicit case labels).
+  - **NEW \S11.6 (Memory hierarchy and B-tree variants):**
+    2-3-4 $\leftrightarrow$ red-black-tree equivalence `notebox`
+    (the CLRS Ch.~13 problem-13-4 correspondence; explains why
+    ch.~9 RB insert/delete had so many cases --- the 2-3-4
+    algorithm in disguise); cache-oblivious-B-trees `notebox`
+    (van Emde Boas layout, Bender-Demaine-Farach-Colton 2000);
+    LSM-trees `notebox` (O'Neil et al. 1996, write-vs-read tradeoff,
+    LevelDB / RocksDB / Cassandra / HBase / ScyllaDB production
+    refs); fractal-trees / Bw-trees / copy-on-write-B-trees
+    `notebox` (TokuDB, Microsoft Hekaton, Btrfs / ZFS).
+  - **NEW \S11.7 (Production references and further reading):**
+    single closing `notebox` covering SQLite (B+, 4096-byte page
+    default), PostgreSQL (`btree` access method + Lehman-Yao
+    right-link concurrency), MySQL InnoDB (clustered B+ on
+    primary key, 16\,KB page default), Linux ext4 (htree),
+    Btrfs (copy-on-write B+ throughout), git packfile (.idx ---
+    sorted-array contrast, not B-tree), LSM-tree-on-top engines.
+    Followed by canonical-references list: CLRS Ch.~18, Graefe
+    "Modern B-Tree Techniques" (2010), Knuth TAOCP vol.~3 \S6.2.4,
+    Bender-Demaine-Farach-Colton 2000, Bayer-McCreight 1972
+    original.
+  - **Closing chapter-takeaway \S11.5 `ideabox` rewritten in place
+    per S3 + S0.4 default:** sub-algorithms enumerated (search /
+    preemptive-split insert / preemptive-merge remove / rotation
+    + fusion as the four moves the chapter unifies under); new
+    "Looking ahead" forward-refs paragraph pointing at ch.~12
+    (set ADT) and \S11.6 / \S11.7 (forward direction +
+    canonical references).
+  Two `pdflatex` passes (`-halt-on-error -interaction=nonstopmode`)
+  both exit 0; final `lectures.pdf` is 25 pages, 512209 bytes.
+  Five TikZ figures landed (1 baseline order-4 split TikZ retained;
+  4 new: 3-level $K=4$ tree in \S11.1, preemptive-split before/after
+  in \S11.3, paired rotation-vs-fusion (cases 3a / 3b) in \S11.4,
+  B-tree-vs-B+ comparison in \S11.5). Three exampleboxes (1
+  baseline "Where B-trees actually live"; 2 new: insert-sequence
+  trace in \S11.3, 4-case deletion trace in \S11.5). Two new
+  sections (\S11.6 Memory hierarchy + variants, \S11.7 Production
+  references). CLRS 4-case deletion taxonomy formalised as a
+  structured `defnbox` (cases 1 / 2a / 2b / 2c / 3a / 3b + root-
+  fusion). Dep audit: skipped --- no manifest changes.
+
 - **Added** **ch_9 OCW augmentation pass (Step 3 of the per-chapter
   review loop, against `design_docs/chapter_reviews/ch_9_gaps.md`).**
   `chapters/ch_9/lectures.tex` 1575 → 2309 lines (+734 lines,
