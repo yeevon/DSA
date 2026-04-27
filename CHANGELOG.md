@@ -14,6 +14,144 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-25
 
+- **Added** **ch_10 OCW augmentation pass (Step 3 of the per-chapter
+  review loop, against `design_docs/chapter_reviews/ch_10_gaps.md`).**
+  `chapters/ch_10/lectures.tex` 842 → 2048 lines (+1206 lines,
+  ~+143% growth --- well over the gap report's ~+730 estimate, in
+  line with the ch_7 / ch_9 precedent of every ADD landing at full
+  depth rather than summary-only). Page count 18 → 33 (gap-report
+  target was ~36-40; ran shorter than ch_9's 41-page final because
+  the chapter has lower vocabulary density per algorithm). Optional-
+  chapter framing (per `feedback_chapter_review_autonomy.md`
+  2026-04-25 update) waives both the 40-page cap and the 3-5
+  bounded-additions rule; ch_10 ships everything in the contract.
+  **Sections touched:**
+  - **Header (S1+S2):** new opening `ideabox` "Chapter map" matching
+    ch_1 / ch_7 / ch_9 template --- *Where this sits in CS 300* /
+    *What you add to your toolkit* / 7-item *Mastery checklist* /
+    *Looking ahead* block with forward refs to ch.~11 (B-trees),
+    ch.~12 (set ADT), \S10.16 (A* / Johnson / network flow / planar
+    graphs). Existing one-paragraph "Why graphs matter" frame
+    retained as a follow-on second `ideabox`. Lines 11-117.
+  - **\S10.1 (vocab TikZ):** new "The picture" subsection at end of
+    \S10.1 with side-by-side undirected + directed 5-node TikZ
+    diagram annotating degree / in-degree / out-degree / source /
+    sink in prose underneath. Lines ~165--197.
+  - **\S10.3 (adjacency-set notebox):** new `notebox` after
+    Kruskal-default `ideabox` contrasting adjacency \emph{set}
+    (OCW preference, $O(1)$ expected edge query) vs adjacency
+    \emph{list} (chapter default, $O(\deg u)$ edge query) with
+    iteration-vs-point-query trade-off. Lines ~284--301.
+  - **\S10.5 (BFS):** layer-monotonicity proof in a `notebox`
+    (induction on $d$ with explicit base + step), parent-pointer
+    BFS-tree subsection with TikZ diagram (6-vertex tree + dotted
+    non-tree edges), and `examplebox` worked trace (6 steps,
+    \texttt{dist} array + queue state at every pop). Lines
+    ~440--540.
+  - **\S10.6 (DFS):** edge-classification subsection with 4
+    `defnbox`es (tree / back / forward / cross), 7-vertex TikZ
+    edge-classification diagram (tree-edge solid / back-edge red
+    dashed / forward-edge blue / cross-edge green dotted), and
+    cycle-detection-via-back-edge subsection with full C++
+    `hasCycle` implementation using tri-state colour. Lines
+    ~641--747.
+  - **\S10.7 (build-system DAG):** new "The build-system DAG,
+    drawn" subsection with 6-target dependency-DAG TikZ + 1-paragraph
+    \texttt{make}-/-Bazel / Cargo / Ninja framing including
+    parallel-build justification. Lines ~803--839.
+  - **\S10.8--\S10.9 (relaxation framing + Dijkstra additions):**
+    new "Relaxation: the universal SSSP primitive" subsection in
+    \S10.8 (`defnbox` for relaxation + 3-bullet unification of
+    DAG-relax / Dijkstra / Bellman-Ford as the same primitive
+    under different orderings); negative-edge counterexample TikZ
+    (3-node $s$-$a$-$b$ graph with edges $1, 3, -3$) showing the
+    greedy-correctness break; 5-node weighted-directed-graph
+    Dijkstra trace with TikZ diagram + `examplebox` walking the
+    PQ state through 6 steps including the stale-entry skip;
+    decrease-key-vs-lazy-deletion `notebox` justifying the
+    chapter's choice. Lines ~877--924, ~1011--1123.
+  - **\S10.10 (Bellman-Ford):** $|V|-1$-round correctness proof in
+    a `notebox` (induction on path length with explicit
+    $\delta_k(v)$ definition); worked-trace `examplebox` on a
+    4-vertex graph with a negative cycle, showing every relaxation
+    in 3 rounds + the $|V|$-th-round detection step. Lines
+    ~1167--1268.
+  - **\S10.11 (topo cross-link):** new `notebox` connecting
+    DFS-based topo sort to \S10.6 edge classification
+    (back-edge $\Leftrightarrow$ cycle $\Leftrightarrow$ no topo
+    order), framing the production single-pass DFS that emits
+    post-order + reports back-edge cycle in one traversal. Lines
+    ~1352--1364.
+  - **\S10.12 (MST: cut + cycle properties + full Prim + DSU
+    notebox):** cut-property and cycle-property `defnbox`es with
+    sketched exchange-argument proofs (CLRS Theorems 23.1, 23.2);
+    full Prim implementation (~25 lines) with min-heap of
+    (weight, outside-vertex, parent) tuples and lazy-deletion
+    \texttt{inMST} filter; 6-vertex weighted-graph TikZ diagram
+    showing MST edges (heavy tan) vs non-MST edges (thin grey);
+    DSU $O(\alpha(n))$ inverse-Ackermann amortised-cost `notebox`
+    citing Tarjan 1975 + CLRS Ch~21. Lines ~1422--1601.
+  - **\S10.13 (Floyd-Warshall \& relaxation framing):** new closing
+    `notebox` reframing Floyd-Warshall as relaxation (DAG-relax /
+    Dijkstra / Bellman-Ford / Floyd-Warshall = same primitive,
+    four orderings), closing the unification \S10.8 promised. Lines
+    ~1685--1697.
+  - **NEW \S10.14 (Strongly Connected Components):** SCC + DAG-of-
+    SCCs `defnbox`, "preprocessing for every directed-reachability
+    problem" `ideabox`, full Kosaraju implementation (~30 lines C++
+    with two DFS passes + transpose construction), Tarjan-summary
+    `notebox` citing CLRS \S22.5, 6-vertex TikZ showing 3 SCCs +
+    3-vertex condensation DAG diagram, applications subsection
+    covering 2-SAT solving (implication graph, "no $x$ and $\neg x$
+    in same SCC") and dependency-cycle detection in Cargo / npm /
+    pip. Lines ~1699--1877.
+  - **NEW \S10.15 (master decision table):** single big algorithm-
+    selection \texttt{tabular} (rows = problem-types, columns =
+    graph-properties), wrapped in \resizebox to fit page; covers
+    SSSP / single-pair / APSP / negative-cycle-detection /
+    topological-sort / directed-cycle-detection / SCC /
+    connectivity / MST. Forward-ref'd from chapter map + mastery
+    checklist. Lines ~1879--1951.
+  - **NEW \S10.16 (forward direction):** single closing `notebox`
+    covering A* (admissibility / consistency, Russell-Norvig + CLRS
+    \S24.5 ref), Johnson's algorithm (sparse APSP via Bellman-Ford
+    reweighting + $V$-Dijkstras, CLRS \S25.3), network flow (Ford-
+    Fulkerson + Edmonds-Karp $O(VE^2)$, CLRS Ch~26), planar graphs
+    (4-colour theorem, Hopcroft-Tarjan 1974 planarity testing,
+    \texttt{boost::graph::boyer\_myrvold\_planarity\_test}). No
+    full implementations --- pointer-only, same role as ch_7
+    \S7.7's Fibonacci-heap forward ref. Lines ~1953--2017.
+  - **\S10.13 closing `ideabox` re-framed in place per S3 default:**
+    Prim added to the unification list (was conspicuously absent in
+    the original); new "Looking ahead" forward-refs paragraph
+    pointing at ch.~11 (B-trees as shallow-and-wide alternative,
+    filesystem block-layout framing), ch.~12 (set ADT, framing the
+    \texttt{visited} / \texttt{discovered} / \texttt{inMST} /
+    \texttt{assigned} flags as set-ADT operations), and \S10.16
+    (forward direction beyond cs-300). Lines ~2020--2046.
+  - **TikZ preamble (`notes-style.tex`):** added a small
+    \texttt{\textbackslash usetikzlibrary\{arrows.meta, positioning,
+    calc\}} + \texttt{\textbackslash tikzset} block defining
+    \texttt{vertex} (circle, draw), \texttt{vsource} (vertex with
+    \texttt{ideaBack} fill), \texttt{vdone} (vertex with
+    \texttt{defnBack} fill), \texttt{edge} (Stealth arrow),
+    \texttt{uedge} (undirected), \texttt{treeedge} /
+    \texttt{backedge} (red dashed) / \texttt{fwdedge} (blue) /
+    \texttt{crossedge} (green dotted), \texttt{mstedge} (heavy tan).
+    Replaces ch_9's per-figure inline overrides for general directed
+    graphs. tcolorbox\texttt{[most]} already loads tikz; we just add
+    libraries + styles. ch_9's tree-style inline overrides are
+    unaffected.
+  Two `pdflatex` passes (`-halt-on-error -interaction=nonstopmode`)
+  both exit 0; final `lectures.pdf` is 33 pages, 656250 bytes.
+  Six TikZ figures landed (vocab-undirected/directed pair, BFS tree,
+  DFS edge classification, build-system DAG, Dijkstra
+  counterexample, Dijkstra trace, MST, SCC + condensation pair).
+  Three new exampleboxes (BFS trace, Dijkstra trace, Bellman-Ford
+  trace with negative cycle). Two new sections (\S10.14 SCC,
+  \S10.15 decision table, \S10.16 forward direction). Dep audit:
+  skipped --- no manifest changes.
+
 - **Added** **ch_9 OCW augmentation pass (Step 3 of the per-chapter
   review loop, against `design_docs/chapter_reviews/ch_9_gaps.md`).**
   `chapters/ch_9/lectures.tex` 1575 → 2309 lines (+734 lines,

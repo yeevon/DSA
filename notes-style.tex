@@ -146,6 +146,27 @@
     before skip=8pt, after skip=8pt,
 }
 
+% ---- TikZ graph styles (added 2026-04-25 for ch_10 augmentation) ------
+% tcolorbox[most] already loads tikz; this block declares the libraries
+% + shared `vertex` / `edge` styles used by ch_10's general directed-graph
+% diagrams. ch_9's tree-style TikZ uses inline overrides and is
+% unaffected. Simple circle nodes + arrow edges only -- no production
+% styling.
+\usetikzlibrary{arrows.meta, positioning, calc}
+\tikzset{
+    vertex/.style={circle, draw, minimum size=7mm, inner sep=0pt,
+                   font=\small, thick},
+    vsource/.style={vertex, fill=ideaBack},
+    vdone/.style={vertex, fill=defnBack},
+    edge/.style={->, >=Stealth, thick},
+    uedge/.style={-, thick},
+    treeedge/.style={->, >=Stealth, thick},
+    backedge/.style={->, >=Stealth, thick, dashed, red!70!black},
+    fwdedge/.style={->, >=Stealth, thick, blue!60!black},
+    crossedge/.style={->, >=Stealth, thick, green!50!black, dotted},
+    mstedge/.style={-, very thick, accent},
+}
+
 % ---- Title block ------------------------------------------------------
 \usepackage{titling}
 \pretitle{\begin{center}\color{heading}\LARGE\bfseries}
