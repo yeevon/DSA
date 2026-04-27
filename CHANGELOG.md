@@ -14,6 +14,161 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-25
 
+- **Added** **ch_12 OCW augmentation pass (Step 3 of the per-chapter
+  review loop, against `design_docs/chapter_reviews/ch_12_gaps.md`).**
+  `chapters/ch_12/lectures.tex` 300 → 1588 lines (+1288 lines,
+  ~+429% growth --- well over the gap report's ~+540 estimate, in
+  line with the ch_7 / ch_9 / ch_10 / ch_11 precedent of every ADD
+  landing at full depth rather than summary-only; ch_12 was the
+  shortest optional chapter at 6 pp pre-pass, and the augmentation
+  brings it in line with ch_10's pre-augmentation 18 pp baseline at
+  the lower bound and surpasses it at the upper bound). Page count
+  6 → 22. Optional-chapter framing (per
+  `feedback_chapter_review_autonomy.md` 2026-04-25 update) waives
+  both the 40-page cap and the 3-5 bounded-additions rule; ch_12
+  ships everything in the contract.
+  **Sections touched:**
+  - **Header (S1+S2):** new opening `ideabox` "Chapter map" matching
+    ch_1 / ch_7 / ch_9 / ch_10 / ch_11 template --- *Where this
+    sits in CS 300* (ADT-meta chapter, surveys ch.~5 / ch.~9 /
+    ch.~11 impls), *What you add to your toolkit* (Set ADT + impl
+    decision matrix + Multiset + Bitset + DSU + Bloom + perfect
+    hashing), 7-item *Mastery checklist*, *Looking ahead* block with
+    forward refs past cs-300 (concurrent / lock-free sets, set
+    theory proper, sparse-bitmap research). Existing one-paragraph
+    "set ADT in one sentence" frame retained as follow-on second
+    `ideabox`.
+  - **\S12.1 (Set ADT):** new "Where the Set impls live in cs-300"
+    subsection + forward-references `notebox` enumerating ch.~5
+    (hash) / ch.~6 (BST baseline) / ch.~9 (RB) / ch.~11 (B-tree) as
+    the four Set impls cs-300 has already delivered. New
+    "Set vs.\ Sequence" framing `notebox` per OCW 6.006 r01 ---
+    Set is the contains-key ADT, Sequence (ch.~1--ch.~4) is the
+    get-by-index ADT.
+  - **\S12.2 (Set Operations):** new "The picture: union /
+    intersection / difference / symmetric difference" subsection
+    with 4-panel Venn-diagram TikZ (union / intersection /
+    difference / symdiff, shaded regions). New algorithmic-
+    difference `defnbox` formalising sorted-merge ($\Theta(|A|+|B|)$
+    deterministic) vs hash-probe ($O(|A|+|B|)$ expected) with
+    constants / cache-locality / worst-case columns. New
+    `examplebox` walking $A=\{1,3,5,7\}, B=\{3,4,5,6\}$ through
+    both impls with explicit comparison / hash counts. New
+    "Symmetric difference" subsection (`defnbox` + STL listing for
+    `set_symmetric_difference` + change-detection use cases).
+    New "Subset testing, formally" subsection with three cost
+    branches (hashed superset / sorted superset / both sorted with
+    sorted-merge variant). New "Power set" subsection (`defnbox`
+    + bitmask-enumeration C++ listing + cross-link `notebox` to
+    \S12.5 bitset).
+  - **\S12.3 (Static vs.\ Dynamic):** new "Perfect hashing for
+    static sets" subsection with `defnbox` + FKS two-level
+    construction (CLRS \S11.5) + `gperf` / `cmph` / Rust `phf`
+    production tools + when-to-reach-for-it guidance. New
+    "Sealed / frozen sets in modern languages" `notebox` (Python
+    `frozenset`, Java `Set.of(...)`, Rust borrow-checker /
+    `phf`, Haskell-OCaml all-immutable-by-default).
+  - **NEW \S12.4 (Multiset):** full new section. `defnbox`
+    distinguishing Set ($m \in \{0,1\}$) from Multiset
+    ($m \ge 0$). STL `multiset` walkthrough with three behavioural
+    deltas (`count` returns 0+, `erase` removes ALL, `equal_range`
+    returns the duplicate run). 6-row Set-vs-Multiset operations
+    table covering union (sum vs.\ max), intersection (min),
+    difference, symmetric difference, subset. Sum-vs-max union
+    `notebox` documenting the convention split (CLRS doesn't
+    legislate; `std::set_union` gives max, `std::multiset::merge`
+    gives sum); chapter default = sum, justified by
+    $|A \cup B| = |A|+|B|-|A \cap B|$ identity. Cross-link to
+    ch.~7 heaps' multiset-friendly $\le$ comparator.
+  - **NEW \S12.5 (Bitset):** full new section. `defnbox` for the
+    direct-access-array Set representation. Use-case `notebox`
+    (ASCII / vertex-IDs / day-of-year / flag sets / sparse-universe
+    counterexample). Three impl flavours
+    (`std::bitset<N>` compile-time / `std::vector<uint64_t>`
+    hand-rolled / `boost::dynamic_bitset` runtime-sized). Bitwise-
+    ops table (union / intersection / difference / symmetric
+    difference / cardinality via popcount / contains via shift-and-
+    mask). New 64-bit-word TikZ diagram (set $\{5, 12, 17, 33\}$
+    encoded as a single `uint64_t`, with bit positions labelled
+    + highlighted set bits). New `examplebox` walking word-level
+    bit-twiddling on $A=\{5,12,17\}, B=\{12,17,33\}$ through 8
+    operations. Forward-direction `notebox` on roaring bitmaps
+    (PostgreSQL bitmap scans / Druid / Lucene / ClickHouse;
+    `CRoaring`).
+  - **NEW \S12.6 (Disjoint-Set Union / Union-Find):** full new
+    section. `defnbox` for the partition ADT (`makeSet` / `find` /
+    `unite`). Use-cases bullet (connectivity, Kruskal --- explicit
+    cross-link to ch.~10 \S10.12, Tarjan offline SCC, online
+    incremental connectivity, type-inference unification, image
+    flood-fill). Parent-pointer-forest C++ implementation with
+    union-by-rank and path-compression. Two-optimisations
+    subsection deriving the $O(\log n)$ alone vs.\ $O(\alpha(n))$
+    together amortised bound; explicit Tarjan 1975 / Tarjan-van
+    Leeuwen 1984 references; CLRS Ch~21 footnote. New TikZ diagram
+    (3 panels: two trees pre-union / post-`unite(0,5)` / post-
+    `find(5)` with the path-compression edge highlighted in accent
+    colour as dashed). New `examplebox` walking 8-element /
+    8-operation DSU sequence with parent-array state at each step
+    + path-compression rewrite annotated.
+  - **NEW \S12.7 (Bloom filter):** full new section. `defnbox` for
+    one-sided-error probabilistic Set membership (no false
+    negatives, tunable false positives). Construction-and-query
+    C++ snippet using `std::vector<uint64_t>` + cheap two-hash
+    mix. False-positive-rate derivation: bit-stays-zero
+    probability $\to (1-e^{-kn/m})^k$ closed form, optimal
+    $k^\star = (m/n)\ln 2$, calibration table for $p^\star \in
+    \{0.1, 0.01, 10^{-3}, 10^{-4}, 10^{-5}\}$ showing $m/n$ and
+    $k^\star$. Use-cases enumeration (DB existence pre-check /
+    RocksDB+LevelDB SST / CDN cache / network filter / DNS
+    negative cache / set reconciliation). Variants `notebox`:
+    counting Bloom (4-bit counters; supports delete), cuckoo
+    filter (CockroachDB), quotient/Xor filters (Graf-Lemire 2020),
+    scalable Bloom (chained, target-FPR-on-grow).
+  - **NEW \S12.8 (Production references):** full new section as a
+    single big `notebox` covering the impl-to-chapter map ---
+    `std::set` $\to$ ch.~9 RB, `std::unordered_set` $\to$ ch.~5
+    hash, `std::multiset` $\to$ \S12.4, `std::bitset` /
+    `boost::dynamic_bitset` $\to$ \S12.5, Abseil Swiss Tables
+    `flat_hash_set` / parallel-hashmap / Folly F14, Python /
+    Java / Rust counterparts (Rust BTreeSet $\to$ ch.~11),
+    specialised libs (`CRoaring`, `libcuckoo`, RocksDB Bloom),
+    canonical references (CLRS Ch 11/12/13/21, Broder-
+    Mitzenmacher 2004, Tarjan 1975, FKS 1984, Bloom 1970,
+    Mitzenmacher-Upfal *Probability and Computing*).
+  - **\S12.8 closing `ideabox` rewrite (S3):** chapter-takeaway
+    `ideabox` rewritten per ch_10 / ch_11 unification convention
+    --- enumerates the 8 Set impls with one-line decision criteria
+    (hash / RB / B-tree / multiset / bitset / DSU / Bloom /
+    perfect-hash) + `Looking ahead` block with three forward
+    directions past cs-300 (concurrent / lock-free sets, sparse-
+    bitmap research, set theory proper / lattices / Boolean
+    algebras / relational-algebra connection).
+  - **TikZ + examplebox tally:** 3 new TikZ diagrams (Venn 4-panel
+    in \S12.2, 64-bit bitset in \S12.5, DSU 3-panel parent-forest
+    in \S12.6); 3 new exampleboxes (sorted-merge-vs-hash-probe in
+    \S12.2, word-level bit-twiddling in \S12.5, 8-element DSU
+    sequence in \S12.6). Original \S12.2 4-line `examplebox` on
+    $\{54,19,75\}$ vs.\ $\{75,12\}$ retained.
+  - **Forward / backward refs added:** ch.~5 (hash), ch.~6 (BST
+    baseline), ch.~7 (heaps as multisets), ch.~9 (RB), ch.~10
+    \S10.12 (Kruskal $\Leftrightarrow$ DSU explicit cross-link),
+    ch.~11 (B-trees / Rust BTreeSet) all explicitly cited where
+    pre-augmentation chapter had table-cell-only or no
+    references.
+  - **Build verification:** `pdflatex -halt-on-error
+    -interaction=nonstopmode lectures.tex` two passes both exit
+    `0`. Final `lectures.pdf` 22 pp / 521 KB.
+  - **Spec deviations:** three forced LaTeX symbol substitutions
+    where amssymb was not in the chapter's preamble ---
+    `\subsetneq` rewritten as "$A \subseteq B$ and $A \ne B$";
+    `\lesssim` rewritten as "$\le$"; `\mathbb{Z}_{\ge 0}$`
+    rewritten as "$m(x) \ge 0$ (a non-negative integer)". All
+    three substitutions are semantically equivalent --- the
+    chapter's preamble (`notes-style.tex`) does not load amssymb
+    and adding it would be a cross-chapter style change outside
+    Step-3 scope. Surfaced as inventory-level deviation only;
+    if amssymb is desired chapter-wide, that's a follow-up
+    style task. `Dep audit: skipped --- no manifest changes`.
 - **Added** **ch_10 OCW augmentation pass (Step 3 of the per-chapter
   review loop, against `design_docs/chapter_reviews/ch_10_gaps.md`).**
   `chapters/ch_10/lectures.tex` 842 → 2048 lines (+1206 lines,
