@@ -8,6 +8,109 @@
 \begin{document}
 \maketitle
 
+\begin{ideabox}[Chapter map]
+\textbf{Where this sits in CS 300.} Chapter 9 is the
+\emph{search-tree depth chapter}. Chapter 6 introduced BSTs and
+hinted at ``self-balancing'' in \S6.6. Chapter 7 introduced
+\textbf{rotations} as the local-rewire primitive that keeps treaps
+balanced under random priorities. Chapter 9 closes the loop:
+\textbf{AVL} and \textbf{red-black} trees are the two production-grade
+\emph{deterministic} self-balancing BSTs, and they are what every
+\texttt{std::map}, \texttt{std::set}, \texttt{TreeMap}, and Linux
+\texttt{rbtree.c} actually uses underneath. By the end of the chapter
+you should be able to say -- and defend -- the sentence ``every
+ordered-map data structure in production C++, Java, or the Linux
+kernel is a balanced BST whose entire job is to keep $h = O(\log n)$
+under arbitrary insert and remove sequences.''
+
+\textbf{What you add to your toolkit:}
+\begin{itemize}
+    \item \textbf{Height balance as a local invariant} that gives a
+          \emph{global} $O(\log n)$ guarantee -- the same induction
+          pattern as the heap property argument from chapter 7,
+          re-expressed for trees with explicit pointers.
+    \item \textbf{Rotations as a primitive.} The
+          ``edit-the-tree-without-changing-traversal-order'' move.
+          One operation, mechanically identical in AVL and red-black,
+          differing only in the \emph{trigger} (a $\pm 2$ balance
+          factor in AVL; a red-red or black-height violation in
+          red-black).
+    \item \textbf{The augmentation framework} (\S9.9): state a
+          subtree property $P$, show $P$ is computable from a node's
+          children in $O(1)$, get $P$ maintained for free under
+          rotations + leaf operations -- with $0$ asymptotic
+          overhead per operation. AVL's cached height and red-black's
+          colour bit are the first two examples; subtree-size for
+          order-statistic queries is the third.
+    \item \textbf{Two production-grade balancing schemes.} AVL
+          (strict, $h \le 1.44 \log_2 n$, integer height field per
+          node) versus red-black (looser, $h \le 2 \log_2 n$,
+          one-bit colour usually stolen from a pointer's low bit).
+          The constant-factor tradeoff is the reason \texttt{std::map}
+          and the Linux scheduler picked red-black despite its worse
+          height bound.
+    \item \textbf{Where to read real-world implementations.}
+          \texttt{std::map} / \texttt{std::set} backed by libstdc++'s
+          \texttt{\_Rb\_tree}; the Linux kernel's
+          \texttt{include/linux/rbtree.h} + \texttt{lib/rbtree.c}
+          (the cleanest production red-black tree to read);
+          Java's \texttt{java.util.TreeMap}; Boost's
+          \texttt{boost::intrusive::avl\_set} (rare AVL in
+          production C++).
+\end{itemize}
+
+\textbf{Mastery checklist} -- you should be able to, without
+references:
+\begin{enumerate}
+    \item State the AVL height-balance invariant
+          (every node's left- and right-subtree heights differ by
+          at most $1$) and sketch the Fibonacci-recurrence argument
+          $N(h) = N(h-1) + N(h-2) + 1$ that gives $h = O(\log n)$.
+    \item Run a left rotation and a right rotation by hand on a
+          5-node subtree, identifying the \emph{three} pointer
+          relinks each requires; argue from the in-order sequence
+          why traversal order is preserved.
+    \item Identify the four AVL rebalance cases (LL / LR / RR / RL)
+          from a worked imbalance and apply the correct one- or
+          two-rotation fix without reference, including which child
+          balance factor distinguishes the single- from the
+          double-rotation case.
+    \item State the five red-black rules + the black-height bound +
+          sketch why $h \le 2 \log_2(n+1)$ from rules 3 + 5
+          combined.
+    \item Trace a red-black insertion through cases 1--3 of
+          \texttt{RB-INSERT-FIXUP} on a 7-node tree; identify which
+          case-3 cascade walks the violation up the tree and which
+          cases (4, 5) terminate in $O(1)$.
+    \item Distinguish AVL's strict balance ($h \le 1.44 \log_2 n$)
+          from red-black's looser balance ($h \le 2 \log_2 n$) and
+          justify why \texttt{std::map} and the Linux kernel pick
+          red-black despite the worse height: insert/delete
+          amortized rotation cost is lower, and bit-stealing from
+          the low bit of the parent pointer makes the per-node
+          colour overhead $0$ bytes.
+    \item Apply the \emph{augmentation framework} (\S9.9) to a new
+          property -- e.g.\ subtree size for order-statistic queries
+          (CLRS \S14.1) -- by stating $P$, showing $O(1)$
+          maintenance from children, and running one rotation
+          update.
+\end{enumerate}
+
+\textbf{Looking ahead.} Chapter 10 reuses the balanced-tree
+machinery internally: BFS spanning trees and Dijkstra's
+parent-pointer trees both rely on a \emph{priority queue}, and the
+heaviest production implementations of that priority queue (Linux's
+red-black-tree-based runqueue, Java's
+\texttt{PriorityQueue}-with-fallback) are balanced BSTs in disguise.
+Chapter 11 introduces \textbf{B-trees} as the
+``shallow-and-wide'' alternative for disk-based or cache-friendly
+storage -- the same balanced-search-tree problem with a different
+geometry (high fan-out, $O(\log_B n)$ height with $B$ on the order
+of a disk-page key count). Chapter 12 covers the set ADT in full;
+\texttt{std::set} is a red-black tree under the hood, so this is
+where the implementation/abstraction loop closes.
+\end{ideabox}
+
 \section{9.1 AVL: The Balanced BST}
 
 Chapter 6 laid out the dream (BSTs as fast ordered maps) and the nightmare (sorted input $\Rightarrow$ $O(n)$ operations). Chapter 7.5 showed a \emph{probabilistic} fix with treaps. This chapter does the rigorous, deterministic version. The structure: an \textbf{AVL tree}, named for its 1962 inventors Adelson-Velsky and Landis -- the first self-balancing BST ever published.
@@ -17,6 +120,40 @@ An AVL tree is a BST that additionally satisfies the \emph{height-balance proper
 \end{defnbox}
 
 Height is measured the usual way (number of edges on the longest root-to-leaf path in the subtree), with one convention: a \emph{null} (absent) subtree has height $-1$. That makes a single-node tree have height $0$ (its children are both null with height $-1$; $1 + \max(-1, -1) = 0$). Same convention as section 6.8.
+
+\subsection*{Why bother: the Set Data Structure interface}
+
+Before defending the AVL invariant in detail, frame what we're
+buying. A BST -- balanced or not -- implements the
+\textbf{Set Data Structure} interface from chapter 6: an ordered
+collection keyed by some comparable type. Every operation walks at
+most one root-to-leaf path, so cost is $O(h)$ where $h$ is the
+tree's height. The whole reason AVL exists is to pin $h$ at
+$O(\log n)$ instead of letting it drift to $O(n)$ on adversarial
+input. Compare:
+
+\begin{center}
+\begin{tabular}{lll}
+Operation                & Plain BST    & AVL tree \\
+\hline
+\texttt{build(A)}        & $O(n h)$ worst, $O(n \log n)$ random & $O(n \log n)$ \\
+\texttt{find(k)}         & $O(h)$       & $O(\log n)$ \\
+\texttt{insert(x)}       & $O(h)$       & $O(\log n)$ \\
+\texttt{delete(k)}       & $O(h)$       & $O(\log n)$ \\
+\texttt{find\_min} / \texttt{find\_max} & $O(h)$ & $O(\log n)$ \\
+\texttt{find\_prev} / \texttt{find\_next} & $O(h)$ & $O(\log n)$ \\
+\end{tabular}
+\end{center}
+
+The plain-BST column has $h$ as a \emph{free parameter} -- in the
+worst case (sorted input, no rebalancing) $h = n - 1$ and every
+operation degenerates to linear scan. The AVL column has $h$ pinned
+at $O(\log n)$ \emph{by construction}. That's the entire chapter's
+contribution: the rebalancing machinery in \S9.2--\S9.4 maintains
+the invariant cheaply enough that you never see the worst-case
+height. The Set interface is the same; only the cost column
+changes -- and the change is from ``possibly catastrophic'' to
+``always logarithmic.''
 
 \subsection*{Is it an AVL tree? Check every node.}
 
@@ -134,7 +271,7 @@ The ``differ by at most 1'' constraint is a specific compromise:
     \item \textbf{$\pm 1$}: tightest strictness that can be maintained with a constant number of local rotations after each modification. It's the sweet spot.
 \end{itemize}
 
-Red-black trees (section 9.8, sort of -- the main chapter focuses on AVL) use a weaker balance invariant that allows larger height differences but cheaper rebalancing. They're strictly less balanced than AVL (worst-case height $\sim 2 \log n$ vs.\ AVL's $1.44 \log n$), but their rebalancing has lower overhead on average. \texttt{std::map} uses red-black; competitive programmers and strict-performance workloads sometimes prefer AVL.
+Red-black trees (the main chapter splits roughly evenly: \S9.1--\S9.4 AVL, \S9.5--\S9.8 red-black) use a weaker balance invariant that allows larger height differences but cheaper rebalancing. They're strictly less balanced than AVL (worst-case height $\sim 2 \log n$ vs.\ AVL's $1.44 \log n$), but their rebalancing has lower overhead on average. \texttt{std::map} uses red-black; competitive programmers and strict-performance workloads sometimes prefer AVL.
 
 \subsection*{Road map for chapter 9}
 
@@ -362,6 +499,27 @@ Notice the elegance: two rotation primitives (left, right), four named cases (LL
 \begin{warnbox}
 Every rotation and setChild updates cached heights \emph{locally}. The caller is responsible for continuing the retrace -- walking up to the next ancestor and calling \texttt{avlRebalance} there too, because a rotation at a child can still leave an ancestor further up imbalanced. Section 9.3 (or wherever the insert algorithm lives) shows that loop.
 \end{warnbox}
+
+\begin{notebox}
+\textbf{Rotations are universal.} A theoretical claim worth knowing
+even though we never use it algorithmically: \emph{$O(n)$ rotations
+suffice to transform any binary tree into any other binary tree on
+the same multiset of keys, as long as both have the same in-order
+sequence.} Proof sketch: repeatedly apply the last possible right
+rotation (root has a left child, descend into the right spine, then
+right-rotate at the deepest node with a left child) until you
+reach a canonical right-spine ``chain'' of $n$ nodes. That takes at
+most $n - 1$ rotations. From the chain you can reach any target
+shape by reversing the same procedure on the target. So
+$2(n-1) = O(n)$ rotations are always enough. The takeaway is not
+the bound itself (we'll do much better -- AVL needs only $O(\log n)$
+rotations per operation) but the \emph{adequacy} answer: rotations
+\emph{are} a powerful enough primitive to maintain any
+shape-based invariant on a BST without leaving the rotations-only
+regime. Chapter 11's B-trees use the analogous primitive
+(split / merge of sibling nodes), which is universal in the same
+sense for $B$-ary trees.
+\end{notebox}
 
 \subsection*{Why rotations alone are sufficient}
 
@@ -603,6 +761,115 @@ The motivating example is a phone book loaded from already-sorted names. In a ra
 Be careful about equal-key handling. The code above sends equal keys to the right subtree. This is consistent but not \emph{stable} (insertion order among equal keys isn't preserved). For applications that need stable ordering, store a tiebreaker (like insertion sequence number) in the comparison key, or use a \texttt{multiset}-style structure that tracks insertion order separately.
 \end{warnbox}
 
+\begin{examplebox}
+\textbf{Worked AVL insertion sequence: $10, 20, 30, 40, 50, 25$.}
+Trace each insert into an initially empty AVL tree, showing the
+balance factor at every node after the insert and identifying which
+case (if any) fires. We use the convention bf$(\cdot)$ from \S9.1.
+
+\textbf{Frame 1 -- insert $10$.} Empty tree. $10$ becomes the root.
+\[
+10 \quad (\text{bf} = 0)
+\]
+No imbalance.
+
+\textbf{Frame 2 -- insert $20$.} $20 > 10$, attach as right child.
+\[
+10 \,(\text{bf} = -1) \to \text{right} \to 20 \,(\text{bf} = 0)
+\]
+bf$(10) = -1$, still in $\{-1, 0, +1\}$. No rotation.
+
+\textbf{Frame 3 -- insert $30$.} $30 > 10$, then $30 > 20$, attach
+as right child of $20$.
+\[
+10 \,(\text{bf} = -2) \to 20 \,(\text{bf} = -1) \to 30 \,(\text{bf} = 0)
+\]
+First unbalanced ancestor on retrace is $10$ (bf $= -2$).
+bf$(10.\text{right}) = $ bf$(20) = -1 \le 0$ $\Rightarrow$
+\textbf{Right-Right case}. Single \emph{left}-rotate at $10$:
+\[
+20 \,(\text{bf} = 0) \,\,\,\text{with}\,\,\, \text{left} = 10 \,(\text{bf} = 0),\, \text{right} = 30 \,(\text{bf} = 0).
+\]
+
+\textbf{Frame 4 -- insert $40$.} BST descent: $40 > 20$, $40 > 30$,
+attach as right child of $30$. After insert:
+\[
+20 \,(\text{bf} = -1),\,\, 10 \,(\text{bf} = 0),\,\, 30 \,(\text{bf} = -1),\,\, 40 \,(\text{bf} = 0).
+\]
+All balance factors in $\{-1, 0, +1\}$. No rotation.
+
+\textbf{Frame 5 -- insert $50$.} BST descent: $50 > 20$, $50 > 30$,
+$50 > 40$, attach as right child of $40$. After insert:
+\[
+20 \,(\text{bf} = -2),\,\, 30 \,(\text{bf} = -2),\,\, 40 \,(\text{bf} = -1),\,\, 50 \,(\text{bf} = 0).
+\]
+Retrace from $40$ upward. First imbalance hit is $30$ (bf $= -2$).
+bf$(30.\text{right}) = $ bf$(40) = -1 \le 0$ $\Rightarrow$
+\textbf{Right-Right case}. Left-rotate at $30$:
+\[
+\begin{array}{l}
+20 \,(\text{bf} = ?) \\
+\quad \text{left}: 10 \\
+\quad \text{right}: 40 \,(\text{bf} = 0) \\
+\qquad \text{left}: 30 \,(\text{bf} = 0), \text{right}: 50 \,(\text{bf} = 0)
+\end{array}
+\]
+After the rotation, $20$'s right subtree shrank by 1 in height, so
+bf$(20)$ recomputes to $-1$. Done.
+
+\textbf{Frame 6 -- insert $25$.} BST descent: $25 > 20$, $25 < 40$,
+$25 < 30$, attach as left child of $30$. After insert:
+\[
+\begin{array}{l}
+20 \,(\text{bf} = -2) \\
+\quad \text{left}: 10 \,(\text{bf} = 0) \\
+\quad \text{right}: 40 \,(\text{bf} = +1) \\
+\qquad \text{left}: 30 \,(\text{bf} = +1) \\
+\qquad\quad \text{left}: 25 \,(\text{bf} = 0) \\
+\qquad \text{right}: 50 \,(\text{bf} = 0)
+\end{array}
+\]
+Retrace from $25$ upward. $30$ is balanced (bf $= +1$); $40$ is
+balanced (bf $= +1$); $20$ is unbalanced (bf $= -2$). Now the
+discriminator: bf$(20.\text{right}) = $ bf$(40) = +1$. Right child
+balance factor has \emph{opposite sign} from parent's
+$\Rightarrow$ \textbf{Right-Left case} (the LR mirror). Two-rotation
+fix: right-rotate at $40$, then left-rotate at $20$.
+
+After right-rotate at $40$:
+\[
+\begin{array}{l}
+20 \,(\text{bf} = -2) \\
+\quad \text{left}: 10 \\
+\quad \text{right}: 30 \,(\text{bf} = -1) \\
+\qquad \text{left}: 25, \text{right}: 40 \,(\text{bf} = -1) \\
+\qquad\qquad \text{right}: 50
+\end{array}
+\]
+Now the shape is Right-Right (bf$(20) = -2$, bf$(30) = -1$).
+Left-rotate at $20$:
+\[
+\begin{array}{l}
+30 \,(\text{bf} = 0) \\
+\quad \text{left}: 20 \,(\text{bf} = 0) \\
+\qquad \text{left}: 10, \text{right}: 25 \\
+\quad \text{right}: 40 \,(\text{bf} = -1) \\
+\qquad \text{right}: 50
+\end{array}
+\]
+All balance factors in $\{-1, 0, +1\}$. Tree is balanced.
+
+\textbf{Takeaway.} Six inserts; three rotations total ($1$ single
+on insert $30$, $1$ single on insert $50$, $1$ double on insert
+$25$). The double-rotation case at insert $25$ is the
+\textbf{LL/LR boundary}: had the insert been $35$ instead (right of
+$30$ rather than left), case $30$'s child balance factor would have
+been $-1$ and the same RR-case left-rotate as on insert $50$ would
+have sufficed. The LR/RL cases are precisely the
+``imbalance kink'' cases where the insertion went to the
+\emph{inner} grandchild rather than the outer.
+\end{examplebox}
+
 \section{9.4 AVL Removal}
 
 Removal is where AVL earns a slightly worse worst-case-rotation count than insertion. For insertion, at most one cascade (one single or one double rotation) handles everything. For removal, a single rotation can \emph{shorten} a subtree, which can trigger another imbalance one level up, which can trigger another, and so on -- up to $O(\log n)$ rotations along the retrace path.
@@ -617,7 +884,7 @@ Removal is where AVL earns a slightly worse worst-case-rotation count than inser
 
 \subsection*{The two-children shortcut}
 
-Zchapter 6.6 showed that removing a node with two children is handled by copying the in-order successor's data over the doomed node, then recursively removing the successor. That trick still works for AVL -- the successor always has at most one child (it's the leftmost of the right subtree), so the recursive call lands in the leaf / one-child case and rebalances from there. Recursion handles the retrace; you don't need to rebalance twice.
+Chapter~6 \S6.6 showed that removing a node with two children is handled by copying the in-order successor's data over the doomed node, then recursively removing the successor. That trick still works for AVL -- the successor always has at most one child (it's the leftmost of the right subtree), so the recursive call lands in the leaf / one-child case and rebalances from there. Recursion handles the retrace; you don't need to rebalance twice.
 
 \subsection*{The algorithm}
 
@@ -774,6 +1041,46 @@ The order ``delete the node, then retrace from parent'' is important. If you ret
 
 \begin{notebox}
 In production codebases that use AVL, this is where the bug density lives. The four-case BST-removal logic has two mutation orders (case 1 recurses, cases 2--4 splice), parent-pointer bookkeeping is easy to fumble, and ``retrace all the way'' is easy to forget. Build a test suite that hammers insert/remove pairs and checks the AVL invariant after every operation -- the bug surface is too big for ``it looked right'' to be enough.
+\end{notebox}
+
+\begin{notebox}
+\textbf{Cached height is a special case of subtree augmentation.}
+The \texttt{height} field on every \texttt{AVLNode} from \S9.1 is
+the canonical example of a much more general pattern: pick a
+property $P(\text{subtree})$, store it at the subtree's root,
+update it on every structural change. The pattern works whenever
+$P$ at a node is computable in $O(1)$ from the cached $P$ values
+of that node's children. Then $P$ is maintained for free under
+rotations + leaf insertion + leaf removal -- the existing
+$O(\log n)$ retrace already touches every ancestor on the modified
+path, and adding ``recompute $P$ at this node'' to that retrace
+costs $O(1)$ per ancestor. Net: \emph{$0$ asymptotic overhead.}
+That's why cached height is cheap. The same trick gives us
+order-statistic queries (\S9.9 -- cache subtree size), interval-tree
+queries (cache the maximum endpoint of any interval in the
+subtree), and the colour-bit invariant in red-black trees (\S9.5
+-- the colour is a per-node augmentation, not a subtree
+augmentation, but the maintain-on-rotation principle is identical).
+\S9.9 lifts this into a reusable framework.
+\end{notebox}
+
+\begin{notebox}
+\textbf{AVL Sort: a third entry in the priority-queue-sort family.}
+Chapter 7 \S7.3 introduced the PQ-Sort framework: any data
+structure supporting \texttt{build} + repeated \texttt{delete\_max}
+defines a sorting algorithm. Selection sort = unsorted-array PQ;
+insertion sort = sorted-array PQ; heap sort = binary-heap PQ.
+\textbf{AVL Sort} = AVL-tree PQ: build the AVL by $n$
+\texttt{insert} calls in $O(n \log n)$, then iterate in-order
+(equivalently, $n$ \texttt{find\_min} + \texttt{delete\_min} pairs)
+for another $O(n \log n)$. Total $O(n \log n)$, matching merge
+sort and heap sort asymptotically. AVL sort is rarely the right
+choice in practice -- heap sort wins on constants and in-place
+behaviour, merge sort wins on stability -- but it makes the
+``every Set Data Structure defines a sort'' principle from chapter
+7 explicit on a \emph{tree-shaped} structure. Chapter 13 lines up
+all three (heap, merge, AVL) plus quick sort and counting sort in
+the comparison-sort comparison table.
 \end{notebox}
 
 \section{9.5 Red-Black Trees: A Second Balanced BST}
@@ -1279,6 +1586,93 @@ The whole sequence involves one cascading recolor and one case-4-plus-5 double-r
 Case 4 and case 5 are \emph{sequential}, not alternatives. Case 4 transforms the imbalance into a shape that case 5 can finish. Don't write them as an \texttt{if/else} that picks one or the other -- write case 4 as a precondition transform that falls through into case 5. The loop structure should be ``optionally do case 4, then always do case 5.''
 \end{warnbox}
 
+\begin{examplebox}
+\textbf{Worked red-black insertion: $10, 20, 30, 40, 50, 25$ (same
+input as the AVL examplebox in \S9.3).} Reading both traces
+side-by-side is pedagogically powerful: same input, different
+machinery, both maintain $h = O(\log n)$. We show the colour state
+after each insert plus the cases that fire. ``B'' = black, ``R'' =
+red.
+
+\textbf{Frame 1 -- insert $10$.} New root. Coloured red on entry,
+then case 1 (root) recolours to black.
+\[
+10\,\text{B}
+\]
+
+\textbf{Frame 2 -- insert $20$.} BST puts $20$ to right of $10$;
+new node coloured red. Parent ($10$) is black: \textbf{case 2}, no
+fix-up.
+\[
+10\,\text{B},\,\, \text{right} = 20\,\text{R}
+\]
+
+\textbf{Frame 3 -- insert $30$.} BST descends right of $10$, right
+of $20$; new node red. Parent ($20$) is red, uncle ($10$'s left
+child) is null $\Rightarrow$ treated as black; $30$ is the
+\emph{outside} grandchild (right of $20$, $20$ is right of $10$):
+\textbf{case 5} (zig-zig). Recolour: $20$ B, $10$ R; left-rotate at
+$10$.
+\[
+20\,\text{B},\,\, \text{left} = 10\,\text{R},\,\, \text{right} = 30\,\text{R}
+\]
+
+\textbf{Frame 4 -- insert $40$.} BST: right of $30$; red. Parent
+($30$) is red, uncle ($10$, left of $20$) is red $\Rightarrow$
+\textbf{case 3}. Recolour $30$ B, $10$ B, $20$ R. Recurse on $20$:
+$20$ is the root, case 1 forces it back to black.
+\[
+20\,\text{B},\,\, 10\,\text{B},\,\, 30\,\text{B},\,\, 40\,\text{R}
+\]
+
+\textbf{Frame 5 -- insert $50$.} BST: right of $40$; red. Parent
+($40$) is red, uncle ($30$'s left = null = black);
+\emph{outside} grandchild (right of $40$, $40$ is right of $30$):
+\textbf{case 5}. Recolour $40$ B, $30$ R; left-rotate at $30$.
+$40$ is now $20$'s right child with $30$ R left, $50$ R right.
+Re-check: parent ($20$) is black, no further fix-up.
+\[
+\begin{array}{l}
+20\,\text{B} \\
+\quad \text{left}: 10\,\text{B} \\
+\quad \text{right}: 40\,\text{B} \\
+\qquad \text{left}: 30\,\text{R},\,\, \text{right}: 50\,\text{R}
+\end{array}
+\]
+
+\textbf{Frame 6 -- insert $25$.} BST descent: right of $20$, left
+of $40$, left of $30$; new node red. Parent ($30$) is red, uncle
+($50$) is red $\Rightarrow$ \textbf{case 3}. Recolour $30$ B,
+$50$ B, $40$ R. Recurse on $40$. $40$'s parent ($20$) is black:
+case 2, terminate.
+\[
+\begin{array}{l}
+20\,\text{B} \\
+\quad \text{left}: 10\,\text{B} \\
+\quad \text{right}: 40\,\text{R} \\
+\qquad \text{left}: 30\,\text{B} \\
+\qquad\quad \text{left}: 25\,\text{R} \\
+\qquad \text{right}: 50\,\text{B}
+\end{array}
+\]
+Verify the invariant: black-height from $20$ to any null leaf is
+$3$ on every path (count: $20, 30/50, $ null $\,= 3$ via
+$30$/$50$; $20, 10, $ null $ = 3$ via $10$; $20, 40$ red, $30$ B,
+$25$ R, null = $3$ blacks). All paths balance.
+
+\textbf{Takeaway.} Six inserts produced \emph{two} case-3
+recolouring cascades and \emph{two} case-5 single-rotation fixes
+(no case-4 zig-zag triggered, because none of the inserts landed
+on an ``inside'' grandchild with a black uncle). Compare to the
+AVL trace: AVL needed three rotations (one of which was a
+\emph{double} rotation); red-black needed two single rotations
+plus four colour flips. The case-3 recurse-on-grandparent step on
+inserts $40$ and $25$ is the source of the $O(\log n)$ recolouring
+worst case; the rotations cap at two regardless. \emph{This is
+why \texttt{std::map} chose red-black: rotations are pointer
+writes, recolours are bit flips.}
+\end{examplebox}
+
 \begin{notebox}
 Red-black \emph{removal} follows the same spirit -- BST remove first, then fix any invariant violation -- but with more cases because removing a black node breaks rule 5 directly. That's the subject of the next section.
 \end{notebox}
@@ -1568,8 +1962,348 @@ void rbRemoveNode(RBTree& t, RBNode* n) {
 }
 \end{lstlisting}
 
+\begin{examplebox}
+\textbf{Worked red-black removal traces.} A single small tree
+doesn't exercise all four CLRS \texttt{RB-DELETE-FIXUP} cases (which
+this chapter splits into six -- see the warnbox above), so we run
+two short traces. ``B'' = black, ``R'' = red, double-black is
+written ``DB'' for the conceptual deficit token.
+
+\textbf{Trace A -- delete $50$ from a 7-node tree (case 1 + case 4).}
+Start:
+\[
+\begin{array}{l}
+30\,\text{B} \\
+\quad \text{left}: 20\,\text{B} \\
+\qquad \text{left}: 10\,\text{R} \\
+\quad \text{right}: 50\,\text{B} \\
+\qquad \text{left}: 40\,\text{R},\,\, \text{right}: 60\,\text{R}
+\end{array}
+\]
+\texttt{rbRemoveNode} sees $50$ has two children, swaps with
+predecessor ($40$), and recurses on $40$. $40$ is red $\Rightarrow$
+\textbf{case 1} (trivially removable): no prep needed,
+\texttt{bstRemove} just splices $40$ out.
+\[
+\begin{array}{l}
+30\,\text{B} \\
+\quad \text{left}: 20\,\text{B} \to 10\,\text{R} \\
+\quad \text{right}: 40\,\text{B}\,\, (\text{key copied from old } 50) \\
+\qquad \text{right}: 60\,\text{R}
+\end{array}
+\]
+Now delete $40$ (which is now black, root's right child).
+$40$'s sibling is $20$ (black); $20$'s children are $10$ R and
+null (black). Sibling is black, parent ($30$) is black, sibling's
+children are mixed -- not all black -- so case 3 doesn't fire.
+The fall-through path applies: re-examine. Actually: parent
+\emph{black}, sibling \emph{black}, sibling has at least one red
+child ($10$). $40$ is the right child of $30$, sibling's
+\emph{outer} child (left of $20$, when $40$ is on the right) is
+$10$ R. Falls through to the tail rotation. Sibling ($20$)
+inherits parent's colour (black), parent goes black (already),
+the outer red ($10$) goes black, right-rotate at $30$. Final:
+\[
+\begin{array}{l}
+20\,\text{B} \\
+\quad \text{left}: 10\,\text{B} \\
+\quad \text{right}: 30\,\text{B},\,\, \text{right} = 60\,\text{R}
+\end{array}
+\]
+Black-height $= 2$ on every path. Done.
+
+\textbf{Trace B -- delete $1$ from a 6-node tree (case 3 cascade).}
+Start (constructed to force a case-3 propagation):
+\[
+\begin{array}{l}
+20\,\text{B} \\
+\quad \text{left}: 10\,\text{B} \\
+\qquad \text{left}: 1\,\text{B},\,\, \text{right}: 15\,\text{B} \\
+\quad \text{right}: 30\,\text{B} \\
+\qquad \text{right}: 40\,\text{R}
+\end{array}
+\]
+Delete $1$. $1$ is a black leaf, sibling $15$ is black with both
+children null (black), parent $10$ is black, $1$'s removal would
+drop black-count by 1 on its path $\Rightarrow$ \textbf{case 3}:
+recolour sibling $15$ red, recurse on parent $10$. Now treat $10$
+as the deficit-bearer.
+
+At $10$: its sibling is $30$ (black), $30$'s children are null
+(black) and $40$ R. Parent ($20$) is black; sibling has at least
+one red child. So case 3 doesn't apply at this level; it's a
+standard sibling-with-red-nephew configuration. $10$ is the
+\emph{left} child of $20$; sibling's \emph{outer} child (right of
+$30$) is $40$ R $\Rightarrow$ fall-through tail rotation
+(equivalently CLRS case 4). Sibling ($30$) inherits parent's
+colour (black), parent goes black, outer red ($40$) goes black,
+left-rotate at $20$. Combined with the case-3 recolour and the
+actual splice of $1$:
+\[
+\begin{array}{l}
+30\,\text{B} \\
+\quad \text{left}: 20\,\text{B} \\
+\qquad \text{left}: 10\,\text{B},\,\, \text{right}: 15\,\text{R}\,(\text{(was sibling, recoloured in case 3)}) \\
+\qquad\quad \text{(}10\text{'s left, where }1\text{ was, now null)} \\
+\quad \text{right}: 40\,\text{B}
+\end{array}
+\]
+Black-height $= 2$ on every path. Done.
+
+\textbf{Cases exercised.} Trace A covered \emph{case 1}
+(red node, trivial) and the \emph{fall-through tail rotation}
+(equivalent to CLRS case 4). Trace B covered \emph{case 3}
+(black-everywhere recurse) plus the same fall-through. The
+remaining cases (\emph{case 2} red sibling, the explicit
+\emph{case 5/6} zig-zag straighten) require slightly different
+starting shapes -- the gap-report tradeoff was worked traces
+covering as many cases as two compact trees allow rather than
+one synthetic mega-example. The driver code in
+\texttt{rbPrepareForRemoval} above runs every case in the same
+way it ran here: classify, rewrite, re-classify if transitional,
+fall through to the rotation tail when prep is complete.
+\end{examplebox}
+
 \begin{ideabox}
-\textbf{The mental model to keep.} A red-black tree is a BST with bookkeeping. Every modifying operation is (1) do the BST thing, (2) fix the coloring/height invariants locally, (3) if local fix is impossible, propagate one level up. Insertion propagates up with \emph{uncle-red} recoloring; removal propagates up with \emph{case 3} recoloring. Both walk at most $O(\log n)$ levels, bounded by the tree height, which rule 5 guarantees is $O(\log n)$.
+\textbf{The mental model to keep -- and where the rest of the book
+takes you.} A red-black tree is a BST with bookkeeping. Every
+modifying operation is (1) do the BST thing, (2) fix the
+coloring/height invariants locally, (3) if local fix is impossible,
+propagate one level up. Insertion propagates up with
+\emph{uncle-red} recoloring; removal propagates up with
+\emph{case 3} recoloring. Both walk at most $O(\log n)$ levels,
+bounded by the tree height, which rule 5 guarantees is
+$O(\log n)$.
+
+\medskip
+
+\textbf{Looking ahead.} Three forward references close the loop:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Chapter 10 (graphs).} BFS spanning trees and
+          Dijkstra's parent-pointer trees are a different
+          ``tree as algorithm output'' lens -- the tree isn't the
+          data structure, it's the trace of a search. But the
+          \emph{priority queue} that drives Dijkstra and Prim is
+          often a balanced BST under the hood (Linux kernel CFS
+          uses red-black trees for exactly this) -- so AVL/RB
+          show up again on the inside of those algorithms.
+    \item \textbf{Chapter 11 (B-trees).} The
+          \emph{shallow-and-wide} alternative: same balanced search
+          tree problem, different geometric tradeoff. AVL/RB are
+          binary; B-trees fan out by hundreds per node. Same
+          $O(\log n)$ asymptotic, but with cache-line and
+          disk-page locality that this chapter's binary trees
+          can't match. The augmentation framework from \S9.9
+          carries over -- B-trees augment with key-counts and
+          sometimes interval bounds.
+    \item \textbf{Chapter 12 (set ADT).} The \emph{abstraction/
+          implementation} closure. \texttt{std::set} and
+          \texttt{std::map} are red-black trees under the hood --
+          chapter 12 covers the interface and the standard library
+          API; this chapter covered the implementation. Reading
+          \texttt{libstdc++}'s \texttt{\_Rb\_tree.h} after this
+          chapter is the practitioner-level capstone exercise.
+\end{itemize}
 \end{ideabox}
+
+\section{9.9 Augmenting balanced trees}
+
+\S9.4's framing notebox hinted at it; this section makes it
+explicit. The \emph{cached height} trick that powers AVL
+rebalancing is one example of a much more general pattern: a
+balanced BST is a substrate on which you can attach a per-subtree
+property and maintain it for free. Once you see the pattern, every
+specialised balanced tree (order-statistic trees, interval trees,
+range-sum trees) becomes ``a balanced BST with one more cached
+field per node, plus an updated rotation routine.''
+
+\begin{defnbox}[Subtree augmentation framework]
+A \textbf{subtree augmentation} of a balanced BST is a property
+$P$ defined at every node such that:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Subtree-summarising.} $P(n)$ is a function of $n$
+          and the subtree rooted at $n$. Examples: the height of
+          $n$'s subtree (AVL); the number of nodes in $n$'s
+          subtree (order-statistic); the maximum interval-endpoint
+          stored in $n$'s subtree (interval tree).
+    \item \textbf{$O(1)$ recomputable from children.} Given $P$
+          values stored at $n$'s left and right children, $P(n)$
+          can be computed in $O(1)$ from those two values plus
+          $n$'s own data.
+\end{enumerate}
+Properties satisfying both clauses are maintained at zero
+asymptotic overhead per insert/delete, because the existing
+$O(\log n)$ retrace already touches every ancestor on the modified
+path; recomputing $P$ at each touched ancestor is $O(1)$ per
+ancestor, totalling $O(\log n)$ per operation -- the same
+asymptotic as the operation itself.
+\end{defnbox}
+
+\subsection*{Worked example: subtree size for order-statistic queries}
+
+The canonical example is \textbf{order-statistic trees} (CLRS
+\S14.1). We want two new operations on a balanced BST:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{select(k)} -- return the $k$-th smallest key,
+          $0$-indexed.
+    \item \texttt{rank(x)} -- return the number of keys strictly
+          less than $x$.
+\end{itemize}
+Both run in $O(\log n)$ with the right augmentation. The augmented
+property is $P(n) = $ \texttt{size(n)}, the number of nodes in
+$n$'s subtree. Computable from children: \texttt{size(n) = 1
++ size(left) + size(right)} -- treating null subtrees as size
+$0$. Constant time per node.
+
+\begin{lstlisting}
+template <typename T>
+struct OSNode {
+    T          data;
+    OSNode*    left   = nullptr;
+    OSNode*    right  = nullptr;
+    OSNode*    parent = nullptr;
+    int        height = 0;     // existing AVL augmentation
+    int        size   = 1;     // NEW: subtree size, including this node
+};
+
+template <typename T>
+int osSize(const OSNode<T>* n) { return n ? n->size : 0; }
+
+template <typename T>
+void osUpdate(OSNode<T>* n) {
+    // Combined update of every cached subtree property.
+    int lh = n->left  ? n->left->height  : -1;
+    int rh = n->right ? n->right->height : -1;
+    n->height = 1 + std::max(lh, rh);
+    n->size   = 1 + osSize(n->left) + osSize(n->right);
+}
+\end{lstlisting}
+
+The change to the rotation routine is one extra line per rotation:
+after the three pointer rewires, call \texttt{osUpdate} on both
+the old root and the new root (in that order -- the new root reads
+the old root's freshly-updated size). Everything else -- BST
+insert, BST remove, the retrace loop, the four AVL rebalance
+cases -- is untouched.
+
+With \texttt{size} maintained, \texttt{select(k)} walks the tree:
+descend left if $k < $ \texttt{size(left)}; return the current
+node if $k = $ \texttt{size(left)}; descend right with
+$k \mathbin{-\!\!=} $ \texttt{size(left)} $+ 1$ otherwise. One
+root-to-leaf path $\Rightarrow$ $O(\log n)$. \texttt{rank(x)} is
+the inverse: standard BST search for $x$, accumulating
+\texttt{size(left) + 1} every time the search descends right.
+Same $O(\log n)$.
+
+\subsection*{Sequence AVL Tree: same tree, different interface}
+
+Order-statistic trees are the \emph{Set} interface
+(keyed by value) augmented with rank queries. There's a sibling
+interpretation -- the \textbf{Sequence Data Structure} interface
+-- that uses the \emph{exact same augmentation} but exposes a
+different API. Instead of \texttt{find(k)} which looks up a key,
+expose \texttt{get\_at(i)} which returns the element at position
+$i$ in the in-order traversal. The implementation is identical to
+\texttt{select(i)} above; only the API contract changes.
+
+This is the framing OCW 6.006 lec 7 leads with: AVL trees are a
+single substrate that supports two interface families
+simultaneously, depending on which augmentation you maintain.
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Set-AVL.} Augment with cached height (for
+          rebalancing). API is \texttt{find(k)}, \texttt{insert(x)},
+          \texttt{delete(k)}, \texttt{find\_min/max},
+          \texttt{find\_prev/next}. All $O(\log n)$.
+    \item \textbf{Sequence-AVL.} Augment with cached height +
+          subtree size. API is \texttt{get\_at(i)},
+          \texttt{set\_at(i, x)}, \texttt{insert\_at(i, x)},
+          \texttt{delete\_at(i)}. All $O(\log n)$.
+\end{itemize}
+The Sequence-AVL is the \emph{logarithmic-time dynamic array}: it
+lets you splice into the middle of a long sequence without paying
+the $O(n)$ shift that \texttt{std::vector::insert} pays in
+chapter 4. The price is constant-factor overhead per element
+(node + parent pointer + size + height field) and a slower
+sequential scan than a packed array. Worth it when the workload
+hits middle-of-sequence inserts heavily; not worth it for
+read-mostly access patterns.
+
+\begin{notebox}
+\textbf{Other augmentations worth knowing.} The pattern composes:
+once you have one augmentation, adding a second is just another
+field plus another line in \texttt{osUpdate}. A non-exhaustive
+homework list:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Interval trees} (CLRS \S14.3). Each node stores
+          a closed interval $[\text{lo}, \text{hi}]$; the
+          augmentation is $\max\text{-hi}(\text{subtree})$.
+          \texttt{find\_overlapping(I)} returns any interval
+          overlapping query $I$ in $O(\log n)$.
+    \item \textbf{Subtree XOR.} Augment with the XOR of all keys
+          in the subtree; supports prefix-XOR queries in
+          $O(\log n)$.
+    \item \textbf{Subtree sum.} Augment with the sum of all keys
+          in the subtree; supports prefix-sum range queries in
+          $O(\log n)$ -- a logarithmic-time alternative to the
+          Fenwick / segment trees you might see in competitive
+          programming.
+    \item \textbf{Subtree min / max.} Augment with the minimum (or
+          maximum) key in the subtree; supports range-min queries
+          in $O(\log n)$. Powers RMQ-style structures.
+\end{itemize}
+The unifying feature: every one is a property computable in
+$O(1)$ from children's cached values, so all of them pay
+\emph{zero} asymptotic overhead per insert/delete on the
+underlying balanced tree.
+\end{notebox}
+
+\section{9.10 Production references and further reading}
+
+\begin{notebox}
+\textbf{Where to read real-world balanced-BST code.}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{\texttt{std::map} and \texttt{std::set}}
+          (libstdc++) -- backed by
+          \texttt{libstdc++-v3/include/bits/stl\_tree.h} and
+          friends. Red-black, with the colour bit packed into the
+          parent pointer's low bit (the bit-stealing trick from
+          \S9.5). Industrial-strength but heavily templated --
+          slower to read than the kernel implementation.
+    \item \textbf{Linux kernel \texttt{rbtree}} --
+          \texttt{include/linux/rbtree.h} +
+          \texttt{lib/rbtree.c}. Used by the Completely Fair
+          Scheduler, the I/O scheduler, the memory-management
+          subsystem, and roughly anything else that needs a
+          sorted in-kernel collection. \emph{The cleanest
+          production red-black tree to read} -- C, no templates,
+          well-commented, augmentation hooks (\texttt{rb\_augment})
+          built into the API. If you read one production red-black
+          implementation, read this one.
+    \item \textbf{Java \texttt{java.util.TreeMap}} --
+          \texttt{TreeMap.java} in the JDK source. Red-black
+          again. Reads more like a textbook than the kernel
+          version because the JVM hides pointer arithmetic; useful
+          as a comparison.
+    \item \textbf{Boost \texttt{boost::intrusive::avl\_set}} --
+          one of the few production C++ AVL implementations.
+          Useful if you want to see the AVL-vs-RB constant-factor
+          comparison expressed in the same library style.
+    \item \textbf{Erlang \texttt{gb\_sets} / \texttt{gb\_trees}}
+          -- ``general balanced trees,'' a \emph{different} balancing
+          scheme (Andersson 1989) related to AA-trees. Worth
+          knowing exists; outside this chapter's scope.
+    \item \textbf{CLRS 3rd ed.\ Ch.\ 13} -- canonical red-black
+          treatment with the four-case \texttt{RB-DELETE-FIXUP}
+          this chapter splits into six.
+    \item \textbf{CLRS 3rd ed.\ Ch.\ 14} -- the augmentation
+          framework as a chapter unto itself, with order-statistic
+          trees (\S14.1) and interval trees (\S14.3) worked in
+          full. Problems 13-3 (AVL trees) and 13-4 (treaps) round
+          out the textbook coverage.
+    \item \textbf{MIT 6.006 lec 7} -- the conceptual treatment of
+          AVL trees as the deterministic answer to BST imbalance.
+          Pairs especially well with this chapter's \S9.1--\S9.4.
+\end{itemize}
+\end{notebox}
 
 \end{document}

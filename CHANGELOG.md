@@ -14,6 +14,93 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-25
 
+- **Added** **ch_9 OCW augmentation pass (Step 3 of the per-chapter
+  review loop, against `design_docs/chapter_reviews/ch_9_gaps.md`).**
+  `chapters/ch_9/lectures.tex` 1575 → 2309 lines (+734 lines,
+  ~+47% growth — over the gap report's ~+277 estimate, in line with
+  ch_7's pattern of every ADD landing at full depth rather than
+  summary-only). Page count 31 → 41
+  (gap-report target was ~35–37; the three worked exampleboxes +
+  the §9.9 augmentation framework section + the closing-ideabox
+  forward-refs block all expanded under the load). Optional-chapter
+  framing (per `feedback_chapter_review_autonomy.md` 2026-04-25
+  update) waives both the 40-page cap and the 3–5 bounded-additions
+  rule; ch_9 ships everything in the contract. **Sections touched:**
+  - **Header (S1+S2):** new opening `ideabox` "Chapter map" matching
+    ch_1 / ch_7 template — *Where this sits in CS 300* / *What you
+    add to your toolkit* / 7-item *Mastery checklist* / *Looking
+    ahead* block with forward refs to ch_10 (BFS / Dijkstra trees),
+    ch_11 (B-trees as shallow-and-wide alternative), ch_12 (set ADT —
+    `std::set` is RB). Lines 11–112.
+  - **§9.1 (S0.1 typo fix + Set Data Structure framing table):**
+    line 137 (original) `"section 9.8, sort of -- the main chapter
+    focuses on AVL"` rewritten to accurate `\S9.1--\S9.4 AVL,
+    \S9.5--\S9.8 red-black` framing. New "Why bother: the Set Data
+    Structure interface" subsection with `tabular` comparing plain
+    BST (h-time) vs AVL (log n-time) on `build` / `find` / `insert` /
+    `delete` / `find_min/max` / `find_prev/next` -- per OCW Lec 7
+    framing. Lines ~155–186.
+  - **§9.2 (Rotations are universal notebox):** new `notebox` after
+    "The four imbalance cases" subsection carrying the OCW Lec 7
+    "O(n) rotations transform any binary tree to any other with same
+    in-order sequence" claim + canonical-chain proof sketch, with
+    forward-ref to ch_11 split/merge as the analogous primitive.
+    Lines ~501–520.
+  - **§9.3 (AVL insert worked examplebox):** new `examplebox`
+    inserting `10, 20, 30, 40, 50, 25` into an empty AVL tree,
+    6 frames, showing balance factors at every node + which case
+    fires (LL → RR → LL/LR boundary at 25, double-rotation case).
+    Lines ~709–870.
+  - **§9.4 (S0.2 typo fix + augmentation framework framing notebox
+    + AVL Sort notebox):** original line 620 `Zchapter 6.6` (broken
+    macro) rewritten to `Chapter~6 \S6.6` plain text reference. New
+    `notebox` "Cached height is a special case of subtree
+    augmentation" lifting the AVL height-cache into the general
+    "state P, show O(1) child-update, get free maintenance" framework
+    with forward-ref to §9.9. New `notebox` "AVL Sort: a third
+    entry in the priority-queue-sort family" framing AVL Sort
+    against ch_7 §7.3's PQ-Sort table + forward-ref to ch_13 sort
+    comparison. Lines ~1042–1083.
+  - **§9.7 (RB insert worked examplebox):** new `examplebox`
+    inserting `10, 20, 30, 40, 50, 25` (same input as the §9.3 AVL
+    trace) into an empty RB tree, 6 frames, showing colour at every
+    node + which RB-INSERT-FIXUP case fires (case 2 / case 5 /
+    case 3 cascade). Pedagogical pairing with §9.3 trace. Lines
+    ~1571–1665.
+  - **§9.8 (RB delete worked examplebox + closing ideabox
+    re-framed in place per gap-report S3 default):** new
+    `examplebox` with two compact traces (delete from 7-node tree,
+    case 1 + fall-through; delete from 6-node tree, case 3 +
+    fall-through) covering the case-1 / case-3 / fall-through
+    rotation paths -- spec-noted that one tree can't exercise all
+    four CLRS cases. Existing line-1571 closing `ideabox` extended
+    in place with "Looking ahead" forward-refs to ch_10 (graphs,
+    BFS / Dijkstra), ch_11 (B-trees), ch_12 (set ADT --
+    `std::set`-is-RB closure). Lines ~1947–2104.
+  - **NEW §9.9 (Augmenting balanced trees):** `defnbox` for the
+    subtree-augmentation framework (subtree-summarising P,
+    O(1)-recomputable from children); worked example for
+    order-statistic queries with `OSNode` C++ struct +
+    `osUpdate`/`osSize` snippet implementing `select(k)` /
+    `rank(x)` in O(log n); Sequence-AVL Tree subsection framing
+    same tree / different interface (`get_at(i)` instead of
+    `find(k)`) with the "logarithmic-time dynamic array"
+    explanation; closing `notebox` listing other augmentations
+    (interval trees CLRS §14.3, subtree XOR, subtree sum, subtree
+    min/max). Cites CLRS §14.1 + OCW Lec 7. Lines 2109–2258.
+  - **NEW §9.10 (Production references + further reading):** single
+    `notebox` listing `std::map`/`std::set` (libstdc++
+    `_Rb_tree.h`), Linux kernel `rbtree.c`, Java `TreeMap`,
+    Boost `boost::intrusive::avl_set`, Erlang `gb_sets`/`gb_trees`,
+    CLRS Ch 13 + Ch 14, MIT 6.006 Lec 7. Lines 2260–2308.
+    *Numbered as §9.10 rather than the gap report's tentative
+    "§9.11" because the gap-report DECIDE on §9.10 (treaps stay in
+    ch_7) means there is no §9.10 to defer to -- the references
+    section is the natural §9.10.*
+  Two `pdflatex` passes (`-halt-on-error -interaction=nonstopmode`)
+  both exit 0; final `lectures.pdf` is 41 pages, 579554 bytes.
+  Dep audit: skipped — no manifest changes.
+
 - **Added** **ch_7 OCW augmentation pass (Step 3 of the per-chapter
   review loop, against `design_docs/chapter_reviews/ch_7_gaps.md`).**
   `chapters/ch_7/lectures.tex` 754 → 1606 lines (+852 lines, ~+113%
