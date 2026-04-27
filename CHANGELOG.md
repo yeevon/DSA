@@ -14,6 +14,202 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-25
 
+- **Added** **ch_13 OCW augmentation pass --- extra sorts and list
+  idioms (Step 3 of the per-chapter review loop, against
+  `design_docs/chapter_reviews/ch_13_gaps.md`). FINAL chapter of the
+  optional-chapter audit (ch_7 $\to$ ch_9 $\to$ ch_10 $\to$ ch_11
+  $\to$ ch_12 $\to$ ch_13 all complete).**
+  `chapters/ch_13/lectures.tex` 377 $\to$ 1759 lines (+1382 lines,
+  ~+367% growth --- well over the gap report's ~+815 estimate, in
+  line with the ch_7 / ch_9 / ch_10 / ch_11 / ch_12 precedent of
+  every ADD landing at full depth rather than summary-only; ch_13
+  pre-pass was 9 pp / 377 lines, the most isolated optional chapter
+  on cross-references and the most thinly-name-dropped on sorts ---
+  augmentation triples the chapter and pulls it to comparable depth
+  with ch_10 / ch_12). Page count 9 $\to$ 27. Optional-chapter
+  framing (per `feedback_chapter_review_autonomy.md` 2026-04-25
+  update) waives both the 40-page cap and the 3--5 bounded-additions
+  rule; ch_13 ships everything in the contract.
+  **Sections touched:**
+  - **Header (S1+S2):** new opening `ideabox` "Chapter map" matching
+    ch_1 / ch_7 / ch_9 / ch_10 / ch_11 / ch_12 template --- *Where
+    this sits in CS 300* (comparative-sorts encyclopedia + list-
+    idioms chapter; builds on ch.~3 foundational sorts and ch.~7
+    heapsort; closes the loop on production sorts cs-300 readers
+    will hit), *What you add to your toolkit* (decision-tree lower
+    bound + linear-time non-comparison sorts + hybrid production
+    sorts + quickselect/median-of-medians + list-specific algorithms
+    + sort-decision table), 7-item *Mastery checklist* covering
+    decision-tree lower bound / Lomuto vs Hoare partition / counting
+    sort O(n+k) stability proof / radix sort O(d(n+b)) base-vs-passes
+    tradeoff / sort-picking-by-problem / Floyd's cycle detection /
+    introsort recursion-depth + small-array thresholds, *Looking
+    ahead* block with forward refs past cs-300 (external sorting /
+    GPU sorts / lock-free sorts / approximate sorts). Existing one-
+    paragraph "grab-bag" frame retained as second `ideabox` but
+    rewritten to remove the "no unifying narrative" disavowal --- the
+    augmented chapter does have a unifying lens (which sort fits
+    which problem).
+  - **NEW \S13.0 (Comparison-sort lower bound):** full new opening
+    section. `defnbox` for the decision-tree model. Explicit
+    $\Omega(n \log n)$ derivation via Stirling's approximation
+    ($\log_2(n!) \ge \tfrac{1}{2} n \log_2 n$ for $n \ge 4$).
+    3-element decision-tree TikZ showing the 6-leaf binary tree of
+    height 3 that any 3-element comparison sort must build.
+    Comparison-vs-non-comparison `notebox` framing why counting /
+    radix / bucket sidestep the bound (key-as-index access vs binary
+    branching).
+  - **\S13.1 (Bubble sort):** lower-bound-framing `notebox` placing
+    bubble's $O(n^2)$ on the comparison-sort cost ladder relative to
+    the optimal $O(n \log n)$ floor (merge / heap / introsort /
+    Timsort / pdqsort) and the sub-floor non-comparison family
+    (counting / radix / bucket). Forward cross-link to ch.~3
+    (insertion / selection / merge) and ch.~7 (heapsort) replacing
+    chapter-isolated name-drops with explicit ch.~N references.
+  - **\S13.2 (Quickselect):** new "Median-of-medians for worst-case
+    $O(n)$ selection" subsection (CLRS \S9.3) --- groups-of-5
+    grouping, recursive median-of-medians pivot construction, $7/10$
+    shrinkage guarantee, $T(n) \le T(n/5) + T(7n/10) + O(n)$
+    recurrence solving to $O(n)$ via $1/5 + 7/10 = 9/10 < 1$. New
+    `std::nth_element` guarantees `notebox` (introselect = quickselect
+    + median-of-medians fallback in libstdc++; mirrors introsort's
+    heapsort fallback). New `examplebox` walking median of
+    $[3, 1, 4, 1, 5, 9, 2, 6]$ with full Hoare-partition trace across
+    4 recursive calls.
+  - **\S13.3 (Bucket sort):** scope-clarification `notebox`
+    distinguishing $\S13.3$ (bucket sort proper) from \S13.6
+    (counting sort) and \S13.7 (radix sort), framing the family-tree
+    relationship before each child gets its own section.
+  - **\S13.4 (List wrapper):** ch.~4 cross-link added. New
+    `std::list` vs `std::forward\_list` `notebox` --- doubly-linked
+    sentinel-bounded vs.\ singly-linked head-only, $O(1)$ size
+    cached vs.\ no `size()` method, the std::set vs std::unordered\_set
+    naming-pattern parallel.
+  - **\S13.5 (Circular lists):** new sentinel-DLL TikZ diagram
+    (sentinel + 3 data nodes, solid `next` arrows in cycle + dashed
+    `prev` arrows, legend). ch.~4 cross-link added in defnbox.
+  - **NEW \S13.6 (Counting sort):** full new section. `defnbox` for
+    the linear-time stable sort over $[0, k)$. Three-phase algorithm
+    (count / prefix-sum / right-to-left placement). C++ implementation
+    (~22 lines). Cost analysis ($O(n+k)$ time, $O(n+k)$ space, stable
+    by construction, not in-place). When-counting-sort-beats-quicksort
+    `ideabox` with break-even analysis ($k = O(n)$ wins; $k = O(n^2)$
+    loses; rule-of-thumb crossover at $k = n \log n$). Stability proof
+    via right-to-left placement order. New counting-array $\to$ output
+    construction TikZ (input row + count after step 1 + count after
+    prefix sum + output row, with right-to-left placement arrow). New
+    `examplebox` walking the canonical $[2, 5, 3, 0, 2, 3, 0, 3]$
+    with all 8 placement steps annotated. Use cases enumeration
+    (radix-sort sub-step / image histogram + CDF / database GROUP BY
+    / bucket sort sub-step).
+  - **NEW \S13.7 (Radix sort):** full new section. `defnbox` for LSD
+    radix sort, $O(d(n+b))$ time. LSD algorithm (one stable counting
+    sort per digit, least-significant first). C++ implementation
+    (~24 lines, with `(a / base) \% b` digit extraction and explicit
+    `std::swap(a, B)` between passes). Cost analysis (time / space /
+    stable / not-in-place). Base-vs-passes tradeoff `ideabox`
+    (production radix uses $b = 256$, byte-per-pass for 32/64-bit
+    integers). New LSD-passes TikZ on the canonical CLRS example
+    $[170, 45, 75, 90, 802, 24, 2, 66]$ (4 rows: input + after ones
+    + after tens + after hundreds, vertical step arrows). New
+    `examplebox` walking the same example through all 3 passes with
+    digit extraction and stable-keep-pass-1-order observations. MSD
+    radix sort subsection for variable-length keys (string-sort
+    canonical pattern). Use cases enumeration (GPU sorts / database
+    engines / Spotify recommendation pipelines / network packet
+    processing).
+  - **NEW \S13.8 (Production hybrid sorts):** full new section.
+    Introsort `defnbox` (Musser 1997 --- quicksort + recursion-depth
+    fallback to heapsort at $2 \log_2 n$ + insertion-sort fast-path
+    at 16--32 elements; behind \texttt{std::sort}). Timsort `defnbox`
+    (Tim Peters 2002 --- merge sort exploiting natural runs +
+    galloping merge + run-stack invariant; behind Python /
+    Java-objects / Rust-stable). Dual-pivot quicksort `defnbox`
+    (Yaroslavskiy 2009 --- 5-sample pivot + 3-region partition;
+    behind Java primitives). Pdqsort `defnbox` (Orson Peters 2016 ---
+    BlockQuicksort branch-free partition + pattern detection +
+    heapsort fallback; behind Rust \texttt{sort\_unstable}). 9-row
+    language $\to$ default-sort decision tabular (C++ / Python / Java-
+    objects / Java-primitives / Rust-unstable / Rust-stable / Go-Sort
+    / Go-Stable). Closing why-every-stdlib-ships-a-hybrid `notebox`
+    generalising the pattern (introselect / introsort / production
+    memcpy all use measured-property dispatch).
+  - **NEW \S13.9 (Sort algorithm decision table):** full new section
+    with 16-row master tabular --- problem profile $\to$ recommended
+    sort + cost + cs-300 reference. Covers tiny array / random
+    in-place / random stable / nearly-sorted / bounded-integer /
+    fixed-width-integer / variable-length-string / uniform-real /
+    $k$-th-element / stable-+-adversarial-input / worst-case-bound /
+    no-extra-memory / GPU-parallel / out-of-RAM / Java-primitive /
+    Rust-unstable. Three-question-decision-procedure `notebox`
+    (key-universe-structure $\to$ stability-required $\to$ unusual-
+    constraint).
+  - **NEW \S13.10 (Algorithmic list idioms):** full new section.
+    Floyd's tortoise-and-hare cycle detection (`defnbox` + correctness
+    sketch + C++ impl; cycle-length and cycle-start sub-algorithms
+    with $\mu \bmod \lambda$ derivation). New `examplebox` walking
+    Floyd's on a 7-node list with 3 pre-cycle nodes ($\mu = 3$) and
+    4-node cycle ($\lambda = 4$): detection trace (4 steps to meet),
+    cycle-length trace (4 steps), cycle-start trace (3 steps from
+    head). In-place reversal subsection (iterative + recursive forms;
+    iterative preferred in production). Sorted-merge of two sorted
+    lists subsection ($O(n+m)$, dummy-head trick). Nth-from-end
+    subsection (two-pointer with N-step gap). List-intersection
+    subsection (length-difference algorithm + simultaneous-advance-
+    with-switch variant).
+  - **NEW \S13.11 (Production references and further reading):** full
+    new section as a single big `notebox` --- comparison-sorts-in-
+    production map (\texttt{std::sort} $\to$ introsort,
+    \texttt{std::stable\_sort} $\to$ merge,
+    \texttt{std::list::sort} $\to$ bottom-up merge,
+    \texttt{std::nth\_element} $\to$ introselect, Python sort $\to$
+    Timsort, Java primitives $\to$ dpqsort, Java objects $\to$
+    Timsort, Rust unstable $\to$ pdqsort, Rust stable $\to$ Timsort
+    variant, Go $\to$ introsort/merge); non-comparison-sorts-in-
+    production map (Boost spreadsort, Boost flat\_stable\_sort,
+    ips4o, NVIDIA CUB DeviceRadixSort, PostgreSQL ORDER BY); textbook
+    references (CLRS Ch 7/8/9, Knuth TAOCP Vol 3, Sedgewick Ch 2).
+  - **\S13.5 closing `ideabox` rewrite (S3) $\to$ now lives at end
+    of \S13.11:** chapter-takeaway `ideabox` rewritten per ch_10 /
+    ch_11 / ch_12 unification convention --- enumerates the 9 sorts
+    (bubble / quickselect / bucket / counting / radix / introsort /
+    Timsort / dpqsort / pdqsort) + 5 list idioms (cycle detection /
+    reversal / sorted merge / nth-from-end / intersection) covered
+    + Looking-ahead block with forward directions past cs-300
+    (external / GPU / lock-free sorts).
+  - **TikZ + examplebox tally:** 4 new TikZ diagrams (3-element
+    decision tree in \S13.0, sentinel-DLL structure in \S13.5,
+    counting-array $\to$ output construction in \S13.6, LSD-passes
+    in \S13.7); 4 new exampleboxes (median-of-$[3,1,4,1,5,9,2,6]$
+    in \S13.2, counting-sort-on-$[2,5,3,0,2,3,0,3]$ in \S13.6, LSD-
+    radix-on-$[170,45,75,90,802,24,2,66]$ in \S13.7, Floyd's-on-
+    7-node-cyclic-list in \S13.10).
+  - **Forward / backward refs added:** ch.~3 (foundational sorts:
+    insertion / selection / merge), ch.~4 (linked lists), ch.~7
+    (heapsort), ch.~12 (set ADT naming-pattern parallel) all
+    explicitly cited where pre-augmentation chapter had zero
+    numbered cross-chapter references (the most isolated optional
+    chapter on this metric).
+  - **Build verification:** `pdflatex -halt-on-error
+    -interaction=nonstopmode lectures.tex` two passes both exit
+    `0`. Final `lectures.pdf` 27 pp / 537 KB.
+  - **amssymb resolution:** worked around per ch_12 precedent ---
+    no `\subsetneq` / `\lesssim` / `\mathbb{}` constructs used in
+    ch_13 augmentation (ch_13's content does not naturally invoke
+    them: sort lower-bound proof uses plain $\Omega$ + Stirling
+    approximation; counting-sort key range stated as "non-negative
+    integers" prose; no subset-relation comparisons). amssymb
+    addition to `notes-style.tex` deferred --- only ch_12 worked
+    around it; with ch_13 not needing it, the threshold ("multiple
+    chapters" per the spec brief) is not met.
+  - **Optional-chapter audit close-out:** ch_13 is the LAST chapter
+    of the per-chapter review loop's optional arc. Sequence
+    completed: ch_7 (graph theory) $\to$ ch_9 (BSTs / AVL / RB) $\to$
+    ch_10 (graph algorithms) $\to$ ch_11 (B-trees) $\to$ ch_12
+    (sets) $\to$ ch_13 (extra sorts + list idioms). All six
+    optional chapters now ship at depth comparable to the SNHU-
+    required arc (ch_1--ch_6).
+    `Dep audit: skipped --- no manifest changes`.
 - **Added** **ch_12 OCW augmentation pass (Step 3 of the per-chapter
   review loop, against `design_docs/chapter_reviews/ch_12_gaps.md`).**
   `chapters/ch_12/lectures.tex` 300 → 1588 lines (+1288 lines,
