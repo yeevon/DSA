@@ -8,7 +8,161 @@
 \begin{document}
 \maketitle
 
+\begin{ideabox}[Chapter map]
+\textbf{Where this sits in CS 300.} Chapter 7 is the first time the course
+builds a non-trivial \emph{abstract data type} (ADT) -- the
+\textbf{priority queue} -- and answers it with the first non-trivial
+\emph{tree-as-array} structure -- the \textbf{binary heap}. It is also
+the canonical example of a structure whose right asymptotic only emerges
+from a non-obvious analysis: \texttt{build\_heap} is $O(n)$, not
+$O(n \log n)$, and the proof uses a geometric-series sum over node
+heights. The ``tree stored implicitly in an array'' pattern resurfaces
+in chapter 11 (B-trees and disk-friendly indexing) and chapter 13
+(heap sort in the comparison-sort table).
+
+\textbf{What you add to your toolkit:}
+\begin{itemize}
+    \item The \textbf{array-as-complete-binary-tree} encoding -- parent,
+          left, right computed by index arithmetic, no pointers.
+    \item The \textbf{max-heap (resp.\ min-heap) property} as a
+          \emph{local} invariant that, by induction, implies a
+          \emph{global} guarantee.
+    \item \textbf{Percolate-up} and \textbf{percolate-down} as the two
+          universal heap primitives. Every other heap operation is one
+          of these in a wrapper.
+    \item \textbf{Heap sort} as the in-place $O(n \log n)$ worst-case
+          sort that doesn't need merge sort's auxiliary buffer.
+    \item The \textbf{priority-queue ADT} -- the thing every graph
+          algorithm needs (forward ref to chapter 10's Dijkstra and
+          Prim).
+    \item \textbf{Rotations} as a first taste, used here to keep
+          treaps balanced (chapter 9 generalises to AVL and red-black
+          trees with strict invariants).
+\end{itemize}
+
+\textbf{Mastery checklist} -- you should be able to, without references:
+\begin{enumerate}
+    \item Convert an array index $i$ to its parent / left-child /
+          right-child indices and back, by hand on a 15-element array.
+    \item State the max-heap property at a node and explain by
+          induction why it implies the global ``every descendant
+          $\le$ root'' claim.
+    \item Run \texttt{max\_heapify\_up} and \texttt{max\_heapify\_down}
+          by hand on a 7-element array, distinguishing which one fires
+          on \texttt{insert} versus \texttt{delete\_max}.
+    \item Sketch the geometric-series proof that \texttt{build\_heap}
+          is $O(n)$ rather than $O(n \log n)$ -- at minimum the
+          ``sum of node heights $= O(n)$'' step.
+    \item Explain why heap sort is in-place but merge sort is not,
+          and state when you would pick heap sort over quicksort
+          (worst-case-sensitive workload, no random-access budget) and
+          over merge sort (no auxiliary-buffer budget).
+    \item Sketch the priority-queue interface (\texttt{build} /
+          \texttt{insert} / \texttt{delete\_max} / \texttt{find\_max})
+          and identify which graph-algorithm step (chapter 10 forward
+          ref) needs each operation.
+    \item Distinguish max-heap from BST: locating the minimum element
+          of a max-heap is $\Omega(n)$ (must search the leaves)
+          whereas in a BST it is $O(\log n)$ -- and articulate why
+          the two structures are not interchangeable.
+\end{enumerate}
+
+\textbf{Looking ahead.} Chapter 9 introduces \textbf{AVL and red-black
+trees} as the deterministic alternative to treaps for the same
+``balanced search tree'' problem; the rotations you meet in \S7.5 are
+exactly the AVL/RB primitives. Chapter 10 leans on the priority-queue
+ADT for \textbf{Dijkstra} and \textbf{Prim} (every relaxation is a
+\texttt{decrease\_key} on a min-heap). Chapter 13 places \textbf{heap
+sort} in the comparison-sort table alongside quicksort, mergesort, and
+counting sort -- the worst-case $O(n \log n)$ in-place sort with the
+weakest constants but the strongest guarantees.
+\end{ideabox}
+
 \section{7.1 Heaps: The Big Idea}
+
+\subsection*{The problem first: the priority-queue interface}
+
+Before we build any data structure, fix the \emph{interface} -- the
+abstract job we are trying to do. A \textbf{priority queue} is a
+collection that supports just four operations on a set of keys:
+
+\begin{defnbox}[Priority-queue interface]
+\textbf{Priority queue} (max-flavoured):
+\begin{itemize}[leftmargin=*]
+    \item \texttt{build(A)} -- bulk-load $n$ keys into the structure.
+    \item \texttt{insert(x)} -- add one key.
+    \item \texttt{find\_max()} -- return (without removing) the largest
+          key.
+    \item \texttt{delete\_max()} -- remove and return the largest key.
+\end{itemize}
+The min-flavoured version swaps ``largest'' for ``smallest'' and is the
+mirror image. This is a \emph{Set} interface (ordered by key), not a
+Sequence interface (ordered by position) -- you don't ask for ``the
+third element,'' you ask for ``the extremum.''
+\end{defnbox}
+
+Three running examples make this concrete:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Router scheduling.} A network router holds outgoing
+          packets in a priority queue keyed by QoS class (voice
+          before video before bulk). Every clock tick it
+          \texttt{delete\_max}es to pick the next packet to put on the
+          wire.
+    \item \textbf{OS kernel scheduler.} The runqueue is a priority
+          queue keyed by ``virtual runtime'' (lower = more urgent in
+          a min-PQ); the scheduler \texttt{delete\_min}s to pick the
+          next thread, then \texttt{insert}s it back with an updated
+          key when the quantum expires.
+    \item \textbf{Discrete-event simulation.} Pending events live in a
+          min-PQ keyed by simulated timestamp; the simulator loop is
+          ``\texttt{delete\_min}, run that event, possibly
+          \texttt{insert} new events, repeat.''
+\end{itemize}
+
+The fourth example is the one chapter 10 will build on: \textbf{graph
+algorithms.} \textbf{Dijkstra} (single-source shortest paths) and
+\textbf{Prim} (minimum spanning tree) both repeatedly extract the next
+``cheapest'' frontier vertex from a priority queue. They are the
+canonical reason the priority-queue ADT exists in algorithms textbooks.
+
+\subsection*{The two extreme implementations -- and why neither wins}
+
+Once you fix the interface, the natural question is: \emph{what's the
+cheapest data structure that supports it?} Two trivial answers bracket
+the design space.
+
+\textbf{Priority queue as an unsorted (dynamic) array.} Append on
+\texttt{insert} ($O(1)$); on \texttt{find\_max} or \texttt{delete\_max},
+linear-scan the array ($O(n)$). \texttt{build}-from-$n$ items is
+$O(n)$. To sort with this PQ, do $n$ \texttt{insert}s ($O(n)$ total)
+followed by $n$ \texttt{delete\_max}es ($O(n^2)$ total). That is
+\textbf{selection sort}.
+
+\textbf{Priority queue as a sorted array.} Keep the array sorted by
+key. \texttt{find\_max} and \texttt{delete\_max} are $O(1)$ (the max
+sits at the end), but \texttt{insert} has to find its slot and shift,
+$O(n)$. PQ-sort with this implementation does $n$ \texttt{insert}s
+($O(n^2)$ total) followed by $n$ cheap \texttt{delete\_max}es. That is
+\textbf{insertion sort}.
+
+\begin{ideabox}[Priority-queue sort as a unifying lens]
+Every comparison-based sort you have met can be rewritten as
+``\texttt{build}, then $n$ \texttt{delete\_max}es from a priority
+queue.'' The sorts differ \emph{only} in which PQ implementation they
+ride on. Selection sort = unsorted-array PQ. Insertion sort =
+sorted-array PQ. Heap sort (this chapter) = binary-heap PQ. AVL sort
+(chapter 9) = balanced-BST-augmented-with-max-pointer PQ. The
+algorithm is the same; only the substrate changes.
+\end{ideabox}
+
+The two extremes show the tension: insert-cheap structures have
+expensive \texttt{delete\_max}, and vice versa. \emph{Is there a
+compromise that does both in $O(\log n)$?} That is exactly what the
+binary heap delivers, and it is what the rest of this chapter
+constructs.
+
+\subsection*{Heaps: the answer}
 
 A \textbf{heap} is a binary tree specialized for one job: hand me the max (or min) element, fast, and let me insert or remove in logarithmic time. It is not a BST -- it deliberately gives up ordered iteration to gain simplicity and speed on that narrow interface. Where a BST balances every subtree to permit arbitrary search, a heap only cares that \emph{the root is the extremum}.
 
@@ -208,6 +362,37 @@ Check: \texttt{parent(4) = (4-1)/2 = 1}, so parent of $6$ is $42$ -- correct. \t
 A \emph{complete} binary tree has no gaps, so every array slot corresponds to an actual node. That's why the index formulas work -- if the tree had missing internal nodes, you'd need sentinels or a different encoding. This is the crucial reason heap insert and remove are written to \emph{preserve completeness structurally first} and fix the heap-property violation second.
 \end{ideabox}
 
+\begin{examplebox}[Why the local property implies a global guarantee]
+The max-heap property is stated \emph{locally}: each node is $\ge$ its
+two children. The defnbox in \S7.1 claimed by transitivity that this
+implies the \emph{global} fact ``the root's key is $\ge$ every
+descendant's key.'' Here is the proof.
+
+\textbf{Claim.} For every node $i$ and every descendant $j$ of $i$,
+$\text{key}(i) \ge \text{key}(j)$.
+
+\textbf{Proof by induction on $d = \text{depth}(j) - \text{depth}(i)$,
+the depth difference between $j$ and $i$.}
+
+\textit{Base case ($d = 1$)}. If $d = 1$, then $j$ is a child of $i$.
+The local max-heap property at $i$ states $\text{key}(i) \ge
+\text{key}(j)$ directly.
+
+\textit{Inductive step ($d \ge 2$)}. Assume the claim holds for every
+pair with depth difference $< d$. Let $j$ be a descendant of $i$ at
+depth $d$ below $i$, and let $k$ be the parent of $j$. Then $k$ is a
+descendant of $i$ at depth difference $d - 1$, so by the inductive
+hypothesis $\text{key}(i) \ge \text{key}(k)$. The local max-heap
+property at $k$ gives $\text{key}(k) \ge \text{key}(j)$. Chaining,
+$\text{key}(i) \ge \text{key}(k) \ge \text{key}(j)$. \emph{Q.E.D.}
+
+\textbf{Consequence.} Setting $i$ to the root: the root's key is $\ge$
+every key in the heap, so \texttt{find\_max} is just ``return $h[0]$''
+in $O(1)$. The minimum, by contrast, can be \emph{anywhere among the
+leaves}, so \texttt{find\_min} on a max-heap is $\Omega(n)$ -- you have
+to look at all of them. We will revisit this in \S7.6.
+\end{examplebox}
+
 \subsection*{Why arrays beat pointers here}
 
 \begin{center}
@@ -324,6 +509,37 @@ void heapify(std::vector<int>& a) {
 }
 \end{lstlisting}
 
+\begin{examplebox}[Bottom-up build-max-heap on \texttt{[7,3,5,6,2,0,3,1,9,4]}]
+$n = 10$, so the last internal node is at index $\lfloor 10/2 \rfloor -
+1 = 4$. We call \texttt{percolateDown(i)} for $i = 4, 3, 2, 1, 0$ in
+turn. At each step, the subtree rooted at the index being processed
+becomes a valid max-heap; everything below it is already a valid
+max-heap from prior steps.
+
+\begin{center}
+\begin{tabular}{|c|cccccccccc|l|}
+\hline
+Step & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & Action \\
+\hline
+start         & 7 & 3 & 5 & 6 & 2 & 0 & 3 & 1 & 9 & 4 & input array \\
+$i=4$         & 7 & 3 & 5 & 6 & \textbf{4} & 0 & 3 & 1 & 9 & \textbf{2} & swap $a[4]=2$ with larger child $a[9]=4$ \\
+$i=3$         & 7 & 3 & 5 & \textbf{9} & 4 & 0 & 3 & 1 & \textbf{6} & 2 & swap $a[3]=6$ with larger child $a[8]=9$ \\
+$i=2$         & 7 & 3 & 5 & 9 & 4 & 0 & 3 & 1 & 6 & 2 & $a[2]=5 \ge \max(0,3)$, no swap \\
+$i=1$         & 7 & \textbf{9} & 5 & \textbf{6} & 4 & 0 & 3 & 1 & \textbf{3} & 2 & swap $a[1]=3$ with $a[3]=9$, then $a[3]=3$ with $a[8]=6$ \\
+$i=0$ swap 1  & \textbf{9} & \textbf{7} & 5 & 6 & 4 & 0 & 3 & 1 & 3 & 2 & swap $a[0]=7$ with $a[1]=9$ \\
+$i=0$ swap 2  & 9 & \textbf{7} & 5 & \textbf{6} & 4 & 0 & 3 & 1 & 3 & 2 & at index 1, $a[1]=7 \ge \max(6,4)$, stop \\
+\hline
+\end{tabular}
+\end{center}
+
+Final: \texttt{[9, 7, 5, 6, 4, 0, 3, 1, 3, 2]}. Spot-check: $9 \ge
+\{7, 5\}$, $7 \ge \{6, 4\}$, $5 \ge \{0, 3\}$, $6 \ge \{1, 3\}$, $4
+\ge \{2\}$. Valid max-heap. Total work: 5 calls to
+\texttt{percolateDown} doing 1, 1, 0, 2, 1 swaps respectively -- 5
+swaps total for $n = 10$, well under the worst-case $n \log_2 n
+\approx 33$ that a one-by-one insert sequence would do.
+\end{examplebox}
+
 \subsection*{Why heapify is $O(n)$, not $O(n \log n)$}
 
 This is the cleverness of bottom-up construction, and it catches most students off-guard on exams.
@@ -398,6 +614,48 @@ swap a[0]=12, a[1]=11; size 1; done \\
 
 Final: \texttt{[11, 12, 13, 15, 19, 21]}. Sorted ascending.
 
+\begin{examplebox}[Heap sort on \texttt{[7,3,5,6,2,0,3,1,9,4]}: the sort-down phase]
+We finished the build-heap example for this array above with
+\texttt{[9, 7, 5, 6, 4, 0, 3, 1, 3, 2]}. Now run the sort-down loop.
+At each step we swap $a[0]$ with $a[\text{end}]$, decrement
+\texttt{end} (the heap shrinks; the swapped-in max is now in its
+final sorted position), and percolate the new root down within the
+prefix $a[0 \ldots \text{end}-1]$.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{|c|cccccccccc|l|}
+\hline
+end & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & note \\
+\hline
+9 & 9 & 7 & 5 & 6 & 4 & 0 & 3 & 1 & 3 & 2 & post-heapify \\
+9 & 2 & 7 & 5 & 6 & 4 & 0 & 3 & 1 & 3 & \textbf{9} & swap $a[0] \leftrightarrow a[9]$ \\
+9 & 7 & 6 & 5 & 3 & 4 & 0 & 3 & 1 & 2 & \textbf{9} & percolate down at 0 (heap = $a[0..8]$) \\
+8 & 2 & 6 & 5 & 3 & 4 & 0 & 3 & 1 & \textbf{7} & 9 & swap $a[0] \leftrightarrow a[8]$ \\
+8 & 6 & 4 & 5 & 3 & 2 & 0 & 3 & 1 & \textbf{7} & 9 & percolate down (heap = $a[0..7]$) \\
+7 & 1 & 4 & 5 & 3 & 2 & 0 & 3 & \textbf{6} & 7 & 9 & swap $a[0] \leftrightarrow a[7]$ \\
+7 & 5 & 4 & 3 & 3 & 2 & 0 & 1 & \textbf{6} & 7 & 9 & percolate down (heap = $a[0..6]$) \\
+6 & 1 & 4 & 3 & 3 & 2 & 0 & \textbf{5} & 6 & 7 & 9 & swap $a[0] \leftrightarrow a[6]$ \\
+6 & 4 & 3 & 3 & 1 & 2 & 0 & \textbf{5} & 6 & 7 & 9 & percolate down (heap = $a[0..5]$) \\
+5 & 0 & 3 & 3 & 1 & 2 & \textbf{4} & 5 & 6 & 7 & 9 & swap $a[0] \leftrightarrow a[5]$ \\
+5 & 3 & 2 & 3 & 1 & 0 & \textbf{4} & 5 & 6 & 7 & 9 & percolate down (heap = $a[0..4]$) \\
+4 & 0 & 2 & 3 & 1 & \textbf{3} & 4 & 5 & 6 & 7 & 9 & swap $a[0] \leftrightarrow a[4]$ \\
+4 & 3 & 2 & 0 & 1 & \textbf{3} & 4 & 5 & 6 & 7 & 9 & percolate down (heap = $a[0..3]$) \\
+3 & 1 & 2 & 0 & \textbf{3} & 3 & 4 & 5 & 6 & 7 & 9 & swap $a[0] \leftrightarrow a[3]$ \\
+3 & 2 & 1 & 0 & \textbf{3} & 3 & 4 & 5 & 6 & 7 & 9 & percolate down (heap = $a[0..2]$) \\
+2 & 0 & 1 & \textbf{2} & 3 & 3 & 4 & 5 & 6 & 7 & 9 & swap $a[0] \leftrightarrow a[2]$ \\
+2 & 1 & 0 & \textbf{2} & 3 & 3 & 4 & 5 & 6 & 7 & 9 & percolate down (heap = $a[0..1]$) \\
+1 & 0 & \textbf{1} & 2 & 3 & 3 & 4 & 5 & 6 & 7 & 9 & swap $a[0] \leftrightarrow a[1]$, done \\
+\hline
+\end{tabular}
+\end{center}
+
+Final: \texttt{[0, 1, 2, 3, 3, 4, 5, 6, 7, 9]}. Sorted, in-place, no
+auxiliary buffer used at any point. Each \texttt{percolateDown} on a
+heap of size $k$ does at most $\log_2 k$ comparisons; total cost is
+$\sum_{k=1}^{n-1} \log_2 k = \Theta(n \log n)$, matching the bound.
+\end{examplebox}
+
 \subsection*{Cost analysis}
 
 \begin{center}
@@ -433,6 +691,94 @@ Heapsort is \textbf{not stable}: equal keys may swap order during the percolate 
 
 \begin{notebox}
 \texttt{std::sort\_heap} and \texttt{std::make\_heap} in \texttt{<algorithm>} give you the two phases of heapsort. \texttt{std::partial\_sort} uses a heap-based algorithm to find and sort the top $k$ in $O(n \log k)$. None of these are the full \texttt{std::sort}, which typically uses introsort (quicksort that falls back to heapsort when recursion depth gets bad) -- precisely because heapsort's worst-case guarantee is the backup plan when quicksort starts to degrade.
+\end{notebox}
+
+\subsection*{Heap sort as priority-queue sort: the unifying table}
+
+Recall the \S7.1 framing: every comparison sort is ``\texttt{build} a
+priority queue, then $n$ \texttt{delete\_max}es.'' Different
+implementations give different sorts:
+
+\begin{center}
+\begin{tabular}{lllll|l}
+PQ implementation & \texttt{build} & \texttt{insert} & \texttt{delete\_max} & total ($n$ inserts + $n$ deletes) & in-place? \\
+\hline
+unsorted array          & $O(n)$ & $O(1)$       & $O(n)$       & $O(n^2)$  -- \textbf{selection sort} & yes \\
+sorted array            & $O(n \log n)$ & $O(n)$       & $O(1)$       & $O(n^2)$  -- \textbf{insertion sort} & yes \\
+balanced BST + max-ptr  & $O(n \log n)$ & $O(\log n)$  & $O(\log n)$  & $O(n \log n)$ -- \textbf{AVL sort} & no \\
+\textbf{binary heap}    & $\mathbf{O(n)}$ & $\mathbf{O(\log n)}$ & $\mathbf{O(\log n)}$ & $\mathbf{O(n \log n)}$ -- \textbf{heap sort} & \textbf{yes} \\
+\end{tabular}
+\end{center}
+
+The bottom row is the goal -- the only PQ here that hits $O(n \log n)$
+total \emph{and} runs in-place. AVL sort matches heap sort's
+asymptotics but needs $O(n)$ auxiliary space for the tree nodes plus
+their pointers; selection and insertion sort run in-place but at
+$O(n^2)$. The binary heap is the structure that satisfies all three
+constraints simultaneously, which is why it is the canonical PQ
+implementation.
+
+\begin{notebox}[The in-place heap-sort prefix trick]
+The \texttt{heapSort} loop above is in-place because the heap and the
+``already-sorted output'' share the same array. Conceptually we keep a
+counter $|Q|$ for ``how many array slots currently belong to the
+heap.''
+
+\begin{itemize}[leftmargin=*]
+    \item Initially $|Q| = n$ (whole array is the unordered input we
+          will heapify).
+    \item After heapify, $a[0 \ldots |Q|-1]$ is the heap; nothing is
+          sorted yet.
+    \item Each sort-down step: \texttt{swap(a[0], a[|Q|-1])} sends the
+          current max to position $|Q|-1$, then $|Q| \mathrel{-}= 1$
+          shrinks the heap. The slot just vacated is now part of the
+          \emph{sorted suffix} and is invisible to subsequent
+          \texttt{percolateDown} calls (that's what passing
+          \texttt{end} as the array bound enforces).
+    \item Termination: when $|Q| = 1$, the suffix $a[1 \ldots n-1]$ is
+          sorted and $a[0]$ holds the smallest, so the entire array is
+          sorted.
+\end{itemize}
+
+The same array slot serves two roles at different points in the
+algorithm -- ``part of the heap'' early, ``part of the sorted suffix''
+late. That is the entire reason heap sort can be written without an
+auxiliary buffer; merge sort cannot do this because its merge step
+\emph{simultaneously} reads from two ranges and writes to a third.
+\end{notebox}
+
+\begin{notebox}[Sequence AVL Tree as a PQ alternative]
+The PQ-sort table above lists ``balanced BST $+$ max-ptr'' as a row
+with the same asymptotic bounds as the binary heap. That row is real:
+augment a balanced BST (chapter 9: AVL or red-black) so that every
+node carries a pointer (or index) to the maximum-key node in its
+subtree. Maintenance is $O(1)$ extra work per rotation and per
+insert/delete -- the augmentation propagates by ``my max is the
+biggest of \{my key, my left subtree's max, my right subtree's
+max\}.''
+
+With that augmentation:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{find\_max} = follow the root's max-pointer:
+          $O(1)$.
+    \item \texttt{insert} = standard BST insert + AVL rebalance,
+          fixing up max-pointers along the path: $O(\log n)$.
+    \item \texttt{delete\_max} = follow max-pointer, splice that
+          node, fix-up: $O(\log n)$.
+    \item \texttt{build} from $n$ items: $O(n \log n)$ (no analogue
+          of bottom-up heapify's geometric trick).
+\end{itemize}
+
+Same $O(\log n)$ bounds as the binary heap on the steady-state ops.
+Why not use it instead? Two reasons. (1) The AVL implementation is
+roughly $10\times$ the code of a heap (chapter 9 makes that
+concrete). (2) AVL sort cannot run in-place; the tree needs $O(n)$
+nodes worth of pointer storage.
+
+The AVL-as-PQ structure does become useful when you also need
+\emph{ordered iteration} (chapter 9's bread and butter) on top of the
+PQ ops -- something a heap cannot do efficiently. For the pure PQ
+job, the heap wins on simplicity and locality.
 \end{notebox}
 
 \section{7.4 The Priority Queue ADT}
@@ -608,7 +954,155 @@ jobs.top();   // {1, "urgent"}   -- lower numeric priority = more urgent
 An ADT separates ``what a structure promises'' from ``how it does it.'' Everywhere in this course, when a problem reduces to ``I keep needing the extremum of a changing set,'' you should reach for a priority queue -- and under the hood, you can bet it's a heap.
 \end{ideabox}
 
+\subsection*{\texttt{HEAP-INCREASE-KEY}: bumping a key upward}
+
+The basic PQ interface only lets you \texttt{push} new items and
+\texttt{pop} the extremum. Many real workloads need a fifth operation:
+\textbf{change the priority of an item already in the queue}. The
+canonical use case is \textbf{Dijkstra's algorithm} (chapter 10):
+when a relaxation step finds a shorter path to a frontier vertex
+$v$, we have to lower $v$'s key in the min-PQ. We don't want to pop
+$v$ and re-push -- that's $O(n)$ to find $v$ in an unindexed heap.
+We want a direct $O(\log n)$ operation that updates $v$'s key
+\emph{in-place} and re-establishes the heap invariant.
+
+For a max-heap, the operation is \textbf{increase-key} (the dual
+\textbf{decrease-key} is the min-heap version). Algorithm:
+
+\begin{enumerate}[leftmargin=*]
+    \item Caller hands us the index $i$ of the slot to update and a
+          new key $k$ that is \emph{not smaller} than the current
+          key (otherwise the operation is undefined for a max-heap).
+    \item Write $k$ into $h[i]$.
+    \item \texttt{percolateUp(i)} -- the new key may now violate the
+          heap property against its ancestors.
+\end{enumerate}
+
+Step 3 alone suffices because increasing a key cannot create a
+violation \emph{below} $i$ -- $h[i]$'s descendants are still smaller
+than the old (smaller) key, hence smaller than the new (larger)
+key. The fix is one-directional and runs in $O(\log n)$.
+
+\begin{lstlisting}
+// Max-heap: raise h[i] to newKey (newKey must be >= current h[i]).
+// Restores the heap property by percolating up from i.
+void heapIncreaseKey(std::vector<int>& h, std::size_t i, int newKey) {
+    if (newKey < h[i]) return;          // contract violation, no-op
+    h[i] = newKey;
+    while (i > 0) {
+        std::size_t p = (i - 1) / 2;
+        if (h[p] >= h[i]) return;
+        std::swap(h[p], h[i]);
+        i = p;
+    }
+}
+
+// Min-heap mirror: lower h[i] to newKey (newKey must be <= current h[i]).
+// This is what Dijkstra calls on every relaxation.
+void heapDecreaseKey(std::vector<int>& h, std::size_t i, int newKey) {
+    if (newKey > h[i]) return;
+    h[i] = newKey;
+    while (i > 0) {
+        std::size_t p = (i - 1) / 2;
+        if (h[p] <= h[i]) return;
+        std::swap(h[p], h[i]);
+        i = p;
+    }
+}
+\end{lstlisting}
+
+The operations \texttt{insert} and \texttt{increase-key} are sister
+algorithms: \texttt{insert} is precisely ``append a sentinel
+$-\infty$ at the end, then \texttt{increase-key} on that slot to the
+real value.'' CLRS phrases \texttt{MAX-HEAP-INSERT} this way
+explicitly.
+
+\textbf{The catch.} \texttt{heapIncreaseKey} as written takes an
+array index $i$. In a real workload the caller knows ``the vertex
+$v$,'' not ``the array slot.'' You either maintain a side table
+$\text{pos}[v] = i$ (updated by every \texttt{percolateUp} /
+\texttt{percolateDown} swap) -- this is the \textbf{indexed heap} or
+\textbf{indirect heap} -- or you use a structure that supports
+search natively (\texttt{std::set}, hand-written balanced BST). The
+indexed heap is the standard answer for Dijkstra implementations.
+
+\begin{examplebox}[Insert and delete-max on a 7-element heap]
+Start with the max-heap \texttt{[50, 30, 40, 10, 20, 35, 25]} (which
+the array represents as the complete tree below).
+
+\begin{center}
+\begin{tikzpicture}[level distance=8mm, sibling distance=14mm,
+    every node/.style={circle, draw, minimum size=6mm, inner sep=0pt, font=\small}]
+    \node {50}
+        child {node {30} child {node {10}} child {node {20}}}
+        child {node {40} child {node {35}} child {node {25}}};
+\end{tikzpicture}
+\end{center}
+
+\textbf{Insert 60.} Append at index 7 (next free slot, right child of
+\texttt{30}): \texttt{[50, 30, 40, 10, 20, 35, 25, 60]}. Percolate up:
+\begin{itemize}[leftmargin=*]
+    \item $i=7$, parent $= 3$, $a[7]=60 > a[3]=10$, swap $\to$
+          \texttt{[50, 30, 40, 60, 20, 35, 25, 10]}, $i=3$.
+    \item $i=3$, parent $= 1$, $a[3]=60 > a[1]=30$, swap $\to$
+          \texttt{[50, 60, 40, 30, 20, 35, 25, 10]}, $i=1$.
+    \item $i=1$, parent $= 0$, $a[1]=60 > a[0]=50$, swap $\to$
+          \texttt{[60, 50, 40, 30, 20, 35, 25, 10]}, $i=0$. Stop.
+\end{itemize}
+
+The percolate-up path was $7 \to 3 \to 1 \to 0$, three swaps -- exactly
+the height of the tree. Heap property restored.
+
+\textbf{Now \texttt{delete\_max} from the result.} Save $60$, move
+last ($10$) to root, pop: \texttt{[10, 50, 40, 30, 20, 35, 25]}.
+Percolate down:
+\begin{itemize}[leftmargin=*]
+    \item $i=0$: children are $a[1]=50$, $a[2]=40$. Larger child is
+          $a[1]=50$; $a[0]=10 < 50$, swap $\to$
+          \texttt{[50, 10, 40, 30, 20, 35, 25]}, $i=1$.
+    \item $i=1$: children are $a[3]=30$, $a[4]=20$. Larger is
+          $a[3]=30$; $a[1]=10 < 30$, swap $\to$
+          \texttt{[50, 30, 40, 10, 20, 35, 25]}, $i=3$.
+    \item $i=3$: children are $a[7]=$ out of range, so $i=3$ is a
+          leaf. Stop.
+\end{itemize}
+
+The percolate-down path was $0 \to 1 \to 3$, again three swaps.
+Returned value: $60$. Final array: \texttt{[50, 30, 40, 10, 20, 35,
+25]} -- exactly what we started with, as expected (insert + delete
+of the new max is a round-trip).
+\end{examplebox}
+
+\begin{notebox}[Set vs.\ Multiset on a heap]
+A \emph{Set} treats keys as unique: inserting a key already present
+either rejects the second copy or overwrites it. A \emph{Multiset}
+allows duplicates -- a counter, a histogram, a stream of repeated
+events.
+
+Heaps natively implement the \textbf{Multiset} interface. Two
+elements with the same key sit comfortably in the array side by
+side; the heap property uses $\ge$ (not $>$), so equal-key parent
+and child satisfy the local invariant. Repeated \texttt{insert} of
+the same key just appends, and \texttt{delete\_max} pops them in
+some unspecified order on ties.
+
+If you need a true Set, layer one on top: keep a separate
+\texttt{std::unordered\_set<key>} for membership tests and reject
+duplicates at the PQ boundary. Or switch to an AVL/RB tree
+(chapter 9), where the Set/Multiset distinction is a single template
+parameter (\texttt{std::set} vs.\ \texttt{std::multiset}).
+\end{notebox}
+
 \section{7.5 Treaps: Heap + BST}
+
+\textbf{This is your introduction to rotations.} We meet them in the
+simplest setting (the treap), where their job is just ``percolate a
+high-priority node upward without breaking BST order.'' Chapter 9
+generalises the same primitive to AVL trees and red-black trees, where
+rotations restore strict balance invariants instead of probabilistic
+ones. The mechanics are identical across all three structures; only
+the trigger -- ``what condition fires a rotation?'' -- changes. Master
+the geometry here and chapter 9's case analysis will land cleanly.
 
 Chapter 6 ended with a warning: a raw BST collapses on sorted input. Chapter 6.10 teased self-balancing trees (AVL, red-black) as the rigorous fix. This section shows a \emph{lazier} fix -- a fix that doesn't require tracking balance factors or recoloring -- called a \textbf{treap} (tree + heap).
 
@@ -750,5 +1244,363 @@ Treaps are rarely the choice in production standard libraries (AVL and red-black
 \begin{notebox}
 The trick of ``attach a random secondary key and let it drive structure'' is deeply generalizable. Skip lists use it for levels (each node has a random ``tower height''). Probabilistic data structures in databases (HyperLogLog, Count-Min sketches) use it for bucket assignments. Treaps are a clean, easy-to-visualize introduction to the technique.
 \end{notebox}
+
+\section{7.6 Heap Exercises and Pitfalls}
+
+This section collects four exercises that sharpen the difference
+between ``heap'' and ``ordered structure,'' and two pitfalls that
+catch students implementing heaps for the first time. The k-proximate
+sorting result at the end is the showcase application of heap sort
+beyond ``just sort an array'' -- it is what convinces a working
+engineer that the heap is a load-bearing tool, not a textbook
+curiosity.
+
+\subsection*{Pitfall 1: the minimum of a max-heap is $\Omega(n)$}
+
+\begin{warnbox}[Heaps are not BSTs -- minimum search costs you a linear scan]
+\textbf{Claim.} Finding the minimum element in a max-heap of $n$ keys
+requires inspecting $\Omega(n)$ array slots in the worst case. There
+is no $O(\log n)$ algorithm.
+
+\textbf{Sketch.} The max-heap property forces the root to hold the
+maximum, but says \emph{nothing} about where the minimum lives -- it
+must be a leaf (any non-leaf has at least one child smaller than
+itself, so internal nodes can't be the minimum), but it can be
+\textbf{any} of the $\lceil n/2 \rceil$ leaves. Without knowing
+which leaf, you have to inspect them all. Algorithmic lower bound:
+$\Theta(n)$.
+
+\textbf{Why this matters.} Students who came up through BSTs
+sometimes assume ``a balanced tree gives me $O(\log n)$ for any
+query.'' False for heaps. Heaps are \emph{one-sided}: $O(1)$ to the
+extremum at the root, $\Omega(n)$ to anything else.
+
+If you need cheap access to both extrema simultaneously, you want a
+\textbf{double-ended priority queue} (min-max heap, interval heap, or
+two synchronised heaps with cross-pointers) -- a strictly more complex
+structure. Or use an AVL/RB tree (chapter 9): $O(\log n)$ to either
+extremum, plus ordered iteration as a bonus.
+\end{warnbox}
+
+\subsection*{Pitfall 2: max-heap to min-heap conversion is $O(n)$}
+
+\begin{examplebox}[Re-running build-heap with the flipped property]
+\textbf{Problem.} You have a valid max-heap stored in an array $A$ of
+length $n$. You realise you want a min-heap of the same elements.
+\textbf{Cost?}
+
+\textbf{Naive answer.} Pop $n$ times into a buffer ($O(n \log n)$),
+re-insert one-by-one into a fresh min-heap ($O(n \log n)$). Total
+$O(n \log n)$.
+
+\textbf{Better answer.} Just re-run \texttt{build\_heap} on the same
+array with the comparator flipped. The bottom-up heapify procedure
+doesn't care that the input was previously a valid max-heap -- it
+treats the array as an arbitrary input and produces a valid heap of
+the chosen orientation in $O(n)$.
+
+\begin{lstlisting}
+// Convert a valid max-heap in-place to a valid min-heap.
+// Bottom-up heapify with the comparator flipped: O(n).
+void maxToMinHeap(std::vector<int>& a) {
+    auto percolateDownMin = [&](int i) {
+        int n = static_cast<int>(a.size());
+        while (2 * i + 1 < n) {
+            int l = 2 * i + 1, r = 2 * i + 2, smallest = l;
+            if (r < n && a[r] < a[l]) smallest = r;
+            if (a[i] <= a[smallest]) return;
+            std::swap(a[i], a[smallest]);
+            i = smallest;
+        }
+    };
+    for (int i = static_cast<int>(a.size()) / 2 - 1; i >= 0; --i)
+        percolateDownMin(i);
+}
+\end{lstlisting}
+
+The lesson: \emph{heap structure isn't directional.} The same complete
+binary tree (and its array representation) supports either heap
+property; the ``which is on top'' choice is just a comparator flip.
+\end{examplebox}
+
+\subsection*{The showcase application: $k$-proximate sorting in $O(n \log k)$}
+
+\textbf{Problem.} An input stream of $n$ keys is \emph{$k$-proximate}:
+every key is at most $k$ positions away from where it would land in
+the sorted output. Sort the stream using only $O(k)$ extra memory and
+$O(n \log k)$ time -- both of which beat general $O(n \log n)$ when
+$k \ll n$.
+
+\textbf{Where this comes from.} A real example: a sensor network sends
+timestamped readings to a server. Network jitter shuffles the
+arrivals slightly, but no reading is more than $k = 10$ positions
+out of place. A streaming database has the same problem: events
+arrive nearly-sorted by timestamp, with bounded skew. Naive
+$O(n \log n)$ sort works but burns $O(n)$ memory; the streaming
+algorithm we develop here uses just $O(k)$.
+
+\textbf{Algorithm (sliding-window min-heap).}
+
+\begin{enumerate}[leftmargin=*]
+    \item Read the first $k+1$ items into a min-heap. (Why $k+1$? The
+          true minimum of the entire output must be one of these,
+          because no item arrives more than $k$ positions late.)
+    \item For each subsequent input position $i = k+1, k+2, \ldots,
+          n-1$:
+          \begin{enumerate}[leftmargin=*]
+              \item \texttt{delete\_min} from the heap; that's the
+                    next sorted output element.
+              \item \texttt{insert} input position $i$ into the heap.
+          \end{enumerate}
+    \item After the input is exhausted, drain the heap with
+          \texttt{delete\_min} until empty. Those are the last $k+1$
+          sorted output elements.
+\end{enumerate}
+
+\textbf{Correctness.} Inductively, when we are about to emit the
+$j$-th output element (1-indexed), every input position
+$\ge j + k + 1$ holds a key $\ge$ the true $j$-th smallest (because
+that key would have to travel more than $k$ positions to land
+earlier). So the true $j$-th smallest must already be in the heap
+of size $k+1$, and it is the heap's minimum. Emit it.
+
+\textbf{Cost.} Heap size never exceeds $k+1$. Each
+\texttt{insert} and \texttt{delete\_min} costs $O(\log k)$. Total:
+$O(n \log k)$, with $O(k)$ auxiliary space. When $k = O(1)$ this is
+linear; when $k = \Theta(n)$ this matches general heap sort. The
+algorithm is strictly better than ``sort everything'' whenever the
+input has bounded skew.
+
+\textbf{C++ port (OCW r08 algorithm in idiomatic C++17).} The OCW
+recitation gives this in Python; here is the C++ rendering using
+\texttt{std::priority\_queue} configured as a min-heap.
+
+\begin{lstlisting}
+#include <queue>
+#include <vector>
+#include <functional>
+
+// Sort a k-proximate input in O(n log k) time, O(k) extra memory.
+// Returns the sorted output as a fresh vector.
+std::vector<int> kProximateSort(const std::vector<int>& input,
+                                std::size_t k) {
+    std::priority_queue<int, std::vector<int>, std::greater<int>> minHeap;
+    std::vector<int> out;
+    out.reserve(input.size());
+
+    // Phase 1: prime the heap with the first k+1 items (or fewer
+    // if input is shorter than k+1).
+    std::size_t primed = std::min(k + 1, input.size());
+    for (std::size_t i = 0; i < primed; ++i) minHeap.push(input[i]);
+
+    // Phase 2: for each remaining input, emit the heap-min and push
+    // the new input. Heap stays at size <= k+1.
+    for (std::size_t i = primed; i < input.size(); ++i) {
+        out.push_back(minHeap.top());
+        minHeap.pop();
+        minHeap.push(input[i]);
+    }
+
+    // Phase 3: drain whatever remains in the heap.
+    while (!minHeap.empty()) {
+        out.push_back(minHeap.top());
+        minHeap.pop();
+    }
+    return out;
+}
+\end{lstlisting}
+
+\textbf{Walk-through.} Take \texttt{input = [3, 1, 2, 6, 4, 5, 9, 7,
+8]} with $k = 2$. (Verify $k$-proximacy: in the sorted output
+\texttt{[1, 2, 3, 4, 5, 6, 7, 8, 9]}, the input's $3$ at position $0$
+should land at sorted position $2$ -- offset $2$, OK. The $1$ at
+position $1$ should land at position $0$ -- offset $1$, OK. And so
+on.)
+
+\begin{center}
+\begin{tabular}{|c|l|l|l|}
+\hline
+step & action & heap (min on top) & output \\
+\hline
+prime & push 3, 1, 2 & \{1, 2, 3\} & [] \\
+$i=3$ & emit min 1, push 6 & \{2, 3, 6\} & [1] \\
+$i=4$ & emit min 2, push 4 & \{3, 4, 6\} & [1, 2] \\
+$i=5$ & emit min 3, push 5 & \{4, 5, 6\} & [1, 2, 3] \\
+$i=6$ & emit min 4, push 9 & \{5, 6, 9\} & [1, 2, 3, 4] \\
+$i=7$ & emit min 5, push 7 & \{6, 7, 9\} & [1, 2, 3, 4, 5] \\
+$i=8$ & emit min 6, push 8 & \{7, 8, 9\} & [1, 2, 3, 4, 5, 6] \\
+drain & emit 7              & \{8, 9\}     & [1, 2, 3, 4, 5, 6, 7] \\
+drain & emit 8              & \{9\}        & [1, 2, 3, 4, 5, 6, 7, 8] \\
+drain & emit 9              & \{\}         & [1, 2, 3, 4, 5, 6, 7, 8, 9] \\
+\hline
+\end{tabular}
+\end{center}
+
+Sorted. Heap never exceeded size $k + 1 = 3$ even though the input
+had 9 elements. Memory budget honoured.
+
+\begin{ideabox}[Why $k$-proximate sorting is the showcase]
+The full sort took $O(n \log n)$ time with $O(n)$ memory in chapter
+3's sense. Here we shaved memory to $O(k)$ and (when $k \ll n$) time
+to $O(n \log k)$ -- both wins driven entirely by the priority-queue
+ADT and the bottom-up heap structure. The same idea (bounded-window
+heap) underlies streaming top-$k$ queries, online median estimation
+(two-heap trick), and event-loop schedulers. Heaps are the substrate
+under all of them.
+\end{ideabox}
+
+\subsection*{Two implementation pitfalls}
+
+\begin{warnbox}[Off-by-one on \texttt{parent} / \texttt{left} / \texttt{right}]
+The zero-indexed formulas $\text{parent}(i) = \lfloor (i-1)/2
+\rfloor$, $\text{left}(i) = 2i + 1$, $\text{right}(i) = 2i + 2$ are
+\emph{not} the same as the one-indexed formulas $\text{parent}(i)
+= \lfloor i/2 \rfloor$, $\text{left}(i) = 2i$, $\text{right}(i) = 2i +
+1$. Mixing them within a single implementation produces silent
+corruption -- the percolate routine traverses the tree as if it had a
+different shape than the array stores, and items end up in the wrong
+slots without any out-of-bounds error to flag the bug.
+
+A common subtle mistake: writing $\text{parent}(i) = i / 2 - 1$
+``because the formulas usually cancel.'' For $i = 1$ this gives
+$\text{parent}(1) = 0$ (correct). For $i = 2$ it gives
+$\text{parent}(2) = 0$ (correct). For $i = 3$ it gives
+$\text{parent}(3) = 0$ (\emph{wrong} -- should be $1$). Test the
+formula on at least three small indices before trusting it.
+\end{warnbox}
+
+\begin{warnbox}[Bounding the recursion when child indices overflow]
+Both \texttt{percolateDown} variants must guard \emph{both} child
+indices against the array bound. A leaf is any node where
+$2i + 1 \ge n$ -- it has zero children. A half-leaf (one left child,
+no right) is $2i + 1 < n$ but $2i + 2 \ge n$. The right-child
+comparison must be guarded by \texttt{right < n}.
+
+A common bug pattern:
+\begin{lstlisting}
+// BUG: dereferences a[2*i+2] without checking the bound.
+int biggest = a[2*i+1] > a[2*i+2] ? 2*i+1 : 2*i+2;
+\end{lstlisting}
+On a heap of even size $n$ this reads past the end of the array. In
+debug builds with bounds-checking iterators it traps; in release
+builds it silently returns garbage and \texttt{percolateDown} swaps
+with random memory. Always check \texttt{right < n} before using the
+right child's value.
+\end{warnbox}
+
+\section{7.7 \texorpdfstring{$d$}{d}-ary Heaps and Forward Refs to Fibonacci}
+
+So far ``heap'' has meant ``binary heap'' -- every internal node has
+at most two children. That choice was arbitrary. Generalising to
+$d$ children per node gives the \textbf{$d$-ary heap}, a one-line
+algorithmic change with a real practical payoff in graph algorithms.
+
+\subsection*{The generalisation}
+
+\begin{defnbox}[$d$-ary heap]
+A complete $d$-ary tree stored in an array, where each node has up to
+$d$ children. Index arithmetic for a node at index $i$:
+\[
+\text{parent}(i) = \left\lfloor \frac{i - 1}{d} \right\rfloor,
+\qquad
+\text{child}_j(i) = d \cdot i + j + 1
+\quad \text{for } j = 0, 1, \ldots, d - 1.
+\]
+The max-heap property is unchanged: every node is $\ge$ all its (up
+to $d$) children. \texttt{percolateUp} is unchanged. \texttt{percolateDown}
+must scan all $d$ children to find the largest.
+\end{defnbox}
+
+The tree height drops from $\Theta(\log_2 n)$ to $\Theta(\log_d n)$.
+That looks like a free win, but \texttt{percolateDown} now does $d$
+comparisons per level instead of $2$:
+
+\begin{center}
+\begin{tabular}{lll}
+operation         & binary heap     & $d$-ary heap                    \\
+\hline
+\texttt{insert} / \texttt{increase\_key} & $\Theta(\log_2 n)$ & $\Theta(\log_d n)$ \\
+\texttt{delete\_max}    & $\Theta(\log_2 n)$ & $\Theta(d \cdot \log_d n)$ \\
+\texttt{find\_max}      & $\Theta(1)$         & $\Theta(1)$                   \\
+\texttt{build\_heap}    & $\Theta(n)$         & $\Theta(n)$                   \\
+\end{tabular}
+\end{center}
+
+\subsection*{Why $d = 4$ is common in production Dijkstra}
+
+\textbf{Dijkstra's algorithm} on a graph with $V$ vertices and $E$
+edges does $O(V)$ \texttt{delete\_min}s and $O(E)$
+\texttt{decrease\_key}s. Total cost with a binary min-heap:
+$O((V + E) \log V)$. With a $d$-ary heap:
+$O(V \cdot d \log_d V + E \log_d V) = O((V \cdot d + E) \log_d V)$.
+
+Choose $d$ to minimise this. Setting $d \approx E/V$ (the average
+degree) gives $O(E \log_{E/V} V)$, which on dense graphs is
+asymptotically faster than the binary-heap version. Empirically,
+$d = 4$ tends to be the sweet spot on real machines: it cuts the tree
+height by a factor of $\log_2 4 = 2$ vs.\ binary, and the
+4-comparison \texttt{percolateDown} fits inside one cache line of
+\texttt{int}s. This is what production routing engines and graph
+analytics frameworks tend to use.
+
+\begin{notebox}[The Fibonacci-heap forward ref]
+Going further down the asymptotic-optimisation rabbit hole leads to
+the \textbf{Fibonacci heap} (CLRS chapter 19), which gets
+\texttt{decrease\_key} down to $O(1)$ amortised and brings Dijkstra
+to $O(E + V \log V)$. The constants, however, are bad enough that on
+real hardware the $d$-ary heap with $d \in \{4, 8\}$ usually beats
+the Fibonacci heap up to graph sizes of $10^7$ vertices or so.
+Fibonacci heaps are theoretically beautiful and practically
+specialised -- worth knowing they exist (so you don't reinvent them),
+not worth implementing unless your profiling has already eliminated
+every other bottleneck. The CS 300 default substrate for graph
+algorithms in chapter 10 is the binary min-heap; the $d$-ary
+generalisation is the production-grade upgrade.
+\end{notebox}
+
+\begin{ideabox}[The big picture: heaps and what comes next]
+\textbf{Heaps are the first non-trivial Set-ADT implementation in
+this course.} Chapter 1 gave you arrays and sorted arrays as Set
+implementations -- correct, but with $O(n)$ insert/delete bottlenecks.
+This chapter delivered the binary heap: $O(\log n)$ on both
+\texttt{insert} and \texttt{delete\_max}, $O(1)$ on \texttt{find\_max},
+$O(n)$ on \texttt{build}, all in-place, all on a contiguous array.
+That's the priority-queue ADT, period.
+
+\textbf{Heaps don't do everything.} They do not support arbitrary
+\texttt{find}, ordered iteration, range queries, predecessor /
+successor lookups, or efficient \texttt{find\_min} (in a max-heap).
+For those, you need a structure that maintains \emph{global} key
+order, not just a local extremum invariant.
+
+\textbf{Looking ahead.}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Chapter 9 (AVL and red-black trees)} delivers the
+          full Set-with-ordered-iteration ADT in $O(\log n)$ per
+          op. The rotation primitive you met in \S7.5 is the
+          machinery; chapter 9 generalises the trigger from
+          ``priority is too small'' (treap) to ``balance factor is
+          out of $\{-1, 0, +1\}$'' (AVL) or ``two reds in a row''
+          (red-black).
+    \item \textbf{Chapter 10 (graph algorithms)} consumes the
+          priority queue from this chapter wholesale.
+          \textbf{Dijkstra} and \textbf{Prim} are essentially
+          ``$|V|$ \texttt{delete\_min}s and $|E|$
+          \texttt{decrease\_key}s'' on top of a min-PQ. The
+          \texttt{decrease\_key} operation in \S7.4 is the
+          relaxation primitive there.
+    \item \textbf{Chapter 13 (sorting and search)} places
+          \textbf{heap sort} in the comparison-sort table alongside
+          quicksort, mergesort, counting sort, and radix sort. Heap
+          sort's role: the worst-case $O(n \log n)$ in-place sort
+          you fall back to when quicksort's randomised guarantees
+          aren't enough (introsort uses exactly this fallback).
+\end{itemize}
+
+The single sentence to take away: \emph{the priority queue is the
+ADT every algorithm involving ``next-most-important item'' needs,
+and the binary heap is its near-universal implementation -- simple,
+in-place, cache-friendly, correct.}
+\end{ideabox}
 
 \end{document}

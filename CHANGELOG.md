@@ -14,6 +14,137 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-25
 
+- **Added** **ch_7 OCW augmentation pass (Step 3 of the per-chapter
+  review loop, against `design_docs/chapter_reviews/ch_7_gaps.md`).**
+  `chapters/ch_7/lectures.tex` 754 → 1606 lines (+852 lines, ~+113%
+  growth — well over the gap report's ~+375 estimate because every
+  ADD landed at full depth, not summary-only). Page count 16 → 28
+  (gap-report target was ~24–25; ran longer because the worked
+  exampleboxes + the §7.6 k-proximate algorithm + §7.7 d-ary tradeoff
+  table all expanded under the load). Optional-chapter framing
+  (per `feedback_chapter_review_autonomy.md` 2026-04-25 update)
+  waives both the 40-page cap and the 3–5 bounded-additions rule;
+  ch_7 ships everything in the contract. **Sections touched:**
+  - **Header (S1+S2):** new opening `ideabox` "Chapter map" matching
+    ch_1's template — *Where this sits in CS 300* / *What you add to
+    your toolkit* / 7-item *Mastery checklist* / *Looking ahead*
+    block with forward refs to ch_9 (AVL/RB), ch_10 (Dijkstra +
+    Prim), ch_13 (heap sort in the comparison-sort table). Lines
+    11–79.
+  - **§7.1 (PQ-interface motivation):** `defnbox` "Priority-queue
+    interface" with the four ops (`build` / `insert` / `find_max` /
+    `delete_max`) framed as a *Set* interface (not Sequence); three
+    real-world examples (router scheduling, OS kernel scheduler,
+    discrete-event simulation) plus the chapter-10 graph-algorithms
+    forward ref; explicit walk-through of `PriorityQueue: Array` =
+    selection sort and `PriorityQueue: Sorted Array` = insertion
+    sort as the two extremes; closing `ideabox`
+    *"Priority-queue sort as a unifying lens"* tying all four
+    comparison sorts (selection, insertion, AVL, heap) to the
+    PQ-as-substrate framing. Lines 83–163.
+  - **§7.2 (transitivity proof + worked traces):** new `examplebox`
+    *"Why the local property implies a global guarantee"* with the
+    OCW lec8 page-4 induction on depth difference — base case +
+    inductive step + closing consequence (root holds max in $O(1)$;
+    minimum on a max-heap is $\Omega(n)$, forward ref to §7.6).
+    Lines 365–394.
+  - **§7.3 (PQ-sort table + in-place trick + Seq AVL note + 2 worked
+    traces):** new `examplebox` *Bottom-up build-max-heap on
+    [7,3,5,6,2,0,3,1,9,4]* (the OCW r08 ex-1 array) showing array
+    states after each `percolateDown(i)` for $i = 4, 3, 2, 1, 0$;
+    new `examplebox` *Heap sort on [7,3,5,6,2,0,3,1,9,4]: the
+    sort-down phase* showing 9 frames of the swap-and-shrink loop
+    on the post-heapify array; new "Heap sort as priority-queue
+    sort: the unifying table" tabular (selection / insertion / AVL
+    / heap rows with `build`/`insert`/`delete_max`/in-place
+    columns); new `notebox` *The in-place heap-sort prefix trick*
+    with the $|Q|$ counter explanation; new `notebox` *Sequence
+    AVL Tree as a PQ alternative* with same-bounds-different-tradeoff
+    framing + chapter-9 forward ref. Lines 512–541, 617–657, 696–782.
+  - **§7.4 (`HEAP-INCREASE-KEY` + Set/Multiset note + worked
+    trace):** new subsection *`HEAP-INCREASE-KEY`: bumping a key
+    upward* with C++ implementation of both
+    `heapIncreaseKey` (max-heap) and the symmetric
+    `heapDecreaseKey` (min-heap, what Dijkstra calls); explanation
+    of the `insert = increase-key from $-\infty$` CLRS framing; the
+    indexed-heap caveat for "you have a vertex, not an array slot."
+    New `examplebox` *Insert and delete-max on a 7-element heap*
+    walking percolate-up path $7 \to 3 \to 1 \to 0$ and percolate-down
+    path $0 \to 1 \to 3$ on the running example. New `notebox`
+    *Set vs.\ Multiset on a heap*. Lines 957–1094.
+  - **§7.5 (treap framing tweak — DECIDE default kept):** opening
+    paragraph reframed as *"This is your introduction to rotations"*
+    with explicit chapter-9 forward ref ("AVL trees and red-black
+    trees use the same primitive with different triggers"). Existing
+    treap content unchanged. Lines 1098–1105.
+  - **NEW §7.6 (Heap exercises and pitfalls):** four blocks per
+    OCW r08 — `warnbox` *Pitfall 1: minimum of a max-heap is
+    $\Omega(n)$* (r08 ex-2); `examplebox` *Pitfall 2: max-heap to
+    min-heap conversion is $O(n)$* via re-running build-heap with
+    flipped property (r08 ex-3); full worked subsection
+    *The showcase application: $k$-proximate sorting in
+    $O(n \log k)$* with the sliding-window-min-heap algorithm,
+    correctness sketch, cost analysis, idiomatic C++17 port (using
+    `std::priority_queue<int, vector<int>, greater<int>>`), and a
+    9-step trace on `[3,1,2,6,4,5,9,7,8]` with $k=2$; closing
+    `ideabox` *Why $k$-proximate sorting is the showcase* (r08 ex-4);
+    two `warnbox` *implementation pitfalls* (zero-vs-one-indexed
+    arithmetic mismatch; bounding the recursion when child indices
+    overflow). Lines 1248–1489.
+  - **NEW §7.7 ($d$-ary heaps):** `defnbox` *$d$-ary heap* with
+    generalised index arithmetic; tradeoff tabular (binary vs
+    $d$-ary on `insert` / `delete_max` / `find_max` / `build_heap`);
+    *"Why $d = 4$ is common in production Dijkstra"* subsection with
+    the $O((V \cdot d + E) \log_d V)$ cost analysis and the
+    cache-line argument; closing `notebox` *The Fibonacci-heap
+    forward ref* citing CLRS Ch 19 with the "theoretically
+    beautiful, practically specialised" framing. Lines 1491–1559.
+  - **Closing `ideabox` (S3):** *The big picture: heaps and what
+    comes next* — heaps as first non-trivial Set ADT; what heaps
+    don't do (no arbitrary `find`, no ordered iteration, no efficient
+    `find_min` on a max-heap); explicit forward refs to ch_9
+    (AVL/RB for ordered iteration), ch_10 (Dijkstra/Prim consume the
+    PQ wholesale; `decrease_key` is the relaxation primitive), ch_13
+    (heap sort in the comparison-sort table; introsort fallback).
+    Single-sentence takeaway closer. Lines 1561–1604.
+  - **Structural counts after the pass:** 7 sections (was 5) — §7.1
+    through §7.7; 5 `examplebox` callouts (was 0) — transitivity
+    proof, build trace, sort-down trace, insert+delete trace,
+    max-to-min conversion; total callout-box count up from 19 → 31
+    (sum across `defnbox` + `ideabox` + `warnbox` + `examplebox` +
+    `notebox`). C++ register preserved throughout — OCW Python
+    examples (notably the k-proximate algorithm) ported to idiomatic
+    C++17 using `std::priority_queue` + `std::greater`.
+  - **Build verification:** `cd chapters/ch_7 && pdflatex
+    -halt-on-error -interaction=nonstopmode lectures.tex` (twice for
+    cross-refs) — both passes exit 0; `Output written on lectures.pdf
+    (28 pages, 590033 bytes).` No `*-error*` lines in either log;
+    only benign warnings (1 underfull hbox, 2 overfull hboxes — all
+    table-overflow on $\le 25$pt overrun, well within the existing
+    chapter's tolerances). PDF rebuilds reproducibly: byte-identical
+    on second run.
+  - **Step 3 plan items 1–11 from `ch_7_gaps.md` all landed.** Three
+    DECIDE items resolved at defaults (treaps stay in §7.5 with
+    rotations-introduction reframe; Sequence AVL Tree as $\sim$20-line
+    `notebox` aside; k-proximate as full worked subsection). One
+    minor deviation from the contract: the
+    *Bottom-up build-max-heap* worked trace (gap-report S4 ex-1)
+    landed in §7.3 immediately after the `heapify` algorithm
+    definition rather than in §7.2 — pedagogically cleaner because
+    §7.2 covers array-representation and the percolate primitives
+    (where the transitivity-proof `examplebox` lives) and §7.3 is
+    where `heapify` is introduced. The contract's intent
+    ("3 worked traces sprinkled across §7.2 / §7.3 / §7.4") is
+    delivered: §7.2 has the transitivity proof `examplebox`; §7.3
+    has both the build trace and the sort-down trace; §7.4 has the
+    insert-and-delete trace. Files touched:
+    `chapters/ch_7/lectures.tex`, `chapters/ch_7/lectures.pdf`
+    (rebuilt from the augmented `.tex`). `chapters/ch_7/notes.tex`
+    intentionally untouched — the compact reference card is out of
+    scope for the per-chapter review loop's Step 3 (notes.tex updates
+    are a follow-on if/when the augmented coverage is judged
+    quick-reference-worthy). Dep audit: skipped — no manifest
+    changes.
 - **Decided** **M4 re-blocked — pre-flight smoke surfaced 4 undocumented convention hooks; upstream M16 follow-up patch needed before M4 task breakout.** Pre-flight smoke against `aiw-mcp` v0.2.0 (`design_docs/milestones/m4_phase4_question_gen/issues/m4_unblock_smoke.md`) ran 3 tests across 4 iterations to land a working stub. Each iteration revealed an undocumented contract: (1) builder must return uncompiled `StateGraph` (dispatch calls `.compile(checkpointer=...)` itself per upstream KDR-009); (2) module must export `initial_state(run_id, inputs) -> dict` callable OR have an Input class literally named `PlannerInput` (dispatch fallback at `_dispatch.py:294–322` is hardcoded to the planner's class name — layer-leak from `surfaces`/`workflows-internal-dispatch` into `workflows.planner`); (3) MCP `run_workflow` tool wraps args under `payload` per the FastMCP `async def run_workflow(payload: RunWorkflowInput)` signature; (4) optional `FINAL_STATE_KEY` constant controls `RunWorkflowOutput.plan` source — defect-suspect in cs-300's smoke (override didn't appear to surface). Two diagnoses: documentation gap (the discovery-issue spec cs-300 itself authored against the framework's docs didn't capture findings #1/#2/#4) + layer-leaky dispatch (the `PlannerInput`-literal fallback). Rather than encode these warts in cs-300's M4 task specs, upstream framework gets a follow-up patch — feature request filed at `aiw_workflow_convention_hooks_issue.md` (sibling of the now-deleted `aiw_workflow_discovery_issue.md`) covering the documentation pass + dispatch cleanup (`INPUT_CLASS` module attribute replaces the planner-name-literal fallback, backward-compatible with the in-tree planner). M4 milestone status flipped `unblocked` → `re-blocked`. Probe stub at `cs300/workflows/question_gen.py` deleted (unused while M4 is on hold; recreated during T01 against the post-patch surface). Smoke evidence + verbatim transcripts preserved at `m4_unblock_smoke.md`. Top-level `README.md`, `design_docs/milestones/README.md`, `m4_phase4_question_gen/README.md` all reflect the re-block. Dep audit: skipped — no manifest changes.
 - **Decided** **M4 unblocked — jmdl-ai-workflows v0.2.0 shipped external workflow module discovery (upstream M16, 2026-04-24).** cs-300 filed the feature request at `aiw_workflow_discovery_issue.md` on 2026-04-24 (single day round-trip — same day as the M-UX kickoff). v0.2.0 ships exactly the proposed surface: `AIW_EXTRA_WORKFLOW_MODULES` env var (comma-separated dotted module paths) + `--workflow-module` CLI flag (repeatable, mirrors env). cs-300's planned launch invocation (`AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,cs300.workflows.grade uvx --from jmdl-ai-workflows aiw-mcp --transport http --port 8080 --cors-origin http://localhost:4321`) works as-is. Per the discovery-issue file's own author note ("delete this file from cs-300's root once the feature ships"), `aiw_workflow_discovery_issue.md` deleted at unblock. Version refs bumped from `≥0.1.3` → `≥0.2.0` in `architecture.md` (3 places — bridge note, surface intro, workflow-discovery section), `README.md` (status block + settled-tech bridge bullet), `design_docs/adr/0001_state_service_hosting.md` (Open-questions-deferred entry flipped to RESOLVED), `design_docs/milestones/m4_phase4_question_gen/README.md` (Status field + Carry-over checkbox flipped `[x]`), and the top-level `design_docs/milestones/README.md` index (M4 row reflects unblock). M4 milestone now `todo — unblocked 2026-04-25`. Files touched: above 5 doc files + the deletion. Dep audit: skipped — no manifest changes (cs-300 doesn't pin jmdl-ai-workflows as a dep; `uvx` fetches the wheel into a cache at runtime).
 - **Fixed** **M-UX milestone close-out (second pass): all deep-review issues actioned, no items "deferred without destination".** First close-out pass left 2 MEDIUMs (DR-02, DR-03 architecture.md amendments) marked "DEFERRED to next architecture.md amendment cycle" and 7 LOWs OPEN — same status-surface-drift pattern that's been hit repeatedly across the milestone. User pushback on the inconsistency caught it. Second pass actions everything: **architecture.md** gains a collection-landing-pages paragraph + a RHS-TOC top-level-filter paragraph in §1.6, plus a new `### §1.7 Verification gates` subsection covering both harnesses + selenium pin + interactive-mode boundary (resolves DR-02 + DR-03). **Functional-test harness** gains 3 new test cases: `breadcrumb-height-matches-token` (DR-08 invariant lock — caught real drift on first run, see below); `drawer-trigger-visible-mobile` + `rhs-toc-collapsed-mobile-default` (DR-09 mobile coverage at 375×812). **Real bug caught at gate-time by the new DR-08 invariant:** breadcrumb-height token said 52px, actual rendered height was 44.91px (T8 sticky-rule relocation moved padding semantics from inner nav to outer slot wrapper, shrinking reserved space ~7px); token re-measured to 46px, sticky-rail offset now sits tight to the breadcrumb instead of leaving a 7px whitespace gap. Milestone README bullet 5 amended with `^\d+\.\d+\s` filter clarification (DR-06 fold-in). Remaining LOWs (DR-07 chrome.css unused tokens, DR-11 HomeLayout dup, DR-12 4-page scoped-CSS dup) marked RESOLVED-WITH-RATIONALE per auditor option (a). DR-10 (argparse no-sandbox semantics) DEFERRED to T9-ISS-03 ergonomics sweep — explicit destination, not a handwave. Functional-test harness now **22 cases / 34 assertions** all PASS. Bullet 10 of milestone README updated again to reflect new harness count. Files touched: `design_docs/architecture.md` (§1.6 + new §1.7), `design_docs/milestones/m_ux_polish/README.md` (bullet 5 + bullet 10), `design_docs/milestones/m_ux_polish/issues/m_ux_deep_review.md` (status block + issue log table all entries actioned), `scripts/functional-tests.py` (no change — runners already covered the new types), `scripts/functional-tests.json` (3 new test cases), `src/styles/chrome.css` (token re-measurement). Dep audit: skipped — no manifest changes.
