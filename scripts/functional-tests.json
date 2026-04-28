@@ -668,7 +668,7 @@
     ]
   },
   {
-    "name": "right-rail-toc-h1-h2-mix",
+    "name": "right-rail-toc-h1-only-uniform",
     "url": "/DSA/lectures/ch_4/",
     "viewport": { "w": 1280, "h": 800 },
     "asserts": [
@@ -681,8 +681,25 @@
       {
         "type": "count",
         "selector": ".right-rail-toc li[data-level=\"2\"]",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "right-rail-toc-h1-only-uniform-ch5",
+    "url": "/DSA/lectures/ch_5/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".right-rail-toc li[data-level=\"1\"]",
         "op": ">=",
-        "expected": 4
+        "expected": 3
+      },
+      {
+        "type": "count",
+        "selector": ".right-rail-toc li[data-level=\"2\"]",
+        "expected": 0
       }
     ]
   },
@@ -701,42 +718,21 @@
     ]
   },
   {
-    "name": "right-rail-toc-h2-indented",
+    "name": "right-rail-scroll-spy-on-h1",
     "url": "/DSA/lectures/ch_4/",
     "viewport": { "w": 1280, "h": 800 },
-    "asserts": [
-      {
-        "type": "computed-style",
-        "selector": ".right-rail-toc li[data-level=\"2\"]",
-        "prop": "padding-left",
-        "op": ">",
-        "expected": 0
-      },
-      {
-        "type": "computed-style",
-        "selector": ".right-rail-toc li[data-level=\"2\"]",
-        "prop": "padding-left",
-        "op": ">=",
-        "expected": 16
-      }
-    ]
-  },
-  {
-    "name": "right-rail-scroll-spy-on-h2",
-    "url": "/DSA/lectures/ch_4/",
-    "viewport": { "w": 1280, "h": 800 },
-    "pre_js": "var h2 = document.querySelector('article a[id=\"ch_4-the-contract-operations\"]'); if (h2) { var y = h2.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo(0, y); }",
+    "pre_js": "var h1 = document.querySelector('article a[id=\"ch_4-singly-linked-lists-append-and-prepend\"]'); if (h1) { var y = h1.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo(0, y); }",
     "asserts": [
       {
         "type": "count",
-        "selector": ".right-rail-toc a.toc-link[data-current=\"true\"][data-level=\"2\"]",
+        "selector": ".right-rail-toc a.toc-link[data-current=\"true\"][data-level=\"1\"]",
         "expected": 1
       },
       {
         "type": "attr",
         "selector": ".right-rail-toc a.toc-link[data-current=\"true\"]",
         "name": "data-anchor",
-        "expected": "ch_4-the-contract-operations"
+        "expected": "ch_4-singly-linked-lists-append-and-prepend"
       }
     ]
   },

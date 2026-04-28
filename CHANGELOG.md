@@ -14,6 +14,58 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-27
 
+- **Fixed** **M-UX-REVIEW followup, second pass** — two refinements
+  surfaced by reviewing the first followup commit (`9e764c9`) on the
+  rebuilt site.
+  1. **Multicols filter strengthened.** The `9e764c9` Lua filter
+     stripped the `:::multicols` wrapper but left the column-count
+     `2` Para visible on its own line because the heuristic check
+     (first child = `Para` with one `Str` matching `^%d+$`) was too
+     strict — pandoc emits the column-count with surrounding Inline
+     whitespace in some AST shapes. Switched to
+     `pandoc.utils.stringify` + `^%s*%d+%s*$` so all variants
+     (Para[Str "2"], Para[Str "2", Space], Plain[Str "2"]) are
+     caught. Verified by `grep -c "^2$" src/content/notes/ch_*.mdx`
+     post-rebuild = 0; the leading `2` literal is gone from every
+     chapter that uses `\begin{multicols}{N}`.
+  2. **Right-rail TOC: uniform H1-only render.** M-UX-REVIEW T2
+     emitted H1 + H2 entries with `data-level`, expecting the rail
+     to render both with visual hierarchy. Reality on the chapter
+     corpus split by source-author convention: ch_1–ch_4 lectures
+     use numbered `\subsection{...}` (anchored, extracted as
+     level=2); ch_5–ch_13 lectures use `\subsection*{...}`
+     (unnumbered, no anchor — NOT extracted). Pre-fix ch_4 rendered
+     68 entries while ch_5 rendered 9, looking like two different
+     features. User: "rhs menu has 2 modes ... pick one or the
+     other don't care which but not both." `RightRailTOC.astro`
+     now filters to `data-level === 1` only at render time. The
+     build-time frontmatter still carries level=2 entries (kept as
+     a forward surface for M5 review-queue scheduling that may
+     need per-section data); restoring T2's H1+H2 rail is a
+     one-line edit at `RightRailTOC.astro` after a future
+     content-audit pass normalizes `\subsection*{}` →
+     `\subsection{}` across ch_5–ch_13. `architecture.md` §1.6
+     paragraph amended to document the consumer-side filter +
+     restoration trigger.
+  **Functional tests updated:** dropped the now-obsolete H2
+  contract tests (`right-rail-toc-h1-h2-mix`, `right-rail-toc-h2-indented`,
+  `right-rail-scroll-spy-on-h2`) and replaced with the uniform-H1
+  contract: `right-rail-toc-h1-only-uniform` + new
+  `right-rail-toc-h1-only-uniform-ch5` (asserting H2 count = 0 on
+  both ch_4 and ch_5 — the pre-fix asymmetry is now caught
+  cross-chapter), `right-rail-scroll-spy-on-h1` (H1 anchor on
+  scroll-spy intersection). Net: 0 case delta, 0 assert delta —
+  stays at **71/71 cases / 148/148 assertions**.
+  **Files touched:** `scripts/pandoc-filter.lua` (Div handler
+  multicols branch — stringify+regex), `src/components/chrome/RightRailTOC.astro`
+  (`.filter(s => s.level === 1)` + docstring rationale),
+  `design_docs/architecture.md` §1.6, `scripts/functional-tests.json`
+  (3 cases removed, 4 cases added), CHANGELOG.md.
+  **Gates:** `npm run build` exit 0 / 40 prerendered pages;
+  `python scripts/functional-tests.py` 71/148 PASS. Net
+  manifest delta zero.
+  Dep audit: skipped — no manifest changes.
+
 - **Fixed** **M-UX-REVIEW post-deploy followup batch** — three fixes
   surfaced by deploying the new typography pairing (T6) which made
   pre-existing pipeline bugs visually obvious. Single-commit batch,

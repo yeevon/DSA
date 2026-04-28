@@ -140,7 +140,25 @@ const { chapterId, sections } = Astro.props;
 // guard still ignores non-TOC anchors; with the rail now covering
 // both H1 and H2 the guard rarely fires (only sub-subsection IDs in
 // articles that use `\subsubsection` would trip it).
-const ordered = [...sections].sort((a, b) => a.ord - b.ord);
+//
+// M-UX-REVIEW followup (2026-04-27) — filter to top-level (level=1)
+// only. The cs-300 chapter corpus is split: ch_1–ch_4 lectures use
+// numbered `\subsection{...}` (anchored, extracted as level=2 in
+// frontmatter), while ch_5+ use `\subsection*{...}` (unnumbered, no
+// anchor, NOT extracted by `scripts/build-content.mjs`). Result
+// pre-filter: ch_4's right-rail showed 68 entries while ch_5's
+// showed 9. User flagged the per-chapter inconsistency as worse than
+// uniform-shallow rendering ("don't care which but not both"). Until
+// the chapter corpus is normalized via a content-audit pass
+// (rewrite `\subsection*{}` → `\subsection{}` across ch_5–ch_13),
+// the consumer filter keeps the rail uniform across all chapters.
+// Reverses T2's D1 H2-rendering on the rendering side; build-time
+// frontmatter still carries level=2 entries for any future surface
+// that wants them (e.g. M5 review-queue scheduling that may need
+// per-section data).
+const ordered = [...sections]
+  .filter((s) => s.level === 1)
+  .sort((a, b) => a.ord - b.ord);
 ---
 
 <details class="toc-mobile-collapse">

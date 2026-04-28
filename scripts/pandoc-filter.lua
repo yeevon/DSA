@@ -121,9 +121,14 @@ local function Div(elem)
       local out = {}
       for i, child in ipairs(elem.content) do
         local skip = false
-        if i == 1 and child.t == "Para" and #child.content == 1 then
-          local first = child.content[1]
-          if first.t == "Str" and first.text:match("^%d+$") then
+        if i == 1 and (child.t == "Para" or child.t == "Plain") then
+          -- Pandoc may wrap the "2" as Para[Str "2"], Plain[Str "2"],
+          -- or Para[Str "2", Space, ...] depending on whitespace
+          -- around the env opening. Stringify + regex catches all
+          -- variants without false-positiving on real chapter prose
+          -- (no chapter starts with a bare integer).
+          local text = pandoc.utils.stringify(child)
+          if text:match("^%s*%d+%s*$") then
             skip = true
           end
         end
