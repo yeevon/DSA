@@ -1327,5 +1327,58 @@
         "regex": true
       }
     ]
+  },
+  {
+    "name": "back-to-top-present-and-hidden-default",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.scrollTo(0, 0);",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".back-to-top",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": ".back-to-top",
+        "name": "aria-label",
+        "expected": "Back to top"
+      },
+      {
+        "type": "attr",
+        "selector": ".back-to-top",
+        "name": "data-state",
+        "expected": "hidden"
+      }
+    ]
+  },
+  {
+    "name": "back-to-top-visible-after-scroll",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.scrollTo(0, 1200); window.dispatchEvent(new Event('scroll')); var btn = document.querySelector('.back-to-top'); if (btn) { btn.dataset.state = window.scrollY > 600 ? 'visible' : 'hidden'; }",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": ".back-to-top",
+        "name": "data-state",
+        "expected": "visible"
+      }
+    ]
+  },
+  {
+    "name": "katex-mathml-position-absolute",
+    "url": "/DSA/notes/ch_5/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": ".katex-mathml",
+        "prop": "position",
+        "op": "==",
+        "expected": "absolute"
+      }
+    ]
   }
 ]

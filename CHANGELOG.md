@@ -14,6 +14,55 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-04-27
 
+- **Fixed** **M-UX-REVIEW post-deploy followup batch** — three fixes
+  surfaced by deploying the new typography pairing (T6) which made
+  pre-existing pipeline bugs visually obvious. Single-commit batch,
+  no milestone overhead.
+  1. **KaTeX CSS import (highest impact).** `rehype-katex` emits both
+     `<span class="katex-mathml">` (AT) and `<span class="katex-html">`
+     (visual); without `katex/dist/katex.min.css` loaded, the
+     `position: absolute; clip: rect(...)` rule that visually hides the
+     MathML was missing — so every `$…$` expression on the deployed
+     site rendered twice (e.g. "key → → bucket"). Pre-existing since
+     M2. Fix: `import 'katex/dist/katex.min.css'` in `src/layouts/Base.astro`
+     + `src/layouts/HomeLayout.astro`. The katex package was already in
+     `node_modules/`; net manifest delta = zero. New regression-guard
+     test `katex-mathml-position-absolute` proves the hide rule is
+     applied.
+  2. **`::: multicols 2` literal stripped.** `chapters/ch_5/notes.tex`
+     uses `\begin{multicols}{2}` (LaTeX `multicol` package); pandoc
+     emitted that as a fenced-div `::: multicols\n2` which Astro's
+     MDX renderer printed verbatim because nothing in the pipeline
+     interprets pandoc-style fenced divs. Pre-existing since M2. Fix:
+     `scripts/pandoc-filter.lua` `Div` handler gains a `multicols`
+     case that drops the column-count Para + emits subsequent blocks
+     unwrapped. cs-300's deployed layout is single-column ~75ch per
+     ADR-0002, so multicols is a no-op at render time. Verified by
+     `grep -c "::: multicols" dist/client/notes/ch_5/index.html` = 0
+     post-build.
+  3. **Back-to-top anchor** for long-chapter scroll. M-UX-REVIEW T3
+     moved CollectionTabs from the breadcrumb (sticky) to under the
+     page H1 (scrolls); on long chapters the tabs scroll out of view
+     and the reader had no quick path back to switch collections.
+     New `src/components/chrome/BackToTop.astro` — floating button
+     bottom-right, fade-in past 600px scroll threshold (rAF-debounced
+     scroll listener), click → `scrollTo(0, smooth)`. Mounted at body
+     level in `Base.astro` (after the drawer slot, before the
+     interactive-mode badge) so its `position: fixed` floats over
+     content without inheriting the chrome's grid context. New
+     functional-test cases `back-to-top-present-and-hidden-default`
+     + `back-to-top-visible-after-scroll`.
+  **Files touched:** `scripts/pandoc-filter.lua`, `src/layouts/Base.astro`,
+  `src/layouts/HomeLayout.astro`, `src/components/chrome/BackToTop.astro`
+  (NEW), `scripts/functional-tests.json` (+3 cases / +5 assertions),
+  CHANGELOG.md.
+  **Gates:** `npm run build` exit 0 / 40 prerendered pages;
+  `python scripts/functional-tests.py` exit 0 / **71/71 cases /
+  148/148 assertions** (was 68/143 at M-UX-REVIEW close); 31 smoke
+  screenshots / 2,744,554 bytes. Net manifest delta zero (KaTeX was
+  already a transitive dep).
+  Dep audit: skipped — no manifest changes.
+
 - **Decided** **M-UX-REVIEW closed 2026-04-27** — second UX sidecar
   done in a single day (T1–T6, F1–F11 shipped; F12 deferred to
   `nice_to_have.md` §UX-5 with explicit M5 trigger). All twelve

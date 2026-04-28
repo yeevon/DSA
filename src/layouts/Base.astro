@@ -147,6 +147,14 @@
 //   - src/components/home/ContinueReading.astro (reader side of the
 //     localStorage primitive)
 import '../styles/chrome.css';
+// M-UX-REVIEW followup (2026-04-27) — KaTeX CSS import. Without this,
+// `rehype-katex` emits both `<span class="katex-mathml">` (intended for
+// AT) and `<span class="katex-html">` (visual) but the position/clip
+// rule that visually hides the MathML never applies, so every $…$
+// expression renders twice (e.g. "key → → bucket"). Pre-existing bug
+// since M2 — the issue surfaced in the 2026-04-27 deploy review.
+import 'katex/dist/katex.min.css';
+import BackToTop from '../components/chrome/BackToTop.astro';
 
 interface Props {
   title?: string;
@@ -608,6 +616,7 @@ const { title = 'cs-300' } = Astro.props;
         `Drawer.astro` mounts here. Empty slot has zero markup
         impact when no consumer fills it. */}
     <slot name="drawer" />
+    <BackToTop />
     <div data-interactive-only class="interactive-badge">interactive mode active</div>
     <script>
       import { detectMode } from '../lib/mode';

@@ -58,6 +58,12 @@
 //     `<main>` dashboard-slot sections by the index page; M5 fills
 //     the slot contents when the review queue lands)
 import '../styles/chrome.css';
+// M-UX-REVIEW followup (2026-04-27) — KaTeX CSS. Same rationale as
+// Base.astro: without it, `rehype-katex` MathML + HTML renders both
+// visibly. Today the index + landing pages don't render math in
+// SSR'd content, but the import is harmless (CSS-only, deduped by
+// Vite) and future-proofs landing pages that may surface math later.
+import 'katex/dist/katex.min.css';
 
 interface Props {
   title?: string;

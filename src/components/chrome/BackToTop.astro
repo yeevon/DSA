@@ -1,0 +1,113 @@
+---
+// src/components/chrome/BackToTop.astro — M-UX-REVIEW followup (2026-04-27).
+//
+// Floating "back to top" button that fades in once the page has
+// scrolled past ~600px. Click → smooth scroll to top, where the
+// chapter eyebrow + H1 + CollectionTabs are visible.
+//
+// Why this exists. M-UX-REVIEW T3 (2026-04-27) moved the
+// CollectionTabs from the breadcrumb (sticky) to under the page H1
+// (scrolls). On long chapters the tabs scroll out of view and the
+// reader has no quick path back to switch collections. The
+// back-to-top affordance restores "switch to Notes" reachability
+// without re-introducing a sticky chrome row (which would reverse
+// T3's F5 declutter).
+//
+// Mounted at body level in Base.astro (after the drawer slot, before
+// the interactive-mode badge) so its `position: fixed` floats over
+// content without inheriting the chrome's grid context.
+//
+// Static-mode safe — no `data-interactive-only` gate. The button is
+// purely client-side scroll machinery; no SQLite, no fetch, no
+// localStorage. Inline `<script is:inline>` is hoisted by Astro's
+// compile-time deduplication so it runs once per page load.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_review/tasks/T3_chapter_chrome.md
+//   - design_docs/adr/0002_ux_layer_mdn_three_column.md
+//   - src/layouts/Base.astro (mount site)
+---
+
+<button
+  class="back-to-top"
+  type="button"
+  aria-label="Back to top"
+  data-state="hidden"
+>
+  <span class="back-to-top-icon" aria-hidden="true">↑</span>
+  <span class="back-to-top-label">Top</span>
+</button>
+
+<style>
+  .back-to-top {
+    position: fixed;
+    bottom: var(--mux-space-6);
+    right: var(--mux-space-6);
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mux-space-1);
+    padding: var(--mux-space-2) var(--mux-space-3);
+    background: var(--mux-accent);
+    color: #ffffff;
+    border: 1px solid var(--mux-accent-strong);
+    border-radius: 6px;
+    font-family: var(--mux-font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 200ms ease, transform 200ms ease;
+    pointer-events: none;
+  }
+  .back-to-top[data-state="visible"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .back-to-top:hover {
+    background: var(--mux-accent-strong);
+  }
+  .back-to-top:focus-visible {
+    outline: 2px solid var(--mux-accent-strong);
+    outline-offset: 2px;
+  }
+  .back-to-top-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+  @media (max-width: 480px) {
+    .back-to-top-label {
+      display: none;
+    }
+    .back-to-top {
+      padding: var(--mux-space-2) var(--mux-space-2);
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var btn = document.querySelector('.back-to-top');
+    if (!btn) return;
+    var THRESHOLD = 600;
+    var scheduled = false;
+    function update() {
+      scheduled = false;
+      btn.dataset.state = window.scrollY > THRESHOLD ? 'visible' : 'hidden';
+    }
+    function onScroll() {
+      if (!scheduled) {
+        scheduled = true;
+        requestAnimationFrame(update);
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    update();
+    btn.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  })();
+</script>

@@ -109,6 +109,30 @@ end
 -- writer so child markdown (lists, code, math) survives.
 local function Div(elem)
   for _, class in ipairs(elem.classes) do
+    -- M-UX-REVIEW followup (2026-04-27): strip LaTeX `multicols`
+    -- wrappers. Pandoc emits \begin{multicols}{N} as a Div with
+    -- class "multicols" whose first child is a Para containing the
+    -- column count "N", followed by the wrapped blocks. cs-300's
+    -- deployed layout is single-column ~75ch reading per ADR-0002,
+    -- so multicols is a no-op at render time. Drop the column-count
+    -- Para + emit the rest unwrapped — otherwise MDX renders the
+    -- literal `::: multicols\nN` fenced-div directive verbatim.
+    if class == "multicols" then
+      local out = {}
+      for i, child in ipairs(elem.content) do
+        local skip = false
+        if i == 1 and child.t == "Para" and #child.content == 1 then
+          local first = child.content[1]
+          if first.t == "Str" and first.text:match("^%d+$") then
+            skip = true
+          end
+        end
+        if not skip then
+          table.insert(out, child)
+        end
+      end
+      return out
+    end
     local component = CALLOUT_MAP[class]
     if component then
       title_cursor[class] = title_cursor[class] + 1
