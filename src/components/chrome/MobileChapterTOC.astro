@@ -69,7 +69,14 @@ interface Props {
 
 const { sections } = Astro.props;
 
-const ordered = [...sections].sort((a, b) => a.ord - b.ord);
+// M-UX-REVIEW followup pass 2 (2026-04-27): match RightRailTOC's
+// uniform H1-only render. See architecture.md §1.6 for the rationale
+// (chapter corpus is split — numbered `\subsection{}` vs unnumbered
+// `\subsection*{}` — render uniform across all chapters until a
+// content-audit pass normalizes ch_5–ch_13).
+const ordered = [...sections]
+  .filter((s) => s.level === 1)
+  .sort((a, b) => a.ord - b.ord);
 ---
 
 <details class="rhs-toc-mobile">

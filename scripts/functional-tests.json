@@ -682,6 +682,11 @@
         "type": "count",
         "selector": ".right-rail-toc li[data-level=\"2\"]",
         "expected": 0
+      },
+      {
+        "type": "count",
+        "selector": "li[data-level=\"2\"]",
+        "expected": 0
       }
     ]
   },
@@ -699,6 +704,11 @@
       {
         "type": "count",
         "selector": ".right-rail-toc li[data-level=\"2\"]",
+        "expected": 0
+      },
+      {
+        "type": "count",
+        "selector": "li[data-level=\"2\"]",
         "expected": 0
       }
     ]
