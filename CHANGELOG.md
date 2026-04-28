@@ -12,6 +12,1280 @@ non-decisions (a question raised and intentionally postponed).
 
 ---
 
+## 2026-04-27
+
+- **Decided** **M-UX-REVIEW closed 2026-04-27** — second UX sidecar
+  done in a single day (T1–T6, F1–F11 shipped; F12 deferred to
+  `nice_to_have.md` §UX-5 with explicit M5 trigger). All twelve
+  findings from the 2026-04-27 `UI_UX_Review.pdf` audit either
+  resolved (11/12) or explicitly parking-lotted (1/12, F12). M-UX-REVIEW
+  row in `design_docs/milestones/README.md` flipped from `active (T1 +
+  T2 + T3 + T4 + T5 closed; T6 outstanding)` to `✅ closed 2026-04-27`;
+  paragraph blurb updated. `m_ux_review/README.md` Status flipped to
+  `✅ closed 2026-04-27`; ALL `Done when` checkboxes are `[x]` (F1–F11
+  + status-surfaces-lockstep + no-regression bullet at 68 cases / 143
+  assertions; F12 stays `[x]` with the nice_to_have.md §UX-5 citation
+  added at T1 close). Cumulative M-UX-REVIEW `dist/client/` byte
+  delta is captured per-task; T6's pinned-typography woff2 + inline
+  CSS replication is the single largest hit (+118.6 KB), the rest of
+  the milestone was pure CSS / template edits with sub-30-KB deltas.
+  M4 stays re-blocked on the convention-hooks follow-up; M-UX-REVIEW
+  ran in parallel and never gated upstream work.
+
+- **Added** **M-UX-REVIEW T6 — typography pairing + ADR-0002
+  amendment.** Closes UI-review F11 (MED). Pins **Source Sans 3**
+  (body) + **JetBrains Mono** (mono) as variable woff2 self-hosted in
+  `public/fonts/` per Path 2 procedure: a transient `npm install -D
+  @fontsource-variable/source-sans-3 @fontsource-variable/jetbrains-mono`
+  populated `node_modules/@fontsource-variable/`, the woff2 files were
+  copied to `public/fonts/source-sans-3-variable.woff2` (28,740 B),
+  `public/fonts/source-sans-3-variable-italic.woff2` (28,532 B), and
+  `public/fonts/jetbrains-mono-variable.woff2` (40,404 B) — 97,676 B
+  woff2 total — then `npm uninstall` ran and the manifests were
+  restored from `/tmp/cs300-t6-package*.json.before` snapshots so the
+  net `package.json` + `package-lock.json` delta vs HEAD is verified
+  empty. The dangling empty `node_modules/@fontsource-variable/`
+  directory was `rmdir`'d to leave `node_modules` clean. Italic ships
+  as a separate file because the fontsource variable bundle splits
+  italic on the file-system axis — Source Sans 3 italic prose
+  (chapter prose has italic emphasis throughout) renders in the
+  matched cut rather than browser-synthesized. `chrome.css` adds
+  three `@font-face` blocks with `font-display: swap`, renames the
+  `--mux-font-sans` token to `--mux-font-body` (with `'Source Sans 3'`
+  pinned first, system stack as FOUT fallback), and re-pins
+  `--mux-font-mono` to `'JetBrains Mono'` first. `Base.astro` +
+  `HomeLayout.astro` rebound `:global(body)` to `var(--mux-font-body)`.
+  `CodeBlock.astro` `.code-block > pre` adds `font-family:
+  var(--mux-font-mono)` because Shiki's `<pre class="astro-code">`
+  ships color-only inline styles — without the explicit rule the UA
+  default `monospace` was painting code blocks in the browser's
+  generic-monospace family rather than the pinned JetBrains Mono.
+  ADR-0002 "Open questions deferred — Visual style" entry flipped
+  from "deferred" to "**Visual style — typography (resolved
+  2026-04-27 in M-UX-REVIEW T6).**" with the chosen-pairing rationale
+  (cs-300 is a 200-hour reading product, cross-device rhythm
+  consistency, Source Sans 3 reading-tuned over Inter screen-tuned).
+  Color palette + dark mode + search + per-section completion +
+  animation discipline stay deferred per the original entry.
+  Architecture.md §1 page-chrome subsection adds the typography
+  one-liner naming the pair, the self-hosted-woff2 contract, and
+  the `--mux-font-body` / `--mux-font-mono` token pair as the
+  single-rule swap point for any future dark-mode work. T6 also
+  bundled four T4 + T5 carry-over architecture.md doc-precision
+  edits into the same architecture.md edit pass: M-UX-REVIEW-T4-ISS-02
+  (drawer-trigger dual-rule rationale — the `:empty { display: none }`
+  rule + the explicit `.chrome > [data-slot="drawer-trigger"] {
+  display: none }` inside `@media (min-width: 1024px)`, both required
+  because `:empty` cannot match when the slot has a `<DrawerTrigger>`
+  child whose own component-level media query hides the button at
+  ≥1024px), M-UX-REVIEW-T4-ISS-03 (right-rail TOC mobile shape now
+  reads as 768–1023px tablet `<details>` vs <768px `<MobileChapterTOC>`
+  via `<header>` injection, with a pointer at the Mobile DOM order
+  block), M-UX-REVIEW-T5-ISS-02 (MDX `pre` mapping is a deviation from
+  T5 spec D2 because Astro's MDX integration emits Shiki's `<pre
+  class="astro-code">` directly + bypasses the M2 wrapper, and the
+  `pre: CodeBlock` mapping is the minimal route given the spec's
+  pandoc-filter constraint), M-UX-REVIEW-T5-ISS-03 (§6 forward-work
+  item gains the component-side bullet — `CodeBlock.astro:84`
+  literal `<span class="code-block-lang">C++</span>` is the swap
+  target when the §6 first-non-C++ trigger fires, and the future
+  Builder can read the language hint via the slot's existing
+  `data-language` attribute that Shiki already emits on `<pre>`
+  rather than threading new MDX frontmatter). Functional-test
+  coverage adds four cases at `/DSA/lectures/ch_4/` + `/DSA/`:
+  `body-font-source-sans-3` (1 — `pre_js` mirrors
+  `getComputedStyle(document.body).fontFamily` to a body data-attr,
+  regex `^["']?Source Sans 3["']?` against the primary), `mono-font-
+  jetbrains` (1 — same idiom on `.code-block pre`, regex `JetBrains
+  Mono`), `font-loaded-not-fallback` (3 — async `pre_js` awaits
+  `document.fonts.ready` then mirrors `document.fonts.check('1em
+  "Source Sans 3"')` and `'1em "JetBrains Mono"'` results to body
+  data-attrs; assertions confirm fonts.ready resolved + both web
+  fonts loaded successfully not silently falling back to system
+  stack), `mono-on-chapter-tag` (1 — same pattern on `article.chapter-card
+  .chapter-card-num` at `/DSA/`, regex `JetBrains Mono` against the
+  chapter-number tag's computed font-family). The
+  `font-loaded-not-fallback` case also catches AC3 (font is loaded
+  not silently falling back) — the harness uses
+  `document.fonts.check` per spec D6 fallback wording rather than
+  pixel-glyph-width measurement. **D3 KaTeX visual smoke** captured
+  via a transient `/tmp/cs300-t6-katex-shot.py` Selenium one-shot
+  rendering ch_5, ch_9, ch_13 at 1280×800 with explicit
+  `document.fonts.ready` await + scroll-to-first-`.katex` shot —
+  outputs at `/tmp/cs300-t6-katex/{ch_5,ch_9,ch_13}-{top,katex}.png`.
+  Visually confirmed: KaTeX inline math (`$O(n)$`, `$\log_2(n!) \ge
+  \tfrac{1}{2} n \log_2 n$`, `$\alpha = n / \mathrm{capacity}$`) all
+  render with their full glyph set, no boxes / question marks / tofu;
+  KaTeX retains its own font stack for math glyphs and the body math
+  fallback to `'Source Sans 3'` for non-math characters renders
+  clean. Bundle delta: pre-T6 `dist/client/` = 7,511,041 B; post-T6 =
+  7,629,630 B; delta = +118,589 B (97,676 B woff2 + ~20,913 B from
+  the new inline `@font-face` CSS replicated across 40 prerendered
+  HTML files). Inside the M-UX cumulative budget; no §UX-4 trigger
+  fired. **Status surfaces:** five surfaces flipped together — task
+  spec status, T6 row in `tasks/README.md`, T6 row in
+  `m_ux_review/README.md` task table, F11 `Done when` checkbox
+  flipped to `[x]` with citation parenthetical, status-surfaces-
+  lockstep `Done when` flipped to `[x]`, and the no-regression
+  bullet's case/assertion count updated `64 cases / 137 assertions`
+  → `68 cases / 143 assertions`. Top-level
+  `design_docs/milestones/README.md` row flipped from `active (T1 +
+  T2 + T3 + T4 + T5 closed; T6 outstanding)` to `✅ closed 2026-04-27`
+  + paragraph blurb updated. M-UX-REVIEW milestone-level Status: line
+  flipped to `✅ closed 2026-04-27`. Files touched:
+  `src/styles/chrome.css` (header docstring + 3 `@font-face` +
+  `--mux-font-body` rename + `--mux-font-mono` re-pin),
+  `src/layouts/Base.astro` (`:global(body)` token rebind +
+  docstring), `src/layouts/HomeLayout.astro` (`:global(body)` token
+  rebind + docstring), `src/components/callouts/CodeBlock.astro`
+  (`.code-block > pre` font-family rule + comment), `public/fonts/*`
+  (3 woff2 added), `design_docs/architecture.md` (typography one-liner
+  + 4 carry-over edits), `design_docs/adr/0002_ux_layer_mdn_three_column.md`
+  (Open-questions typography entry flipped),
+  `scripts/functional-tests.json` (4 new cases),
+  `design_docs/milestones/m_ux_review/tasks/T6_typography.md` (Status
+  flip + 4 carry-over checkboxes ticked),
+  `design_docs/milestones/m_ux_review/tasks/README.md` (T6 row),
+  `design_docs/milestones/m_ux_review/README.md` (Status + table +
+  Done-when checkboxes + no-regression count),
+  `design_docs/milestones/README.md` (M-UX-REVIEW row + blurb),
+  `CHANGELOG.md`. Gates: `npm run build` exit 0 + 40 prerendered
+  pages; `.venv/bin/python scripts/functional-tests.py` 68/68 cases
+  / 143/143 assertions in 34.1s; `.venv/bin/python
+  scripts/smoke-screenshots.py` 31 screenshots / 2,740,095 bytes
+  (post-T5 baseline 31 / 3,054,404 — fewer bytes because the FOUT
+  swap reduces baseline-fallback render-time complexity for some
+  pages); `/tmp/cs300-t6-katex-shot.py` 6 screenshots @ 1280×800
+  capturing KaTeX glyphs at ch_5 / ch_9 / ch_13 with no missing-
+  glyph artifacts. AC1–AC8 met: AC1 (body Source Sans 3 ✓), AC2
+  (mono JetBrains Mono on `<pre>` + `.chapter-card-num` ✓), AC3
+  (font loaded not fallback per `document.fonts.check` ✓), AC4
+  (ADR-0002 typography deferral entry amended ✓), AC5
+  (architecture.md §1 typography line + token names ✓), AC6 (KaTeX
+  glyphs render cleanly per /tmp/cs300-t6-katex screenshots ✓), AC7
+  (no regression — 64 prior tests still PASS ✓), AC8 (bundle delta
+  +118,589 B documented ✓). Path 2 transient-install net-zero
+  manifest delta verified post-uninstall (`git diff HEAD --
+  package.json package-lock.json` empty). Dep audit: skipped — no
+  net manifest changes (transient install + restore-from-snapshot
+  per Path 2 procedure leaves zero diff).
+
+- **Changed** **M-UX-REVIEW T5 — code-block polish (margin, lang tag,
+  copy button).** Closes UI-review F7 (MED). Reshapes
+  `src/components/callouts/CodeBlock.astro` from the M2-era
+  `.codeblock` wrapper with a hover-revealed `.copy-btn` to a
+  `.code-block` envelope carrying a header strip pinned top-right
+  with a fixed `C++` `.code-block-lang` tag (Path A per spec D2 — the
+  chapter set is uniformly C++17, per-block detection stays the
+  architecture.md §6 forward-work item) and an always-visible
+  `.code-block-copy` button. Outer 8px margin (`margin-block:
+  var(--mux-space-2)`) gives adjacent prose breathing room (D1).
+  Inline `<script>` (≤30 lines) wires the copy handler: clipboard
+  write, `data-state="copied"` for 1.5s on success or
+  `data-state="failed"` on rejection (e.g. headless Chrome without
+  permission), then revert. Same component now ALSO routes through
+  the MDX `pre` element via `components={{ pre: CodeBlock }}` on
+  `<Content />` in the lectures / notes / practice route templates
+  so chapter fenced code blocks (the dominant code path — 600+
+  blocks across 12 chapters) ship the same envelope as direct
+  `<CodeBlock>` JSX usage. The rendered `<pre class="astro-code
+  github-dark" ...>` from Shiki is re-emitted verbatim inside the
+  wrapper so syntax highlighting is unchanged. Per the spec
+  constraint, neither `scripts/pandoc-filter.lua` nor Shiki config
+  are touched. Architecture.md §1 component-library subsection
+  amended to reflect the shipped contract: copy button + `C++` lang
+  tag both ship in static + interactive mode, mounted via the MDX
+  `pre` mapping in the three chapter route templates; "send to
+  editor" stays a forward-looking M6 surface. Functional-test
+  coverage adds four cases at viewport 1280×800 of
+  `/DSA/lectures/ch_4/`: `code-block-language-tag` (3 asserts —
+  count `.code-block` ≥1, count `.code-block-lang` ≥1, text-pattern
+  `^C\+\+$`), `code-block-copy-button` (2 asserts — count + `type`
+  attr), `code-block-margin` (2 asserts — computed
+  `margin-block-start` ≥8px, computed `margin-block-end` ≥8px),
+  `code-block-copy-functional` (2 asserts — `pre_js` clicks the
+  first copy button + sets a body marker; assertion confirms the
+  marker plus the button's `data-state` matches `^(copied|failed)$`
+  per spec D4 "if [clipboard read] isn't available, the data-state
+  swap is sufficient evidence" — headless Chrome without
+  `--enable-features=Clipboard` lands on `failed`, real browsers on
+  `copied`, both prove the click handler fired). **Status
+  surfaces:** five surfaces flip together — task spec status, T5 row
+  in `tasks/README.md`, T5 row in `m_ux_review/README.md` task
+  table, F7 `Done when` checkbox flipped to `[x]` with citation
+  parenthetical pointing at T5 issue file, and the no-regression
+  bullet's case/assertion count updated `60 cases / 128 assertions`
+  → `64 cases / 137 assertions` (T5 delta: `+4 cases / +9 asserts`).
+  Top-level `design_docs/milestones/README.md` row updated to
+  reflect T5 closed. Files touched:
+  `src/components/callouts/CodeBlock.astro` (full reshape),
+  `src/pages/lectures/[id].astro` + `src/pages/notes/[id].astro` +
+  `src/pages/practice/[id].astro` (each adds `pre: CodeBlock` to
+  the `<Content components={{...}} />` map),
+  `design_docs/architecture.md` (§1 component-library amend),
+  `scripts/functional-tests.json` (4 new cases),
+  `design_docs/milestones/m_ux_review/tasks/T5_code_block_polish.md`
+  (Status flip), `design_docs/milestones/m_ux_review/tasks/README.md`
+  (T5 row), `design_docs/milestones/m_ux_review/README.md` (table +
+  Done-when checkbox + no-regression count),
+  `design_docs/milestones/README.md` (M-UX-REVIEW row),
+  `CHANGELOG.md`. Gates: `npm run build` exit 0, 40 prerendered
+  pages; `.venv/bin/python scripts/functional-tests.py` 64/64 cases
+  / 137/137 assertions in 30.8s; `.venv/bin/python
+  scripts/smoke-screenshots.py` 31 screenshots / 3,054,404 bytes in
+  15.3s; manual scroll-and-shot of `/DSA/lectures/ch_4/` first code
+  block confirms `C++` tag + Copy button rendered top-right with
+  outer margin (`/tmp/cs300-t5-codeblock-shot.png`); manual
+  click-through in headless Chrome confirms the `data-state`
+  swap-and-revert path (`Copy` → `Failed` → `Copy`). AC1–AC6 met:
+  AC1 (lang tag ✓), AC2 (copy button ✓), AC3 (margin ≥8px ✓), AC4
+  (handler fires, data-state swap ✓), AC5 (architecture.md amend
+  ✓), AC6 (no regression — 60 prior tests still PASS, including
+  scroll-spy on h2). Dep audit: skipped — no manifest changes.
+
+- **Changed** **M-UX-REVIEW T5 cycle-2 closure** — closes HIGH
+  (status-surface drift on per-task spec, mechanical one-line flip)
+  + propagates LOW-1 + LOW-2 (architecture.md doc-precision nits) as
+  carry-over to T6 typography ADR-0002 amendment cycle. Five status
+  surfaces now consistent at `✅ done 2026-04-27`. Functional-test
+  suite stays at 64/137. Status surfaces: T5 spec line 3 flipped.
+  Dep audit: skipped — no manifest changes.
+
+- **Changed** **M-UX-REVIEW T4 cycle-2 closure** — closes MEDIUM-1
+  (M-UX-REVIEW-T4-ISS-01) + LOW-3 (M-UX-REVIEW-T4-ISS-04) from the
+  cycle-1 audit; LOW-1 + LOW-2 forward-deferred to T6. **MEDIUM-1
+  Option (a) narrow-hide:** `Base.astro` mobile @media block replaces
+  the broad `aside[data-slot="right-rail"] { display: none }` rule at
+  <768px with two targeted rules — `aside[data-slot="right-rail"]
+  :global(.right-rail-toc) { display: none }` and
+  `aside[data-slot="right-rail"] :global(details.toc-mobile-collapse)
+  { display: none }`. The `:global(...)` wrap is required because
+  Base.astro's scoped style block cannot reach class selectors emitted
+  by the child `RightRailTOC.astro` component without it. The aside
+  itself stays in flow at <768px, so AnnotationsPane (a sibling of
+  RightRailTOC inside the same aside) survives the mobile media query
+  and its existing `data-interactive-only` global rule remains the only
+  visibility gate — restoring the M-UX T7 line 19 + ADR-0002 line 75
+  AnnotationsPane-in-right-rail-at-mobile contract in interactive mode
+  without any UX shift in static-mode public deploy. New regression-
+  guard test `mobile-right-rail-aside-stays-rendered-375` (4 asserts:
+  aside cardinality 1, aside computed-style `display: block`,
+  `.right-rail-toc` computed-style `display: none`,
+  `details.toc-mobile-collapse` computed-style `display: none`) inverts
+  the cycle-1 hide check — if a future change reverts to the broad
+  rule, the aside-level computed-style flips from `block` to `none` and
+  this test fails. **LOW-3 in-place spec amendment:**
+  `tasks/T4_mobile_reduction.md` D2 example DOM-order block updated to
+  read `<MobileChapterTOC />` (with inline parenthetical noting the
+  component emits its own `<details class="rhs-toc-mobile">` wrapper)
+  instead of the original `<details class="rhs-toc-mobile">…
+  <RightRailTOC />…</details>` listing; cycle-2 amendment blockquote
+  added immediately after the example block citing M-UX-REVIEW-T4-ISS-04
+  and explaining the deviation rationale (twice-rendering RightRailTOC
+  would have collided with ScrollSpy + RightRailReadStatus paint
+  contracts) + the trade-off (mobile loses live `[data-current]`
+  highlighting + read-status painting in the on-this-page affordance).
+  **LOW-1 + LOW-2 forward-deferral:** carry-over entries appended to
+  `tasks/T6_typography.md` `## Carry-over from prior audits` (one
+  `- [ ]` per LOW with concrete "what to implement" + source link back
+  to T4 issue file); T6 already touches `architecture.md` §1
+  page-chrome subsection per its D5, so the dual-rule + stale-sentence
+  doc fixes bundle into the same file edit. **Status surfaces:** no
+  re-flip; T4 stays `✅ done 2026-04-27` across all five surfaces;
+  cycle-2 closure is closure-only. The no-regression bullet in
+  `m_ux_review/README.md` updated `59 cases / 124 assertions` →
+  `60 cases / 128 assertions` (cycle-2 delta `+1 case / +4 assertions`).
+  Files touched: `src/layouts/Base.astro` (CSS rule swap +
+  docstring refresh), `scripts/functional-tests.json` (one new test
+  case), `design_docs/milestones/m_ux_review/tasks/T4_mobile_reduction.md`
+  (D2 example + cycle-2 blockquote),
+  `design_docs/milestones/m_ux_review/tasks/T6_typography.md` (carry-over
+  bullets), `design_docs/milestones/m_ux_review/issues/T4_issue.md`
+  (status flips + Cycle 2 subsection),
+  `design_docs/milestones/m_ux_review/README.md` (count update),
+  `CHANGELOG.md`. Gates: `npm run build` exit 0, 40 pages;
+  `.venv/bin/python scripts/functional-tests.py` 60/60 cases / 128/128
+  assertions in 28.6s; `.venv/bin/python scripts/smoke-screenshots.py`
+  31 screenshots / 3,054,220 bytes in 15.3s. Dep audit: skipped — no
+  manifest changes.
+
+- **Changed** **M-UX-REVIEW T4 — mobile chrome reduction + drawer
+  label.** Two UI-review findings on the same chrome surfaces, shipped
+  as one task per the milestone bundling rule. Addresses F9 (HIGH,
+  reduce mobile chrome stack) and F10 (MEDIUM, drawer-trigger label +
+  chevron state).
+  - **D1 — mobile breadcrumb hide + drawer-trigger extraction (F9).**
+    `Base.astro` mobile @media block adds
+    `.chrome > [data-slot="breadcrumb"].breadcrumb-bar { display: none }`
+    at <768px. The outer breadcrumb slot wrapper now carries the
+    `.breadcrumb-bar` class so the rule binds to the slot wrapper
+    (not the inner `<nav class="breadcrumb">`), hiding the entire
+    track in one rule. The drawer trigger used to mount inside
+    `Breadcrumb.astro`'s `drawer-trigger` named slot (M-UX T7);
+    that placement would have hidden the trigger alongside the
+    breadcrumb. Per spec Option A the trigger is extracted to a
+    sibling of the breadcrumb in `Base.astro` via a new
+    chrome-level `drawer-trigger` named slot — its own row above
+    the breadcrumb in the <1024px grid template, hidden at ≥1024px
+    via an explicit `display: none` rule (the `:empty` pseudo-class
+    rule alone wasn't enough because the slot wrapper still has a
+    child element when DrawerTrigger is mounted, even though that
+    child is itself `display: none`). The in-`<Breadcrumb>` slot
+    declaration is removed entirely (vs. left empty) because no
+    consumer should pass children to it post-T4. Three chapter
+    routes updated to mount `<DrawerTrigger slot="drawer-trigger">`
+    at the Base level instead of inside `<Breadcrumb>`.
+  - **D2 — "On this page" details below H1+tabs at <768px (F9).**
+    New component `src/components/chrome/MobileChapterTOC.astro`
+    (~135 lines including docstring + scoped CSS) renders a
+    stripped-down `<details><summary>On this page</summary><nav>`
+    block with plain `<a href="#anchor">` links — no `data-anchor`,
+    no `data-section-id`, no `data-read-indicator` selectors.
+    ScrollSpy + RightRailReadStatus query `.right-rail-toc`
+    exclusively, so this component is invisible to both islands
+    (no double-paint). Mounts inside the lectures route's
+    `<header>` after `<CollectionTabs>`; visible at <768px,
+    `display: none` at ≥768px so the desktop right-rail TOC stays
+    the single TOC surface above the breakpoint. Lectures-only
+    mount because notes/practice schemas have no `sections`
+    frontmatter. `Base.astro` mobile @media block adds
+    `aside[data-slot="right-rail"] { display: none }` at <768px so
+    the right-rail track vanishes, leaving the in-`<header>` mobile
+    details as the only TOC affordance below the breakpoint. The
+    aside stays in the DOM (just hidden) so a viewport resize back
+    to ≥768px finds the desktop TOC + ScrollSpy + RightRailReadStatus
+    islands already mounted. Mobile DOM order on chapter routes now
+    reads drawer-trigger → eyebrow → H1 → CollectionTabs →
+    MobileChapterTOC → article (per UI-review F9 spec).
+  - **D3 — drawer-trigger label + chevron (F10).**
+    `DrawerTrigger.astro` markup expands from a bare
+    `<button>☰</button>` to
+    `<button data-drawer-state="closed" aria-expanded="false">
+       <span class="drawer-icon" aria-hidden="true">☰</span>
+       <span class="drawer-label">Chapters</span>
+       <span class="drawer-chevron" aria-hidden="true">›</span>
+     </button>`. CSS rule on
+    `.drawer-trigger[data-drawer-state="open"] .drawer-chevron`
+    rotates the chevron 180° (a `›` rotated 180° reads as `‹`,
+    matching the spec's "flips to ‹" wording). Transition is the
+    only motion added — same M-UX "instant where possible" rule.
+    `data-drawer-state` is a pure styling hook; `aria-expanded`
+    remains the a11y hook. Both attributes are flipped in lockstep
+    by `Drawer.astro`'s `open()` / `close()` functions so they
+    never disagree. The "Chapters" label hides at <360px via
+    `@media (max-width: 359.98px) .drawer-label { display: none }`
+    so legacy 320-pt phones don't crowd the trigger; icon +
+    chevron stay visible.
+  - **D4 — keyboard / focus contracts preserved.** No code changes;
+    M-UX T7 cycle 2 focus-trap, Escape-to-close, `cs300:drawer-
+    toggle` event firing, and `aria-expanded` flipping were all
+    inside `Drawer.astro` and continue to fire unchanged. T4 only
+    extended the existing `open()` / `close()` paths to flip
+    `data-drawer-state` alongside `aria-expanded`. Verified via
+    the new `mobile-existing-drawer-contracts-preserved`
+    functional test which clicks the trigger, confirms
+    `body.drawer-open`, dispatches `Escape`, confirms
+    `body.drawer-open` is removed, `aria-expanded="false"`,
+    `data-drawer-state="closed"`, `aside[data-slot="left-rail"]
+    aria-hidden="true"`.
+  - **D5 — functional-test assertions.** `scripts/functional-
+    tests.json` grew net **+9 cases / +22 assertions** (50/102 →
+    59/124). New cases at viewport 375×812 unless noted:
+    `mobile-breadcrumb-hidden-375` (computed-style display none on
+    `.breadcrumb-bar`); `mobile-drawer-trigger-visible-375`
+    (computed-style display + rect width/height); `mobile-toc-
+    below-h1-375` (pre_js body-attr DOM-order check via
+    getBoundingClientRect.top); `mobile-collection-tabs-below-h1-
+    375` (same DOM-order pattern, tabs vs h1);
+    `drawer-trigger-label-text` (count + text-pattern `^Chapters$`);
+    `drawer-trigger-chevron-presence` (count + aria-hidden attr);
+    `drawer-chevron-rotates-on-open` (pre_js click + computed-
+    style transform == rotate(180deg) matrix); `mobile-existing-
+    drawer-contracts-preserved` (pre_js click then dispatch
+    Escape; assert state); `desktop-breadcrumb-visible-1280`
+    (computed-style display == block + rect height > 0).
+  - **D6 — architecture.md amendment.** §1 page-chrome mobile
+    paragraph rewritten to specify the mobile DOM order
+    (drawer-trigger → eyebrow → H1 → tabs → on-this-page →
+    article) and the breadcrumb-hide-at-768px rule. New "Mobile
+    chrome reduction (M-UX-REVIEW T4)" subsection documents the
+    drawer-trigger extraction, the breadcrumb hide, and the label
+    + chevron contract. The drawer-trigger label is referenced as
+    `☰ Chapters ›` in the mobile description so the visible text
+    is part of the spec of record.
+  **Files updated:**
+  - `src/components/chrome/DrawerTrigger.astro` (D3 — markup +
+    `data-drawer-state` attribute + label + chevron + scoped CSS
+    + docstring T4 update).
+  - `src/components/chrome/Drawer.astro` (D3 — open/close flip
+    `data-drawer-state` alongside `aria-expanded`; docstring T4
+    update).
+  - `src/components/chrome/Breadcrumb.astro` (D1 — removed the
+    in-breadcrumb `drawer-trigger` named slot declaration;
+    docstring T4 update).
+  - `src/components/chrome/MobileChapterTOC.astro` (NEW — D2).
+  - `src/layouts/Base.astro` (D1 + D2 — new chrome-level
+    `drawer-trigger` named slot, `.breadcrumb-bar` class on the
+    breadcrumb slot wrapper, mobile-hide @media rules,
+    desktop-explicit `display: none` on the drawer-trigger slot;
+    docstring T4 update).
+  - `src/pages/lectures/[id].astro` (D1 + D2 — moved
+    `<DrawerTrigger>` to the new Base slot; mounted
+    `<MobileChapterTOC>` after `<CollectionTabs>`; docstring T4
+    update).
+  - `src/pages/notes/[id].astro` (D1 — moved `<DrawerTrigger>`;
+    docstring T4 update).
+  - `src/pages/practice/[id].astro` (D1 — moved `<DrawerTrigger>`;
+    docstring T4 update).
+  - `scripts/functional-tests.json` (D5 — 9 new cases / 22 new
+    assertions).
+  - `design_docs/architecture.md` (D6 — §1 mobile paragraph +
+    new T4 subsection).
+  - `design_docs/milestones/m_ux_review/tasks/T4_mobile_reduction.md`
+    (status flip + close).
+  - `design_docs/milestones/m_ux_review/tasks/README.md` (T4 row
+    flip).
+  - `design_docs/milestones/m_ux_review/README.md` (status line +
+    task table T4 row + Done-when F9 + F10 checkboxes + the
+    no-regression bullet rewritten with the new 59/124 baseline).
+  - `design_docs/milestones/README.md` (M-UX-REVIEW row + paragraph
+    update).
+  **ACs satisfied:** AC1 (mobile-breadcrumb-hidden-375), AC2
+  (mobile-drawer-trigger-visible-375), AC3 (mobile-toc-below-h1-
+  375), AC4 (mobile-collection-tabs-below-h1-375), AC5
+  (drawer-trigger-label-text), AC6 (drawer-trigger-chevron-
+  presence), AC7 (drawer-chevron-rotates-on-open), AC8
+  (mobile-existing-drawer-contracts-preserved + the existing T9
+  `drawer-trigger-visible-mobile` case still PASS — `aria-controls=
+  "drawer"` + width > 0 unchanged), AC9 (desktop-breadcrumb-
+  visible-1280), AC10 (architecture.md §1 amendment).
+  **Verification:** `npm run build` exit 0 with 40 prerendered
+  pages; `.venv/bin/python scripts/functional-tests.py` =
+  59/59 cases / 124/124 assertions in 28.2s; `python scripts/
+  smoke-screenshots.py` = 31 screenshots / 3,073,760 bytes in
+  15.3s; manual visual verification of
+  `.smoke/screenshots/lectures-ch4-{375x812,768x1024,1280x800}.png`
+  confirms the spec's three-state rendering: at 375 the
+  breadcrumb is absent, drawer trigger reads `☰ Chapters ›`, H1
+  dominates the top of the screen, on-this-page details sits
+  below tabs; at 768 the breadcrumb returns with arrows + drawer
+  trigger remains in its own row above; at 1280 the desktop
+  three-column shape is unchanged from T3.
+  **Deviations from spec:** none material. Spec D2's hand-wavy
+  `<RightRailTOC />` inside the mobile details would have produced
+  duplicate `[data-anchor]` + `[data-read-indicator]` selector
+  targets (ScrollSpy + RightRailReadStatus would both paint into
+  whichever instance their querySelector landed on, fragmenting
+  the canonical paint surface); resolved by extracting a
+  stripped-down `MobileChapterTOC.astro` with distinct selectors
+  (`.rhs-toc-mobile`) so the islands stay scoped to a single
+  `.right-rail-toc` instance regardless of viewport. Trade-off:
+  mobile loses live `[data-current="true"]` + `data-read`
+  painting in the on-this-page affordance — acceptable per the
+  spec's "static jump-list" framing of mobile TOC. Spec wording
+  said "the mobile right-rail `<details summary="On this page">`
+  currently renders above the chapter H1 (inside the breadcrumb
+  area or as a separate top-of-content element)"; the actual
+  pre-T4 location was inside the right-rail aside which renders
+  above main on mobile per M-UX T7's grid template, so the
+  starting state was a tiny bit further from the spec's verbal
+  picture but the destination is the same. The desktop-explicit
+  `display: none` rule on the drawer-trigger slot at ≥1024px was
+  added after a probe revealed the slot wrapper wasn't matching
+  the `:empty` pseudo-class (its child `<button>` is itself
+  `display: none` but it's still a child element); this is a
+  defensive belt-and-braces rule, not a spec deviation.
+  **Dep audit:** skipped — no manifest changes (zero touch on
+  `package.json`, `package-lock.json`, `pyproject.toml`,
+  `requirements*.txt`, `.nvmrc`, `.pandoc-version`).
+
+- **Changed** **M-UX-REVIEW T3 — chapter chrome: breadcrumb split,
+  H1 promotion, left-rail trim.** Three UI-review findings on the
+  same chrome surfaces, shipped as one task per the milestone's
+  bundling rule (~2.5h total). Addresses F5 (HIGH, breadcrumb
+  splitting three navigation models off one row), F6 (MED, page H1
+  names the topic, not the redundant "Chapter N — Lectures"
+  coordinates), and F8 (LOW, LeftRail subtitle truncation).
+  - **D1 — breadcrumb split (F5).** `Breadcrumb.astro`: removed
+    the collection-switcher `<ul class="collection-switcher">` from
+    the right-side `breadcrumb-controls` cluster; removed the middle
+    `<li><a>{collectionLabel}</a></li>` from the left-side path
+    `<ol>`; changed the prev/next chapter button glyphs from
+    guillemets (`‹` / `›`) to arrows (`←` / `→`) per the review's
+    before/after mock. Result: row 1 carries crumbs (`cs-300 / ch_4 — …`)
+    on the left + chapter prev/next on the right — one navigation
+    model per side. Also dropped the now-orphaned `.collection-switcher`
+    + `.collection-pill` CSS rules and the `COLLECTION_LABEL` /
+    `collectionLandingHref` / `collectionLabel` declarations in the
+    component frontmatter. The cross-collection link contract is
+    preserved by D2's tabs.
+  - **D2 — collection segmented control (F5 + F6, paired).** New
+    `src/components/chrome/CollectionTabs.astro` (~80 lines including
+    the docstring + scoped CSS): three SSR `<a>` tabs with the current
+    collection rendered as filled accent + ring (matching the
+    LeftRail current-chapter idiom so "current" reads the same way
+    across both surfaces). Mounts inside the chapter route templates'
+    `<header>` directly under the topic-as-H1 — no Base.astro slot
+    edit, the `<header>` element flows through the existing `<main>`
+    default slot. The three chapter routes
+    (`src/pages/{lectures,notes,practice}/[id].astro`) get the
+    eyebrow + topic-as-H1 + tabs structure replacing the prior
+    `Chapter 4 — Lectures` H1 + italic subtitle.
+  - **D3 — left-rail subtitle trim (F8).** `LeftRail.astro`:
+    non-current `.chapter-link` rows truncate the `.chapter-label`
+    span to one line via `white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis` on `.chapter-link:not(.is-current)
+    .chapter-label`; full subtitle mirrored into the `<a>`
+    `title=` attribute for hover/long-press. Current chapter keeps
+    the multi-line wrap. `.chapter-label` gains `min-width: 0` so
+    the truncation actually engages (flex children default to
+    `min-width: auto` = intrinsic content width).
+  - **D4 — functional-test assertions.** `scripts/functional-tests.json`
+    grew net `+6 cases / +18 assertions` (44/84 → 50/102). Removed
+    three obsolete T9 D4 cases that asserted the breadcrumb middle
+    segment (`breadcrumb-collection-link-{lectures,notes,practice}`)
+    because that segment is gone post-T3 D1; their link contract
+    moves to the new tabs cases (`collection-tabs-current-aria`,
+    `collection-tabs-on-notes`). Added nine new T3 cases:
+    `breadcrumb-no-collection-pills`, `breadcrumb-prev-next-arrows`,
+    `collection-tabs-under-h1` (DOM-order check via a `pre_js`
+    body-attribute trick — sets `data-t3-order="ok"` if the rendered
+    `top` of `.ch-eyebrow < <h1> < .collection-tabs`),
+    `h1-is-topic-not-coordinates`, `eyebrow-has-coordinates`
+    (case-insensitive `(?i)` regex because the eyebrow renders
+    uppercase via CSS `text-transform`), `collection-tabs-current-aria`,
+    `collection-tabs-on-notes`, `left-rail-truncate-other-chapters`
+    (computed-style assertions on `text-overflow`, `white-space`),
+    `left-rail-title-attr-on-other-chapters`. Also re-bounded the
+    existing `breadcrumb-height-matches-token` test from `[44, 48]`
+    to `[40, 44]` because the breadcrumb shrunk 4px (40.91px) when
+    the collection-switcher pills + middle path segment were
+    removed; `--mux-breadcrumb-height` token in `chrome.css` updated
+    46 → 42px (1px hairline buffer, same convention as T9).
+  - **D5 — architecture.md amendment.** §1 page-chrome ASCII diagram
+    updated to show the new chrome shape (eyebrow + topic-as-H1 +
+    tabs row in the center column, breadcrumb with arrows). The
+    "Collection-landing pages" paragraph amended to note T3 D1
+    moved the breadcrumb-link entry point to `CollectionTabs.astro`.
+    A new "Chapter chrome shape (M-UX-REVIEW T3)" subsection
+    documents the three-row rule, the H1-as-topic invariant, the
+    cross-collection link preservation, and the LeftRail truncation
+    contract.
+  **Files updated:**
+  - `src/components/chrome/Breadcrumb.astro` (D1 — markup + CSS
+    trim + frontmatter cleanup + docstring T3 update).
+  - `src/components/chrome/CollectionTabs.astro` (NEW — D2).
+  - `src/components/chrome/LeftRail.astro` (D3 — `title=` attr +
+    truncation CSS + docstring T3 update).
+  - `src/styles/chrome.css` (D2 — `.ch-eyebrow` rule;
+    `--mux-breadcrumb-height` 46 → 42px).
+  - `src/pages/lectures/[id].astro` (D2 — eyebrow + topic-as-H1 +
+    `<CollectionTabs>` import + docstring T3 update).
+  - `src/pages/notes/[id].astro` (D2 — same shape).
+  - `src/pages/practice/[id].astro` (D2 — same shape).
+  - `scripts/functional-tests.json` (D4 — 9 new cases, 3 obsolete
+    cases removed, 1 case re-bounded).
+  - `design_docs/architecture.md` (D5 — §1 diagram + paragraph
+    updates).
+  - `design_docs/milestones/m_ux_review/tasks/T3_chapter_chrome.md`
+    (status flip + close).
+  - `design_docs/milestones/m_ux_review/tasks/README.md` (T3 row
+    flip).
+  - `design_docs/milestones/m_ux_review/README.md` (status line +
+    task table T3 row + Done-when F5/F6/F8 checkboxes + the
+    no-regression bullet rewritten with the new 50/102 baseline +
+    delta breakdown).
+  - `design_docs/milestones/README.md` (M-UX-REVIEW row + paragraph
+    update).
+  **ACs satisfied:** AC1 (breadcrumb-no-collection-pills), AC2
+  (breadcrumb-prev-next-arrows), AC3 (collection-tabs-under-h1),
+  AC4 (h1-is-topic-not-coordinates), AC5 (eyebrow-has-coordinates),
+  AC6 (collection-tabs-current-aria + collection-tabs-on-notes),
+  AC7 (left-rail-truncate-other-chapters +
+  left-rail-title-attr-on-other-chapters), AC8 (current LeftRail
+  entry has `white-space: normal` — covered inside
+  `left-rail-truncate-other-chapters`'s third assertion), AC9
+  (T9 AC5/AC6/AC7/AC9 still pass — note T9 AC8 was the breadcrumb
+  middle segment which T3 D1 explicitly removes per the F5 fix;
+  the link reachability that AC8 verified is preserved by the
+  new tabs and asserted by `collection-tabs-current-aria` +
+  `collection-tabs-on-notes`), AC10 (architecture.md §1 reflects
+  the breadcrumb split + H1-as-topic invariant).
+  **Deviations from spec:** none material. The spec said the test
+  case count delta would be ~9 cases; the actual delta is `+9 - 3
+  = +6` net cases because the three obsolete T9 D4 cases were
+  removed (their selector targets no longer exist post-T3 D1). The
+  removed-vs-kept reconciliation is documented in the no-regression
+  bullet rewrite. The token re-measurement was an unplanned but
+  necessary follow-on (the existing `breadcrumb-height-matches-token`
+  test fired when the breadcrumb shrank).
+  **Dep audit:** skipped — no manifest changes (zero touch on
+  `package.json`, `package-lock.json`, `pyproject.toml`,
+  `requirements*.txt`, `.nvmrc`, `.pandoc-version`).
+
+- **Changed** **M-UX-REVIEW T3 cycle-2 closure** — closes
+  HIGH-1 + MEDIUM-1 + LOW-1 from the cycle-1 audit (user picked
+  Option A; LOW-2 stays parked under `nice_to_have.md` §UX-5
+  trigger). T3 spec AC9 amended in-place (HIGH-1 option (a)) to
+  drop the obsolete T9 AC8 enumeration and cite the F5 / D1
+  authorisation directly inline; a `Cycle-2 amendment` blockquote
+  immediately after the AC table documents the change-of-record
+  (closes M-UX-REVIEW-T3-ISS-01). `architecture.md` §1
+  "Collection-landing pages (M-UX T9 D5)" paragraph rewritten
+  (MEDIUM-1) to state the correct reachability story — after T3 D1,
+  no chrome surface on a chapter route links directly to
+  `/DSA/{lectures,notes,practice}/`; the cross-collection user
+  need is served chapter-to-chapter by `CollectionTabs.astro`,
+  and the home + landing-page card grid (T1 D2 + M-UX T9 D5)
+  remains the entry point for landing-page navigation; the dist-size
+  figure was replaced with a pointer to `m_ux_polish/README.md` for
+  the running figure (closes M-UX-REVIEW-T3-ISS-02).
+  `breadcrumb-height-matches-token` test bound tightened from
+  `[40, 44]` to `[40, 42]` in `scripts/functional-tests.json`
+  (LOW-1 option (a)) — 40.91px rendered measurement now sits inside
+  a 2-pixel band rather than a 4-pixel band, no longer 4× looser
+  than the `chrome.css` precision claim (closes
+  M-UX-REVIEW-T3-ISS-03). LOW-2 (M-UX-REVIEW-T3-ISS-04 —
+  `CollectionTabs.astro` accent overlap with LeftRail
+  current-chapter) stays OPEN flag-only, parked under
+  `nice_to_have.md` §UX-5 trigger; the F12 promotion task post-M5
+  picks it up alongside `.chapter-link.is-current`. Functional-test
+  suite still **50 cases / 102 assertions** (LOW-1 only tightened an
+  existing case bound, didn't add or remove cases). T3 stays
+  `✅ done 2026-04-27` across all five status surfaces — cycle 2 is
+  closure-only, no re-flip; the no-regression bullet's case/assertion
+  count in `m_ux_review/README.md` stays at 50/102. **Files touched:**
+  `design_docs/milestones/m_ux_review/tasks/T3_chapter_chrome.md`
+  (AC9 row + cycle-2 amendment blockquote),
+  `design_docs/architecture.md` (line 143 paragraph rewrite),
+  `scripts/functional-tests.json` (one-line bound tightening),
+  `design_docs/milestones/m_ux_review/issues/T3_issue.md` (preamble
+  Status flip ⚠️ OPEN → ✅ PASS, three "Resolution (cycle 2,
+  2026-04-27)" paragraphs, issue-log table flips, Cycle 2 closure
+  subsection appended). **Verification:** `npm run build` exit 0
+  with 40 prerendered pages (server built in 11.36s);
+  `.venv/bin/python scripts/functional-tests.py` = 50/50 cases /
+  102/102 assertions in 23.8s with `breadcrumb-height-matches-token`
+  PASS against the new `[40, 42]` bound; `python scripts/smoke-screenshots.py`
+  = 31 screenshots / 3,070,497 bytes in 15.4s. **Dep audit:** skipped
+  — no manifest changes.
+
+- **Changed** **M-UX-REVIEW T2 — cycle-2 closure pass (closes all four
+  carried LOW findings + the SHIP-advisory hardening in a single
+  coherent change set).** User authorised cycle-2 scope expansion on
+  top of the cycle-1 ✅ FUNCTIONALLY CLEAN verdict (0 HIGH / 0 MEDIUM /
+  4 LOW + 1 SHIP-advisory) to close the carried items before the
+  milestone progresses. Mirrors the T1 cycle-2 / cycle-3 closure
+  pattern. Five fixes spanning four files:
+  - **Fix 1 (LOW-1, doc accuracy).** `design_docs/architecture.md` §1.6
+    paragraph rewritten — "frontmatter-side filter" wording was
+    incorrect; b29d409 was actually a render-time filter inside
+    `RightRailTOC.astro` (the removed `TOP_LEVEL_TITLE = /^\d+\.\d+\s/`
+    regex applied at component render time). The lectures frontmatter
+    has carried every H1 + H2 + H3 anchor since M2 T4. T2's reversal
+    is now described as two distinct edits: (a) drops the render-time
+    regex from the SSR component; (b) adds a build-time H3+ exclusion
+    in `extractSections()` (`scripts/build-content.mjs`).
+  - **Fix 2 (LOW-2, spec accuracy).**
+    `design_docs/milestones/m_ux_review/tasks/T2_right_rail_toc_hierarchy.md`
+    D1 paragraph (line 32) — pandoc heading depths corrected: "every
+    section anchor (H2 + H3)" → "every section anchor (H1 + H2)";
+    "the H3 subsections under it" → "the H2 subsections under it";
+    "Drop H4 and below" → "Drop H3 and below". A cycle-2 amendment
+    blockquote follows the corrected paragraph documenting the
+    depth-mapping rationale (pandoc `\section` → `# ...` (H1, depth=1);
+    `\subsection` → `## ...` (H2, depth=2)) and pointing back at
+    the issue file's LOW-2 + LOW-4 resolutions.
+  - **Fix 3 (LOW-3, defensive ScrollSpy hardening).**
+    `src/components/chrome/ScrollSpy.astro` observer callback gains
+    a defensive `(level desc, top asc)` tiebreaker via a new
+    `levelFor(anchorId)` helper that reads `data-level` from the
+    matching TOC link in `tocLinks` (article anchors don't carry
+    `data-level`; the TOC `<a class="toc-link">` does, per
+    `RightRailTOC.astro` line 164). When multiple anchors intersect
+    simultaneously the higher `data-level` wins first; ties on
+    level fall back to the topmost-wins geometric sort. Today's
+    `rootMargin: '0px 0px -66% 0px'` geometry already lands on the
+    H2 in the asserted ch_4 anchor pair (the parent H1 has scrolled
+    past the upper third by the time the H2 enters), so the
+    tiebreaker is normally a no-op — its purpose is to prevent
+    regression if the rootMargin is later relaxed (e.g. `-50%` for
+    a taller reading band) and lets H1 + H2 intersect simultaneously.
+    Docstring updated to describe the new contract; architecture.md
+    §1.6 updated similarly. **Regression-test deferred:** today's
+    geometry can't deterministically produce simultaneous H1 + H2
+    intersection on real chapter content, so a regression-guard
+    test rides with whichever future task tweaks the rootMargin
+    (issue file LOW-3 records the deferral).
+  - **Fix 4 (LOW-4, spec accuracy).** Same T2 spec D1 paragraph —
+    "from ~37 (post-filter) toward ~60" → "from ~37 (post-filter)
+    toward ~60–70 (ch_4 ships at 68: 18 H1 + 50 H2)". The actual
+    count was within the spec's "~" qualifier already; this is
+    documentation-accuracy only.
+  - **Fix 5 (SHIP-advisory hardening).** `scripts/functional-tests.py`
+    line 628 — `driver.execute_script(f"window.scrollTo(0,
+    {case.scroll});")` (f-string interpolation) →
+    `driver.execute_script("window.scrollTo(0, arguments[0]);",
+    case.scroll)` (Selenium positional-argument channel). Selenium
+    serialises the bound argument as JSON rather than concatenating
+    it into the script string, so even if a future contributor
+    removed the line-257 `int()` cast at parse time the value still
+    couldn't carry a JS-injection payload. Inline comment cites the
+    cycle-2 hardening + the existing parse-time guard. All four
+    `case.scroll`-using cases (`right-rail-scroll-spy-on-h2`,
+    `right-rail-sticky-after-scroll-ch4`,
+    `left-rail-sticky-after-scroll-ch4`, the home-card pre-scroll
+    cases) re-pass.
+  **Files updated:**
+  - `design_docs/architecture.md` (§1.6 paragraph rewritten — Fix 1
+    + Fix 3 docstring mirror).
+  - `design_docs/milestones/m_ux_review/tasks/T2_right_rail_toc_hierarchy.md`
+    (D1 paragraph amended + cycle-2 amendment blockquote — Fix 2 +
+    Fix 4).
+  - `src/components/chrome/ScrollSpy.astro` (docstring lines 89–105
+    rewritten + new `levelFor(anchorId)` helper + observer-callback
+    sort comparator — Fix 3).
+  - `scripts/functional-tests.py` (call-site at line 628 +
+    cycle-2 inline comment — Fix 5).
+  - `design_docs/milestones/m_ux_review/issues/T2_issue.md` (preamble
+    status updated; four LOW sections gain "Resolution (cycle 2)"
+    paragraphs; security advisory flipped to RESOLVED; issue-log
+    table flipped to RESOLVED; new "Cycle 2 (2026-04-27) — closure
+    pass" subsection appended after the security verdict).
+  **ACs satisfied:** None new — T2's eight ACs all stayed PASS in
+  cycle 1. Cycle 2 closes the four carried LOW findings + the
+  SHIP-advisory only.
+  **Case/assertion count delta:** **none — stays at 44 cases / 84
+  assertions.** Fix 3's regression-guard test was deferred (today's
+  rootMargin geometry can't deterministically produce simultaneous
+  H1 + H2 intersection on real chapter content); the existing
+  AC4 case `right-rail-scroll-spy-on-h2` continues to provide
+  forward coverage that level=2 wins on the established geometry.
+  **Deviations from spec:** None. Cycle-2 scope was user-authorised
+  doc/hardening polish on top of an already-passing T2.
+  **Verification:** `npm run build` exits 0 with **40 prerendered
+  pages** (no route delta); `.venv/bin/python scripts/functional-
+  tests.py --config scripts/functional-tests.json --base-url
+  http://localhost:4321` exits 0 with **44/44 cases / 84/84
+  assertions** passing in 20.5s; `.venv/bin/python
+  scripts/smoke-screenshots.py --config scripts/smoke-routes.json
+  --base-url http://localhost:4321` captures **31 screenshots
+  (3,174,398 bytes total)** in 15.3s — visual-hierarchy split
+  unchanged from cycle 1 (cycle-2 fixes are doc / observer-tiebreaker
+  / parameter-passing only, no CSS / DOM-shape change). T2 stays
+  `✅ done 2026-04-27`; cycle 2 is closure-only — no status-surface
+  re-flip needed (case/assertion count in
+  `m_ux_review/README.md` no-regression bullet stays at 44/84).
+  Dep audit: skipped — no manifest changes.
+- **Added / Changed** **M-UX-REVIEW T2 — Right-rail TOC H1/H2 hierarchy
+  (closes F4 HIGH).** Reverses the M-UX b29d409 frontmatter-side filter
+  that dropped subsection TOC entries. The right-rail TOC now renders
+  every H1 + H2 entry the lectures frontmatter declares (H3+ stays
+  excluded at the build-script boundary), with each `<li>` carrying
+  `data-level="1"` (top-level numbered, e.g. "4.1 The List ADT") or
+  `data-level="2"` (H2 subsection, e.g. "The contract: operations").
+  CSS rules in `chrome.css` paint level-1 bold + flush-left + 0.5rem
+  top-margin (`:first-child` suppressed), level-2 indented 1rem +
+  muted via `--mux-fg-subtle` — visually-obvious split confirmed at
+  1280×800 + 2560×1080 in the smoke screenshots. ScrollSpy unchanged
+  (verification only, D3): the existing topmost-intersecting sort
+  naturally lands on the most-specific entry — when both an H1 and
+  its nested H2 qualify, the H2 wins because the parent H1 has
+  scrolled out of the rootMargin band by the time the H2 enters it.
+  Functional-test harness gains a new `computed-style` assertion
+  type (returns `getComputedStyle(el)[prop]`, parses `<number><unit>`
+  to float for numeric ops, falls back to string equality) so AC2
+  (`font-weight ≥ 600`) and AC3 (`padding-left ≥ 16px`) can be
+  asserted directly — `rect`/`getBoundingClientRect` reads box
+  geometry only and cannot read these computed properties. Architecture.md
+  §1.6 amended: forward-work parenthetical dropped, new contract
+  documented (H1 + H2 with `data-level`, ScrollSpy prefers most-
+  specific level naturally, H3+ excluded at build boundary). T2
+  spec/issue/Done-when surfaces flipped in lockstep with the closing
+  task.
+  **Files updated:**
+  - `scripts/build-content.mjs` — `extractSections()` now captures
+    heading depth; drops H3+ entries; assigns `level: 1` for titles
+    matching `^\d+\.\d+\s` and `level: 2` for the rest. The
+    pandoc-anchor regex stays strict (does NOT loosen to allow
+    `{#anchor .unnumbered}` so chapters with heavy `\subsection*`
+    use don't balloon past the spec's ~80 KB envelope — out of
+    scope for T2). `injectFrontmatter()` writes `level: <n>` per
+    entry.
+  - `src/content.config.ts` — `sectionSchema` extended with
+    `level: z.union([z.literal(1), z.literal(2)])`.
+  - `src/components/chrome/RightRailTOC.astro` — drops the
+    `^\d+\.\d+\s` runtime filter (b29d409); renders every entry
+    in `ord`-sorted order; each `<li>` + nested `<a>` carries
+    `data-level={1|2}`; Section interface updated.
+  - `src/components/chrome/ScrollSpy.astro` — docstring update
+    only (no code change). The `setCurrent()` guard already
+    handles the H2-restored case correctly via the existing
+    geometric topmost-intersecting sort.
+  - `src/styles/chrome.css` — three new rules under
+    `[data-slot="right-rail"] li[data-level="1|2"]` for the H1/H2
+    split + a `:first-child` suppression for the leading H1
+    margin. H2 colour override targets the inner `.toc-link` so
+    specificity beats the existing base rule without `!important`.
+  - `scripts/functional-tests.py` — new `computed-style` runner
+    + helper `_parse_css_numeric()` (handles `'16px'` / `'600'`
+    / fallback to string equality); module docstring documents
+    the new assertion type. The `getComputedStyle()` JS read is
+    one-shot per assertion (no DOM walk).
+  - `scripts/functional-tests.json` — 4 new T2 cases:
+    `right-rail-toc-h1-h2-mix` (count both levels ≥ 4 on
+    `/lectures/ch_4/`), `right-rail-toc-h1-bold` (computed
+    `font-weight ≥ 600` on `data-level="1"`),
+    `right-rail-toc-h2-indented` (computed `padding-left > 0` AND
+    `≥ 16px` on `data-level="2"`),
+    `right-rail-scroll-spy-on-h2` (pre_js scrolls to ch_4 H2
+    anchor `ch_4-the-contract-operations`, asserts exactly one
+    `[data-current][data-level="2"]` and its `data-anchor`
+    matches). The 2 existing `rhs-toc-top-level-only-ch{1,4}`
+    cases are RENAMED to `rhs-toc-h1-numbered-ch{1,4}` and the
+    selector tightens from `.right-rail-toc a.toc-link .toc-label`
+    to `.right-rail-toc li[data-level="1"] a.toc-link .toc-label`
+    so the `^\d+\.\d+\s` text-pattern still holds under the T2
+    contract.
+  - `design_docs/architecture.md` §1.6 — old "M-UX b29d409 filter"
+    paragraph replaced with the T2 contract (H1 + H2 `data-level`,
+    ScrollSpy most-specific-pick, byte-size delta cited).
+    Forward-work parenthetical dropped (T2 closes the work it
+    flagged).
+  - `design_docs/milestones/m_ux_review/tasks/T2_right_rail_toc_hierarchy.md`
+    — `**Status:** todo` → `✅ done 2026-04-27`.
+  - `design_docs/milestones/m_ux_review/tasks/README.md` — T2 row
+    flipped to `✅ done 2026-04-27`.
+  - `design_docs/milestones/m_ux_review/README.md` — preamble
+    status line updated to "T1 + T2 closed 2026-04-27; T3–T6
+    outstanding"; F4 `Done when` checkbox flipped to `[x]`; T2
+    task-table row flipped to done; no-regression bullet's
+    case/assertion count bumped from 40 / 77 to **44 / 84** with
+    a description of T2's additions + the rename + the
+    `data-interactive-only` carrier-count delta (37 → 87 on
+    ch_4) + the same-DOM justification.
+  - `design_docs/milestones/README.md` — top-level milestone
+    table M-UX-REVIEW row updated to "T1 + T2 closed 2026-04-27;
+    T3–T6 outstanding".
+  **ACs satisfied:** AC1 (`right-rail-toc-h1-h2-mix`); AC2
+  (`right-rail-toc-h1-bold`); AC3 (`right-rail-toc-h2-indented`);
+  AC4 (`right-rail-scroll-spy-on-h2`); AC5 (M-UX T9 AC4
+  sticky-rail still passes — `right-rail-sticky-after-scroll-ch4`
+  green); AC6 (M3 events `cs300:read-status-changed` + `cs300:toc-
+  read-status-painted` unchanged — H1 entries still carry
+  `data-section-id` / `data-anchor` / the `data-read-indicator`
+  span gated by `data-interactive-only`); AC7 (architecture.md
+  §1.6 mentions `data-level` and the H1/H2 split; supersedes the
+  b29d409 top-level-only rule); AC8 (byte-size delta on
+  `dist/client/lectures/ch_4/index.html`: **555,586 → 580,627
+  bytes (+25,041 / +25 KB)**, well below the spec's expected
+  ~80 KB upper bound — see "deviations" below).
+  **Deviations from spec:**
+  - **Byte-size delta lower than the spec's ~80 KB estimate.**
+    Spec D4 expected ~80 KB return of the b29d409 117 KB savings;
+    actual is +25 KB. Reason: ch_4's pre-T2 frontmatter regex
+    already missed unnumbered (`\subsection*` → `{#anchor
+    .unnumbered}`) headers, so the frontmatter held 68 entries
+    rather than the ~110 the spec author estimated. T2 doesn't
+    re-introduce the missed entries (out of scope — would
+    balloon ch_5's rail from 9 to 50 entries and undo the
+    b29d409 savings disproportionately). The +25 KB delta sits
+    well inside the M-UX +756 KB cumulative bound; §UX-4 trigger
+    not tripped.
+  - **`--mux-text-muted` does not exist; used `--mux-fg-subtle`
+    instead.** Spec D2 mentions `var(--mux-text-muted) (or new
+    --mux-toc-h2-color token)`. `--mux-fg-subtle` (#6b7280)
+    already exists in `chrome.css` and is one shade lighter than
+    `--mux-fg-muted` (#4b5563) — gives the H1/H2 differentiation
+    the spec wants without a new token.
+  - **Functional-test harness extension: new `computed-style`
+    assertion type.** Spec D5 explicitly authorises the
+    extension ("computed `font-weight` may need extending to a
+    new assertion type"). Distinct from `rect` because
+    `getBoundingClientRect` reads box geometry only.
+  **Verification:** `npm run build` exits 0 with **40 prerendered
+  pages** (no route delta); `.venv/bin/python scripts/functional-
+  tests.py --config scripts/functional-tests.json --base-url
+  http://localhost:4321` exits 0 with **44 / 44 cases / 84 / 84
+  assertions** passing (was 40 / 77 at T1 close; +4 cases / +7
+  assertions for T2); `.venv/bin/python scripts/smoke-screenshots.py
+  --config scripts/smoke-routes.json` captures **31 screenshots
+  (3,174,398 bytes total)** — `lectures-ch4-1280x800.png` and
+  `lectures-ch4-2560x1080.png` show the H1 bold / H2 indent split
+  visually. `dist/client/lectures/ch_4/index.html` byte size:
+  555,586 (T1 baseline) → 580,627 (post-T2). `data-interactive-
+  only` carrier count on ch_4: 37 → 87 (each restored H2 entry
+  adds one read-indicator span; same DOM shape, same gating
+  contract).
+  **Status surfaces (lockstep at T2 close):** T2 spec
+  `**Status:** todo` → `✅ done 2026-04-27`; `tasks/README.md`
+  T2 row → `✅ done 2026-04-27`; `m_ux_review/README.md` task
+  table T2 row → `✅ done 2026-04-27`; F4 `Done when` checkbox
+  → `[x]` with citation parenthetical (T2 issue file);
+  no-regression bullet's case/assertion count bumped 40/77 →
+  44/84; preamble status updated; top-level
+  `design_docs/milestones/README.md` M-UX-REVIEW row updated.
+  Issue file (`m_ux_review/issues/T2_issue.md`) is the auditor's
+  surface — Builder does not create it.
+  Dep audit: skipped --- no manifest changes.
+- **Changed** **M-UX-REVIEW T1 — cycle-3 closure pass (closes all four
+  carried LOW findings + the cycle-2 SHIP-advisory origin check in a
+  single coherent change set).** User authorised cycle-3 scope expansion
+  on top of the cycle-2 ✅ FUNCTIONALLY CLEAN verdict to close the
+  carried items (4 LOW + 1 advisory) before T1 commits. Six fixes
+  landed: (1) harness gains an optional per-test `pre_js: string` hook
+  that runs after `driver.get(url)` / `readyState complete` and before
+  any assertion (re-waits for `readyState complete` after the hook to
+  cover scripts that call `location.reload()` for re-firing inline
+  readers against seeded localStorage); (2) `home-continue-reading-empty-by-default`
+  uses `pre_js: removeItem + reload`, ENT order-dependence (ISS-03);
+  (3) `home-continue-reading-populated` uses `pre_js: setItem({path: '/DSA/lectures/ch_4/', ...}) + reload`,
+  ENT order-dependence (ISS-04); (4) populated-test href regex tightens
+  from broad `/DSA/(lectures|notes|practice)/ch_\d+/?$` to spec-exact
+  `/DSA/lectures/ch_4/?$` now that the seed is deterministic (ISS-05);
+  (5) six new mirror cases cover empty + populated states on each of
+  the three landing pages (`/DSA/lectures/`, `/DSA/notes/`, `/DSA/practice/`)
+  — every landing surface now has functional-test coverage on both
+  states (ISS-06); (6) `ContinueReading.astro` reader gains an origin
+  check (`new URL(entry.path, location.origin).origin !== location.origin`
+  → return) wrapped in `try/catch` for parse-throwing inputs, before
+  assigning `link.href` — closes the cycle-2 security advisory at line
+  136. New functional-test case `home-continue-reading-rejects-javascript-uri`
+  seeds `{path: 'javascript:alert(1)', ...}` and asserts the origin
+  check rejects it (resume-link count = 0). The two flag-only cycle-2
+  advisories (`Base.astro:480-483` SSR-baked title; `ContinueReading.astro:127`
+  unread `scrollY`) re-confirmed no-action. Functional-test suite rises
+  from 33 cases / 63 assertions → **40 cases / 77 assertions** all
+  green; build still 40 prerendered pages; smoke-screenshots unchanged
+  at 31 files / 3,140,412 bytes (no visible UX change in cycle 3).
+  **Files updated:**
+  - `scripts/functional-tests.py` — module docstring documents
+    `pre_js`; `TestCase` dataclass gains `pre_js: str | None = None`;
+    `load_test_cases` validates the field is a string when present;
+    `run_test_case` calls `driver.execute_script(pre_js)` after
+    navigate-complete and re-waits for `readyState complete` (covers
+    `location.reload()` callers).
+  - `scripts/functional-tests.json` — `home-continue-reading-empty-by-default`
+    + `home-continue-reading-populated` updated to use `pre_js`;
+    populated-test regex tightened to `/DSA/lectures/ch_4/?$`; six new
+    mirror cases (`landing-continue-reading-{empty,populated}-{lectures,notes,practice}`);
+    one new security regression-guard case (`home-continue-reading-rejects-javascript-uri`).
+  - `src/components/home/ContinueReading.astro` — reader's inline
+    `<script>` gains origin-check guard (lines ~128–135) before the
+    `createElement` calls. Inline comment cites the cycle-2 security
+    advisory + threat-model rationale (localStorage is user-writable
+    from any same-origin tab so the writer-side regex is not a
+    security boundary).
+  - `design_docs/milestones/m_ux_review/issues/T1_issue.md` — flips
+    the four LOW findings + the security advisory to `RESOLVED — cycle 3`
+    in-place; adds a Cycle-3 subsection to the Auditor's verdict
+    block; preamble status line indicates cycle 3 closed all open
+    items; issue-log table gains MUX-RV-T1-SEC-01 row for the
+    advisory closure.
+  - `design_docs/milestones/m_ux_review/README.md` — no-regression
+    bullet's case/assertion count bumped from 33 / 63 → 40 / 77 with
+    a description of the cycle-3 additions.
+  **ACs satisfied:** no new ACs — all cycle-3 work is carry-over
+  closure of cycle-2 audit findings. The cycle-2 ✅ FUNCTIONALLY
+  CLEAN verdict on AC1–AC10 stands; cycle 3 hardens the test harness
+  + the reader's threat-model boundary without changing any visible
+  UX or any AC's assertion shape.
+  **Verification:** `npm run build` exits 0 with 40 prerendered
+  pages; `.venv/bin/python scripts/functional-tests.py --config
+  scripts/functional-tests.json --base-url http://localhost:4321`
+  exits 0 with 40/40 cases / 77/77 assertions passing (was 33 / 63
+  at cycle 2; +7 cases, +14 assertions for cycle 3); `.venv/bin/python
+  scripts/smoke-screenshots.py …` captures 31 screenshots / 3,140,412
+  bytes (matches cycle 2). Manual `javascript:` smoke is covered by
+  the new functional-test case.
+  **Status surfaces (re-verified lockstep at cycle-3 close):** T1
+  spec stays `✅ done 2026-04-27`; `tasks/README.md` T1 row stays
+  `✅ done 2026-04-27`; `m_ux_review/README.md` task table T1 row
+  stays `✅ done 2026-04-27`; F1/F2/F3/no-regression `Done when`
+  checkboxes stay `[x]`; top-level `design_docs/milestones/README.md`
+  row stays `active (T1 closed 2026-04-27; T2–T6 outstanding)`.
+  Cycle 3 made no commit; surfaces are ready for the user's commit
+  decision after the cycle-3 audit re-grade.
+  Dep audit: skipped --- no manifest changes.
+- **Added / Changed** **M-UX-REVIEW T1 — Home surface: card actions,
+  Required label, continue-reading strip (closes F1 HIGH + F2 MED + F3
+  MED).** First task close in the M-UX-REVIEW milestone. F1: chapter
+  cards now telegraph their three jobs via a primary + two outline
+  `.ch-action` buttons (filled accent for the primary collection,
+  transparent outline for the other two), with a per-chapter blurb
+  in `<p class="ch-subtitle">` below the H3 and a SSR-rendered
+  `data-slot="ch-progress"` carrier (`0 / 0 sections` + 0%-fill bar)
+  that the M3/M5 read-status island can light up later via the
+  existing `cs300:read-status-changed` event. F2: Required / Optional
+  H2s drop the all-caps tracked 12px subtext treatment in favour of
+  body-weight 1.5rem section headers + a real subtitle ("6 graded
+  chapters, ~25 hours of reading" for Required); ~1.25rem above each
+  group so sections feel like sections. F3: localStorage-backed
+  Continue Reading strip — a tiny inline writer in `Base.astro`
+  records `{path, title, scrollY, ts}` to `localStorage["cs300:last-visit"]`
+  on every chapter route (writer is structurally restricted to chapter
+  routes because Base.astro is the only consumer that renders chapter
+  paths; a regex defensive guard inside the writer makes the contract
+  explicit), and a new `<aside data-slot="continue-reading">` reader
+  island in `src/components/home/ContinueReading.astro` populates a
+  resume card on the four landing surfaces if the key is present, or
+  collapses via CSS `:empty { display: none }` if absent. M5
+  supersedes when the SQLite-backed `recently-read` slot lights up.
+  **Files added:**
+  - `src/components/home/ContinueReading.astro` — reader island
+    (single inline `<script>`, no framework, one DOM mutation per
+    page-load) for the localStorage primitive.
+  **Files updated:**
+  - `src/components/chrome/ChapterCard.astro` — three `.ch-action`
+    buttons (primary + 2 outline) with `is-current-collection` no
+    longer emitted; `<p class="ch-subtitle">` rendering the chapter
+    blurb; `<div class="ch-progress" data-slot="ch-progress" …>`
+    SSR carrier; index-page primary defaults to `lectures`.
+  - `src/layouts/Base.astro` — adds the inline localStorage writer
+    (`cs300:last-visit`) with debounced scroll listener (≤4 writes/sec).
+  - `src/pages/index.astro`, `src/pages/{lectures,notes,practice}/index.astro`
+    — mount `<ContinueReading />` above the Required section; flip
+    Required/Optional H2 styling (drop tracked uppercase, body-weight
+    + 1.5rem); subtitle text becomes "6 graded chapters, ~25 hours
+    of reading" / "Depth chapters; outside the graded path." (the
+    Optional one stays but bumps to body weight per spec D2).
+  - `scripts/functional-tests.json` — adds 9 new T1 cases covering
+    AC1–AC10 (`home-card-action-classes`, `home-card-progress-carrier`,
+    `home-card-subtitle-blurb`, `home-required-heading`,
+    `home-required-subtitle`, `landing-required-heading-{lectures,
+    notes,practice}`, `home-continue-reading-empty-by-default`,
+    `home-continue-reading-populated`); updates the three existing
+    `landing-page-highlight-*` cases to assert against the new
+    `.ch-action--primary` class instead of the (no longer emitted)
+    `.is-current-collection` class — preserves the T9 AC11 contract
+    "highlight class still on the right collection link" verbatim.
+    Test ordering: empty-by-default test sits first so it runs
+    before any chapter-route-visiting case has had a chance to
+    populate localStorage; populated test runs last so it inherits
+    the localStorage state seeded by the existing chapter-route
+    cases.
+  - `design_docs/milestones/m_ux_review/tasks/T1_home_surface.md` —
+    Status flips `todo` → `✅ done 2026-04-27`.
+  - `design_docs/milestones/m_ux_review/tasks/README.md` — T1 row
+    flips `todo` → `✅ done 2026-04-27`.
+  - `design_docs/milestones/m_ux_review/README.md` — T1 row flips;
+    F1 / F2 / F3 + no-regression `Done when` checkboxes flip to
+    `[x]` with citation parentheticals; milestone status flips
+    `todo` → `active (T1 closed 2026-04-27; T2–T6 outstanding)`.
+  - `design_docs/milestones/README.md` — M-UX-REVIEW row mirrors
+    the milestone-level `active` flip.
+  **ACs satisfied:** AC1 (`.ch-action--primary`/`.ch-action--outline`
+  counts on every card), AC2 (`data-slot="ch-progress"` carrier with
+  `data-interactive-only` + `data-chapter-id`), AC3 (`.ch-subtitle`
+  text matches per-chapter blurb — 3 spot-check assertions for ch_1,
+  ch_4, ch_10), AC4 (`<h2>` text "Required" / "Optional" on all four
+  landing surfaces), AC5 (Required-group subtitle matches `/graded
+  chapters/`), AC6 (`<aside data-slot="continue-reading">` empty by
+  default — the resume-link count == 0 with a fresh user-data-dir),
+  AC7 (resume card populates after a chapter visit and links back
+  via `/DSA/(lectures|notes|practice)/ch_\\d+/?$`), AC8 (T9 AC10/
+  AC11/AC12 still pass — landing pages × 3 each render 12 chapter
+  cards, highlight class still on the right collection link via the
+  renamed `.ch-action--primary`, build still produces 40
+  prerendered pages), AC9 (`design_docs/architecture.md` §1
+  paragraph mentions `cs300:last-visit` + localStorage — landed at
+  milestone breakout 2026-04-27 and verified accurate to the
+  shipped implementation), AC10 (`scripts/chapters.json` carries a
+  ≤80-char `subtitle` field for every chapter id — 12/12 entries,
+  validated at build time).
+  **Verification:** `npm run build` exits 0 with 40 prerendered
+  pages; `python scripts/functional-tests.py` exits 0 with 32/32
+  test cases / 61/61 assertions passing (was 23/23 / 34/34 before
+  T1); `python scripts/smoke-screenshots.py` captures 31
+  screenshots across the smoke route matrix; manual smoke confirms
+  the localStorage primitive — visit `/DSA/lectures/ch_4/`, return
+  to `/`, the resume card renders and its href points back; clear
+  localStorage and reload, the strip disappears via `:empty`.
+  **Deviations from spec:** D5 was a no-op — `scripts/chapters.json`
+  already carried a `subtitle` field for every chapter id from M-UX
+  T2 (the spec D5 wording assumed the field was new). The existing
+  values are ≤80 chars and serve as the per-chapter blurb AC3 + AC10
+  expect; no changes needed. The H3 visible text and the new
+  `<p class="ch-subtitle">` line both render the chapter blurb (the
+  same text source) — minor visual tautology accepted because the
+  spec D1 code example explicitly shows the H3 = blurb topic and
+  `.ch-subtitle` = a per-chapter blurb from chapters.json, and the
+  cleanest reading that satisfies AC3 ("regex matches each chapter's
+  known subtitle") with the existing data shape is to reuse the
+  same field. Future task can split the H3 source from the
+  `.ch-subtitle` source by adding a new chapters.json field, but
+  that exceeds T1 scope.
+  Dep audit: skipped --- no manifest changes.
+- **Changed** **M-UX-REVIEW T1 — cycle-2 re-audit fixes (resolves
+  MUX-RV-T1-ISS-01 MEDIUM + MUX-RV-T1-ISS-02 MEDIUM from the cycle-1
+  audit).** The cycle-1 ChapterCard rendered the chapter blurb as
+  both the visible H3 and the new `<p class="ch-subtitle">` line —
+  printing the same string twice on every card. The Auditor flagged
+  this as a visible UX regression undermining F1's "clarify the
+  card's three jobs" intent. User picked Option A: revert the H3
+  visible text to `Chapter ${n}` (matching the spec D1 example
+  pattern verbatim), keep `.ch-subtitle` carrying the blurb. The
+  visible "Chapter N" is wrapped in `<span class="ch-label">` so the
+  new functional-test regression-guard can target the visible-only
+  chunk (Selenium's `WebElement.text` includes
+  `position:absolute; clip:rect(0,0,0,0)` "visually-hidden" content,
+  so an H3-level assertion would see the SR-only blurb suffix and
+  mismatch). Visually-hidden em-dash join (`Chapter N — <blurb>`)
+  preserved for SR users — slight enhancement over cycle-1 since
+  SR users still hear the topic alongside the chapter label.
+  Milestone-README `Done when` parentheticals refreshed: the four
+  bullets (F1 line 32, F2 line 33, F3 line 34, no-regression line
+  44) drop the cycle-1 "to be created at first audit" placeholder
+  and cite simply `(T1 issue file — AC…)` matching the
+  M-UX-precedent. The no-regression bullet's case/assertion count
+  also bumps to 33 cases / 63 assertions to match the post-cycle-2
+  functional-test run.
+  **Files updated:**
+  - `src/components/chrome/ChapterCard.astro` — H3 visible text
+    reverted to `Chapter ${n}` (wrapped in `<span class="ch-label">`);
+    visually-hidden span moved to a `— <blurb>` SR-only suffix;
+    header comment + inline `.visually-hidden` CSS comment updated
+    to cite MUX-RV-T1-ISS-01 + the cycle-2 contract.
+  - `scripts/functional-tests.json` — adds new case
+    `home-card-h3-chapter-label` with two assertions (count=12 of
+    `article.chapter-card h3.chapter-card-title span.ch-label`,
+    plus anchored text-pattern `^Chapter \d+$` against each — a
+    per-chapter blurb cannot match the anchored pattern, so the
+    case fails-fast if the duplication ever returns). Suite total
+    rises from 32 cases / 61 assertions → 33 cases / 63 assertions.
+  - `design_docs/milestones/m_ux_review/README.md` — F1, F2, F3,
+    no-regression bullets updated; case/assertion count bumped.
+  - `design_docs/milestones/m_ux_review/issues/T1_issue.md` —
+    MEDIUM-1 + MEDIUM-2 sections gain a "Resolution (cycle 2)"
+    paragraph; issue-log table flips ISS-01 + ISS-02 rows from
+    OPEN → RESOLVED — cycle 2; status preamble notes cycle-2
+    Builder fixes landed and re-audit pending.
+  **Verification:** `npm run build` exits 0 with 40 prerendered
+  pages; `python scripts/functional-tests.py --config
+  scripts/functional-tests.json --base-url http://localhost:4321`
+  exits 0 with 33/33 cases / 63/63 assertions passing (was 32/32 /
+  61/61 at cycle-1 close); `python scripts/smoke-screenshots.py`
+  captures 31 screenshots — `.smoke/screenshots/index-1280x800.png`
+  + `.smoke/screenshots/{lectures,notes,practice}-landing-1280x800.png`
+  visually confirm the H3 reads "Chapter N" and the `.ch-subtitle`
+  reads the per-chapter blurb on every card across all four
+  landing surfaces (no duplication). The four LOW findings from
+  cycle-1 (LOW-1/LOW-2 ordering-dependence, LOW-3 broader regex,
+  LOW-4 only-`/DSA/` continue-reading coverage) are explicitly out
+  of scope for cycle 2 per the Auditor's accept-in-place note —
+  LOW-1/2 await a future harness pre-step hook, LOW-3/4 are
+  flag-only / optional polish.
+  **Status surfaces (re-verified lockstep at cycle-2 close):**
+  T1 spec stays `✅ done 2026-04-27`; `tasks/README.md` T1 row
+  stays `✅ done 2026-04-27`; `m_ux_review/README.md` task table T1
+  row stays `✅ done 2026-04-27`; F1/F2/F3/no-regression `Done
+  when` checkboxes stay `[x]` (atomically un-tick + re-tick happens
+  inside the same edit per Auditor recommendation, so the
+  milestone README never reflects a transient inconsistent state);
+  top-level `design_docs/milestones/README.md` row stays
+  `active (T1 closed 2026-04-27; T2–T6 outstanding)`.
+  Dep audit: skipped --- no manifest changes.
+- **Added** **M-UX-REVIEW milestone breakout from the 2026-04-27
+  [`design_docs/UI_UX_Review.pdf`](design_docs/UI_UX_Review.pdf)
+  audit (12 findings, 4 HIGH / 6 MED / 2 LOW, ~18h estimated).** Second
+  UX sidecar after M-UX, runs in parallel with the M4 upstream gate.
+  No roadmap-phasing change, no ADR rewrite (one ADR-0002 amendment
+  inline at T6); all changes contained to chrome / styles / index
+  surfaces M-UX shipped.
+  **Files added:**
+  - `design_docs/milestones/m_ux_review/README.md` — milestone spec
+    (goal, 12-bullet `Done when` checklist, 6-task table, status
+    surfaces). Defers F12 (accent semantic split) to
+    `nice_to_have.md` §UX-5 with explicit M5 trigger.
+  - `design_docs/milestones/m_ux_review/tasks/README.md` — task
+    index with ordering note (T1 → T2 → T3 → T4 critical chrome path;
+    T5 + T6 parallel) and conventions (functional-test harness as
+    the gate, status-surface lockstep, code-task non-inferential
+    verification per CLAUDE.md).
+  - `design_docs/milestones/m_ux_review/tasks/T1_home_surface.md`
+    — F1 (HIGH, ~2h) chapter-card action buttons + subtitle blurb +
+    SSR section-progress carrier; F2 (MED, ~30m) Required / Optional
+    H2-weight section headers; F3 (MED, ~1h) localStorage-backed
+    "Continue reading" strip on the four landing surfaces.
+  - `design_docs/milestones/m_ux_review/tasks/T2_right_rail_toc_hierarchy.md`
+    — F4 (HIGH, ~3h) reverses the M-UX b29d409 top-level-only TOC
+    filter; emits `data-level="1"` / `data-level="2"`; H1 bold + H2
+    indented muted; scroll-spy prefers most-specific intersecting
+    level.
+  - `design_docs/milestones/m_ux_review/tasks/T3_chapter_chrome.md`
+    — F5 (HIGH, ~2h) breadcrumb split (collection pills hoist out
+    to a sibling segmented control under the H1); F6 (MED, ~30m) H1
+    promotes from coordinates ("Chapter 4 — Lectures") to topic
+    ("Lists, stacks, queues, deques") with eyebrow caption above;
+    F8 (LOW, ~20m) LeftRail subtitle truncation with `title=`
+    tooltip + current-chapter exception.
+  - `design_docs/milestones/m_ux_review/tasks/T4_mobile_reduction.md`
+    — F9 (HIGH, ~3h) hides breadcrumb at <768px; collection tabs
+    + "On this page" `<details>` move below the H1; drawer trigger
+    extracts to a Base.astro sibling so it survives the breadcrumb
+    hide; F10 (MED, ~30m) drawer-trigger label "Chapters" + chevron
+    state animation.
+  - `design_docs/milestones/m_ux_review/tasks/T5_code_block_polish.md`
+    — F7 (MED, ~1h) `~8px` outer margin + fixed `C++` language tag
+    (deferring per-block detection to architecture.md §6 forward-work
+    item) + Copy button island (single event listener, `data-state`
+    swap, no framework runtime).
+  - `design_docs/milestones/m_ux_review/tasks/T6_typography.md` — F11
+    (MED, ~1h + ADR amendment) self-hosted woff2 pairing —
+    Source Sans 3 (or Inter — Builder's call) for body, JetBrains
+    Mono for code, declared via `--mux-font-body` /
+    `--mux-font-mono` CSS custom properties so future dark-mode /
+    theme work is a variable swap. ADR-0002 typography deferral
+    flips to "resolved 2026-04-27 in M-UX-REVIEW T6" inline.
+  **Files updated:**
+  - `design_docs/milestones/README.md` — adds M-UX-REVIEW row;
+    paragraph below the index now names both UX sidecars and their
+    parallel-with-M4 posture.
+  - `design_docs/architecture.md` §1 page-chrome subsection —
+    adds the "Continue-reading strip (client-side localStorage
+    primitive, M-UX-REVIEW T1)" paragraph documenting the
+    `cs300:last-visit` key, write/read islands, M5 supersession
+    contract, and strict browser-locality. Right-rail TOC filter
+    paragraph gains a forward-work parenthetical pointing at
+    M-UX-REVIEW T2 (the b29d409 filter rule will reverse).
+  - `design_docs/nice_to_have.md` — adds `## §UX-5 — \`--mux-accent\`
+    semantic split (current vs achievement)` (F12 deferral) with
+    explicit M5 trigger and cost-of-promotion estimate; reasoning
+    on why pre-M5 the split has no contrast surface to express
+    against.
+  **ACs satisfied:** none yet (milestone is `todo`); breakout itself
+  is the deliverable. Each task spec ships its own AC table for
+  the per-task audit gate. Status surfaces (this CHANGELOG, the
+  milestones index, the milestone README, the task READMEs) all
+  flip together at M-UX-REVIEW kickoff per CLAUDE.md status-surface
+  non-negotiable.
+  **Deviations from spec:** none — milestone follows the user's
+  explicit direction (6 grouped tasks; architecture.md note for
+  F3's localStorage primitive; ADR-0002 typography amendment
+  inline at T6; F12 deferred to nice_to_have).
+  Dep audit: skipped --- no manifest changes (planning files only).
+- **Decided** **F12 (accent semantic split) defers to
+  `nice_to_have.md` §UX-5, not in-scope for M-UX-REVIEW.** Reasoning:
+  the split's value comes from contrasting *current* (chrome-state)
+  against *achievement* (event signals — completed, due, recently
+  changed). Pre-M5, the only event signal is binary read-status,
+  already painted in the existing completion indicators. Without
+  M5's review-due / FSRS queue surface, the split is a refactor
+  with no visual-design payoff. Trigger = M5 ships AND surfaces
+  review-due / streak / recency signals in the chrome. Per the
+  review's own §05 ordering note: "Best done after M5 lights up
+  completion."
+- **Decided** **ADR-0002 typography amendment lands inline at
+  M-UX-REVIEW T6** (not a separate ADR-prep task). Amendment is
+  one-section flip from "deferred" to the chosen pairing (Source
+  Sans 3 / Inter + JetBrains Mono); standalone ADR-prep task is
+  procedural overhead.
+- **Deferred** **`--mux-accent` semantic split (UI-review F12, LOW).**
+  See above. Logged in `design_docs/nice_to_have.md` §UX-5 with
+  M5-completion trigger; not adopted into a task.
+
+---
+
 ## 2026-04-25
 
 - **Added** **ch_13 OCW augmentation pass --- extra sorts and list

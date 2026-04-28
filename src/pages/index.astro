@@ -27,17 +27,33 @@
 // above mentions `/DSA/` only descriptively — reviewer-eyes pass per
 // DA2-E / DA3-A.
 //
+// M-UX-REVIEW T1 update (2026-04-27):
+//   - F2: Required / Optional headings drop the all-caps tracked
+//     12px subtext treatment + body-weight subtitle ("6 graded
+//     chapters, ~25 hours of reading"). The `<h2>` was already in
+//     place from M-UX T5; T1 changes the visual register only.
+//   - F3: Mounts the `<ContinueReading />` island at the top of the
+//     index, above the dashboard slots + Required section. The
+//     island renders empty by default (`:empty { display: none }`)
+//     and populates from localStorage if the user has visited a
+//     chapter on this device before. M5 supersedes this primitive
+//     when the SQLite-backed `recently-read` slot lights up.
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T5_index_dashboard.md
+//   - design_docs/milestones/m_ux_review/tasks/T1_home_surface.md
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
 //   - src/layouts/HomeLayout.astro
 //   - src/components/chrome/ChapterCard.astro
 //   - src/components/chrome/DashboardSlot.astro
+//   - src/components/home/ContinueReading.astro (T1 D3 — localStorage
+//     resume strip)
 //   - scripts/chapters.json (chapter manifest; same source of truth
 //     consumed by `LeftRail.astro` so the partition stays in sync)
 import HomeLayout from '../layouts/HomeLayout.astro';
 import ChapterCard from '../components/chrome/ChapterCard.astro';
 import DashboardSlot from '../components/chrome/DashboardSlot.astro';
+import ContinueReading from '../components/home/ContinueReading.astro';
 import chapters from '../../scripts/chapters.json';
 
 // Sort by chapter number, then partition. Mirrors `LeftRail.astro`
@@ -56,6 +72,8 @@ const optional = sorted.filter((c) => !c.required);
     </p>
   </header>
 
+  <ContinueReading />
+
   <DashboardSlot
     heading="Recently read"
     emptyState="No recent activity yet."
@@ -65,9 +83,9 @@ const optional = sorted.filter((c) => !c.required);
     emptyState="Nothing due — start reading or generate questions."
   />
 
-  <section class="chapter-group" aria-labelledby="chapters-required-heading">
-    <h2 id="chapters-required-heading" class="chapter-group-heading">Required</h2>
-    <p class="chapter-group-blurb">SNHU CS 300 syllabus.</p>
+  <section class="ch-group chapter-group" aria-labelledby="chapters-required-heading">
+    <h2 id="chapters-required-heading" class="ch-group-heading chapter-group-heading">Required</h2>
+    <p class="ch-group-sub chapter-group-blurb">6 graded chapters, ~25 hours of reading.</p>
     <div class="chapter-grid">
       {required.map((c) => (
         <ChapterCard
@@ -81,9 +99,9 @@ const optional = sorted.filter((c) => !c.required);
     </div>
   </section>
 
-  <section class="chapter-group" aria-labelledby="chapters-optional-heading">
-    <h2 id="chapters-optional-heading" class="chapter-group-heading">Optional</h2>
-    <p class="chapter-group-blurb">Depth chapters; outside the graded path.</p>
+  <section class="ch-group chapter-group" aria-labelledby="chapters-optional-heading">
+    <h2 id="chapters-optional-heading" class="ch-group-heading chapter-group-heading">Optional</h2>
+    <p class="ch-group-sub chapter-group-blurb">Depth chapters; outside the graded path.</p>
     <div class="chapter-grid">
       {optional.map((c) => (
         <ChapterCard
@@ -124,23 +142,43 @@ const optional = sorted.filter((c) => !c.required);
     font-size: 0.95rem;
   }
 
+  /* M-UX-REVIEW T1 D2 — Required / Optional reads as a section
+     header, not 12px tracked subtext. The `.ch-group` class is the
+     T1 spec's contract name; `.chapter-group` is preserved as a
+     legacy alias so any existing consumer / cycle-1 selector still
+     finds it. ~1.25rem above each group via `margin-top` so sections
+     feel like sections (was ~0.5rem implicit from `chapter-group`'s
+     bottom margin only). */
+  .ch-group,
   .chapter-group {
-    margin: 0 0 var(--mux-space-8) 0;
+    margin: var(--mux-space-6) 0 var(--mux-space-8) 0;
+  }
+  /* First group sits flush against the strip / dashboard slots above
+     — no extra top margin needed for the first section. */
+  .ch-group:first-of-type,
+  .chapter-group:first-of-type {
+    margin-top: var(--mux-space-4);
   }
 
+  .ch-group-heading,
   .chapter-group-heading {
+    /* T1 D2 — drop the all-caps tracked treatment; H2 reads as a
+       section header at body weight + 1.5rem. */
     margin: 0 0 var(--mux-space-1) 0;
-    font-size: 0.75rem;
+    font-size: 1.5rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--mux-fg-subtle);
+    line-height: 1.25;
+    color: var(--mux-fg);
   }
 
+  .ch-group-sub,
   .chapter-group-blurb {
+    /* T1 D2 — body-weight subtitle (was 12px). The Required group's
+       text "6 graded chapters, ~25 hours of reading" replaces the
+       cycle-1 tautological "SNHU CS 300 syllabus." per the spec. */
     margin: 0 0 var(--mux-space-4) 0;
-    font-size: 0.875rem;
-    color: var(--mux-fg-subtle);
+    font-size: 0.95rem;
+    color: var(--mux-fg-muted);
   }
 
   .chapter-grid {

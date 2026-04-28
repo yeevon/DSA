@@ -38,6 +38,14 @@
 // + ChapterCard + DashboardSlot all reach the same vars without
 // per-component imports.
 //
+// M-UX-REVIEW T6 update (2026-04-27): the body font-family on
+// `:global(body)` now binds to `var(--mux-font-body)` (Source Sans
+// 3 + system fallback chain) instead of the M-UX-era
+// `--mux-font-sans` token, matching the chapter-route Base.astro
+// swap. Same `@font-face` declarations + mono token in chrome.css
+// serve every layout. See ADR-0002 typography deferral entry
+// (resolved 2026-04-27 in M-UX-REVIEW T6).
+//
 // Companion files:
 //   - design_docs/architecture.md §1.6 (Page chrome — UX layer)
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
@@ -88,7 +96,7 @@ const { title = 'cs-300' } = Astro.props;
         padding: 0;
       }
       :global(body) {
-        font-family: var(--mux-font-sans);
+        font-family: var(--mux-font-body);
         color: var(--mux-fg);
         background: var(--mux-surface);
         line-height: 1.6;

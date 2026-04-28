@@ -1,0 +1,177 @@
+---
+// src/components/chrome/MobileChapterTOC.astro — M-UX-REVIEW T4 D2.
+//
+// Mobile-only "On this page" `<details>` block. Renders below the
+// chapter `<h1>` + `<CollectionTabs>` inside the chapter route's
+// `<header>` (so the mobile DOM order reads as
+// drawer-trigger → eyebrow → H1 → tabs → on-this-page → article,
+// per UI-review F9 / T4 D2). Hidden at ≥768px via a media query on
+// the `<details>` element itself; the desktop right-rail TOC
+// (`RightRailTOC.astro` mounted in `Base.astro`'s `right-rail` slot)
+// is the only TOC surface above the breakpoint.
+//
+// **Why a separate component (not twice-rendering RightRailTOC).**
+// Spec D2 (T4_mobile_reduction.md) hand-waves "<RightRailTOC />"
+// inside the mobile `<details>`. Twice-rendering RightRailTOC would
+// duplicate the `[data-anchor]` + `[data-read-indicator]` selector
+// targets ScrollSpy + RightRailReadStatus query, producing two
+// painting surfaces that fight for `[data-current="true"]` (the
+// observer's `tocLinks.set(anchor, link)` keeps insertion-order
+// semantics; whichever instance's anchor lands second silently
+// shadows the first). This component instead emits a stripped-down
+// `<nav class="rhs-toc-mobile">` with plain `<a href="#anchor">`
+// elements — no `data-anchor`, no `data-section-id`, no
+// `data-read-indicator`. ScrollSpy + RightRailReadStatus query
+// `.right-rail-toc` exclusively, so this component is invisible
+// to both islands. Mobile loses live current-section + read-status
+// painting in this affordance; that's acceptable per spec ("On this
+// page" mobile affordance is a static jump-list, not a live tracker).
+//
+// **Visibility gate.** `display: none` at ≥768px on the root
+// `<details>`; visible at <768px. The matching half-rule lives in
+// `Base.astro` which `display: none`s the right-rail aside at
+// <768px so the two TOC surfaces never paint at the same viewport.
+//
+// **Empty-section guard.** When the chapter route passes an empty
+// `sections` array (e.g. a notes/practice route would be a misuse
+// today; only lectures has the frontmatter list), the component
+// renders an empty `<details>` — the summary is still shown so the
+// affordance is consistent, but tapping it reveals an empty list.
+// Notes / practice routes don't mount this component (their routes
+// don't pass `sections` because their MDX has no `sections`
+// frontmatter per `src/content.config.ts`).
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_review/tasks/T4_mobile_reduction.md
+//   - src/components/chrome/RightRailTOC.astro (desktop sibling —
+//     this component's render selector + visibility are the inverse
+//     of RightRailTOC's right-rail track)
+//   - src/layouts/Base.astro (T4 D1 + D2 mobile chrome rules)
+//   - src/pages/lectures/[id].astro (mounts this component below
+//     `<CollectionTabs>` inside `<header>`)
+interface Section {
+  id: string;
+  anchor: string;
+  title: string;
+  level: 1 | 2;
+  ord: number;
+}
+
+interface Props {
+  /**
+   * The chapter's section list, read from the lectures collection's
+   * MDX frontmatter (the `sections` array `scripts/build-content.mjs`
+   * populates per `src/content.config.ts` lectures schema). Sorted by
+   * `ord` ascending so the TOC mirrors the source ordering.
+   */
+  sections: Section[];
+}
+
+const { sections } = Astro.props;
+
+const ordered = [...sections].sort((a, b) => a.ord - b.ord);
+---
+
+<details class="rhs-toc-mobile">
+  <summary class="rhs-toc-mobile-summary">
+    <span class="rhs-toc-mobile-summary-label">On this page</span>
+  </summary>
+  <nav class="rhs-toc-mobile-nav" aria-label="In-chapter sections (mobile)">
+    <ul>
+      {ordered.map((s) => (
+        <li data-level={String(s.level)}>
+          <a class="rhs-toc-mobile-link" href={`#${s.anchor}`}>{s.title}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</details>
+
+<style>
+  /* Tokens come from src/styles/chrome.css (imported globally by
+     Base.astro). T4 D2 visibility gate: visible at <768px, hidden
+     at ≥768px (the desktop right-rail TOC takes over above the
+     breakpoint). */
+  .rhs-toc-mobile {
+    display: block;
+    margin: var(--mux-space-3) 0 var(--mux-space-4);
+  }
+
+  @media (min-width: 768px) {
+    .rhs-toc-mobile {
+      display: none;
+    }
+  }
+
+  .rhs-toc-mobile-summary {
+    cursor: pointer;
+    padding: var(--mux-space-2) var(--mux-space-3);
+    border-radius: 4px;
+    background: var(--mux-surface-alt);
+    list-style: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .rhs-toc-mobile-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .rhs-toc-mobile-summary-label {
+    /* Match `.right-rail-toc h3` register so the mobile summary
+       reads the same as the desktop heading. */
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mux-fg-subtle);
+  }
+
+  .rhs-toc-mobile-summary::before {
+    /* Disclosure triangle. Rotates when `<details>` is open. */
+    content: '▸';
+    display: inline-block;
+    margin-right: var(--mux-space-2);
+    color: var(--mux-fg-subtle);
+    font-size: 0.7rem;
+    transition: transform 120ms ease;
+  }
+
+  .rhs-toc-mobile[open] > .rhs-toc-mobile-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .rhs-toc-mobile-nav {
+    margin-top: var(--mux-space-2);
+    font-size: 0.9rem;
+  }
+
+  .rhs-toc-mobile-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .rhs-toc-mobile-nav li {
+    margin: 0;
+  }
+
+  .rhs-toc-mobile-nav li[data-level="2"] {
+    padding-left: 1rem;
+  }
+
+  .rhs-toc-mobile-link {
+    display: block;
+    padding: var(--mux-space-1) var(--mux-space-3);
+    color: var(--mux-fg-muted);
+    text-decoration: none;
+    line-height: 1.35;
+    border-radius: 4px;
+  }
+
+  .rhs-toc-mobile-link:hover {
+    background: var(--mux-surface-alt);
+    color: var(--mux-fg);
+  }
+</style>

@@ -65,7 +65,58 @@
 //   3. The current chapter title segment was already a `<span
 //      aria-current="page">` (correct) — preserved verbatim. The
 //      AC9 assertion just verifies it stays that way.
-// Collection-switcher pills + prev/next buttons untouched.
+// Collection-switcher pills + prev/next buttons untouched (T9 era).
+//
+// M-UX-REVIEW T4 update (2026-04-27): D1 (UI-review F9, HIGH) hides
+// the breadcrumb bar entirely at <768px so the mobile chrome stack
+// shrinks to {drawer-trigger, eyebrow, H1, collection-tabs,
+// on-this-page details, content}. The hide is owned by Base.astro's
+// `.breadcrumb-bar` rule on the outer slot wrapper (the inner `<nav
+// class="breadcrumb">` that this file emits is a child of that
+// wrapper, so display:none cascades). This file's only T4 change is
+// removing the `drawer-trigger` named slot — the trigger now mounts
+// as a sibling of the breadcrumb in `Base.astro`'s new `drawer-
+// trigger` slot so it survives the mobile breadcrumb hide. Per spec
+// "Option A — extract `DrawerTrigger.astro` from inside
+// `Breadcrumb.astro` to be a sibling of the breadcrumb in
+// `Base.astro`. At <768px the breadcrumb hides but the trigger stays
+// visible at the top of the page." Cleaner than Option B's
+// `display: contents` hack and gives the trigger a stable parent
+// regardless of viewport. The prev/next chapter affordance loses its
+// mobile placement; the drawer's chapter list IS the prev/next
+// surface on mobile (acceptable per spec).
+//
+// M-UX-REVIEW T3 update (2026-04-27): D1 splits the breadcrumb bar.
+// Three navigation models previously shared one row — crumbs,
+// chapter prev/next, and the collection switcher. Per UI-review F5
+// (HIGH) the collection switcher now lives in a dedicated segmented-
+// control row directly under the chapter H1 (`CollectionTabs.astro`,
+// D2). Concrete shape changes here:
+//   1. The collection-switcher `<ul class="collection-switcher">`
+//      with three `<li class="collection-pill">` children is REMOVED
+//      from the right-side `breadcrumb-controls` cluster. The
+//      cross-collection link is preserved via the new tabs (visible
+//      directly under the H1) AND the home page card layout
+//      (T1 D1) — see T3 spec "Out of scope" for the link-reachability
+//      analysis. The T9 functional-test cases that asserted the
+//      breadcrumb middle segment text + href (`breadcrumb-collection-
+//      link-{lectures,notes,practice}`) are removed in the same
+//      edit because their selectors no longer exist; new T3 tests
+//      cover the same link contract on the tabs (`collection-tabs-
+//      current-aria`, `collection-tabs-on-notes`).
+//   2. The middle path segment (`<a>Lectures</a>` etc) is REMOVED
+//      from the `<ol>` crumbs list. The user already knows which
+//      collection they're in from the URL + the segmented control
+//      under the H1; the redundant crumb is gone. Path now reads
+//      `cs-300 / ch_4 — …`.
+//   3. The chapter-button arrows change from `‹ ch_3` / `ch_5 ›`
+//      (text guillemets) to `← ch_3` / `ch_5 →` (arrows). Per the
+//      review's before/after mock — same width, more readable on
+//      mobile, more obviously navigational than guillemets.
+// Result: row 1 carries crumbs + chapter prev/next (one model per
+// side). Row 2 (the H1 + tabs) carries collection switching. The
+// cross-collection link is preserved — the `breadcrumb-controls`
+// cluster collapses from {prev, switcher, next} to {prev, next}.
 //
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T3_breadcrumb.md
@@ -79,15 +130,14 @@ import chapters from '../../../scripts/chapters.json';
 
 const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
 
-// Closed set per architecture.md §1.6 + ADR-0002 — three collections,
-// title-case label for the breadcrumb path + collection switcher.
-const COLLECTIONS = ['lectures', 'notes', 'practice'] as const;
-type Collection = (typeof COLLECTIONS)[number];
-const COLLECTION_LABEL: Record<Collection, string> = {
-  lectures: 'Lectures',
-  notes: 'Notes',
-  practice: 'Practice',
-};
+// Closed set per architecture.md §1.6 + ADR-0002 — three collections.
+// T3 (2026-04-27) trimmed `COLLECTIONS`, `COLLECTION_LABEL`, and the
+// `collectionLandingHref` helper because the breadcrumb no longer
+// renders a middle path segment or the collection switcher. The
+// type alias stays for the URL-pattern parse + the prev/next chapter
+// link helper. Collection labels live in `CollectionTabs.astro`
+// (the new home for the cross-collection link).
+type Collection = 'lectures' | 'notes' | 'practice';
 
 // Sort by `n` so ch_10 lands after ch_9 (lexicographic on `id` would
 // invert). Same key as LeftRail.astro line 51.
@@ -120,39 +170,26 @@ const nextChapter =
     ? sorted[currentIndex + 1]
     : null;
 
-// Helper: build a same-collection same-chapter href for a target
-// collection. Used by the collection switcher and prev/next buttons.
+// Helper: build a same-collection chapter href. Now used only by the
+// prev/next chapter buttons; the collection-switcher pills moved to
+// `CollectionTabs.astro` (T3 D2) and own their own href helper.
 function chapterHref(collection: Collection, chapterId: string): string {
   return `${baseUrl}/${collection}/${chapterId}/`;
-}
-
-// T9 D4 — href for the breadcrumb's middle path segment. Points at
-// the collection LANDING page (T9 D5), not the same-collection
-// chapter page (which is where the user already is).
-function collectionLandingHref(collection: Collection): string {
-  return `${baseUrl}/${collection}/`;
 }
 
 // T9 D4 — home href for the leading `cs-300` crumb. Trailing slash
 // preserved so Astro's auto-route resolution doesn't 301 the link.
 const homeHref = `${baseUrl}/`;
-
-// Resolve the "Lectures" path segment label for the breadcrumb path
-// list. Falls back to the literal collection slug if somehow the URL
-// pattern matches a future collection name (defensive — closed set
-// today).
-const collectionLabel: string = currentCollection
-  ? COLLECTION_LABEL[currentCollection]
-  : '';
 ---
 
 <nav class="breadcrumb" aria-label="Chapter context">
-  {/* T7 drawer-trigger slot. Empty when no consumer (e.g. a future
-      breadcrumb consumer that doesn't need the drawer); on chapter
-      routes, T7's `Drawer.astro` mounts here so the hamburger
-      button sits at the leading edge of the breadcrumb's flex row.
-      Visibility of the consumer button is CSS-gated to <1024px. */}
-  <slot name="drawer-trigger" />
+  {/* M-UX-REVIEW T4 D1 — the in-breadcrumb `drawer-trigger` slot is
+      gone. The trigger now mounts as a sibling of this breadcrumb
+      in `Base.astro` (via Base's new `drawer-trigger` named slot)
+      so it survives the breadcrumb-hide at <768px (UI-review F9).
+      The slot itself is removed entirely (vs. left empty) because no
+      consumer should be passing children to it post-T4 — leaving it
+      would silently swallow miswired markup. */}
   {currentChapter && currentCollection && (
     <>
       <div class="breadcrumb-path">
@@ -162,15 +199,16 @@ const collectionLabel: string = currentCollection
             <a class="path-root" href={homeHref}>cs-300</a>
           </li>
           <li>
-            {/* T9 D4 / AC8: middle segment links to the new collection
-                landing page (D5), not the same-collection chapter page.
-                Text reflects the current collection (Lectures/Notes/Practice). */}
-            <a href={collectionLandingHref(currentCollection)}>{collectionLabel}</a>
-          </li>
-          <li>
-            {/* T9 D4 / AC9: current chapter is a non-link <span> with
-                aria-current="page". Already correct in cycle 1; verified
-                + preserved. */}
+            {/* T9 D4 / AC9 + T3 D1: current chapter is a non-link
+                <span> with aria-current="page". The middle path
+                segment (Lectures / Notes / Practice link to the
+                landing page) was REMOVED in T3 D1 — the user reads
+                the current collection from the segmented control
+                under the H1 and the URL itself. The landing-page
+                link is preserved via the new collection tabs
+                (`CollectionTabs.astro`) and the home page card grid
+                (T1 D1) — see T3 spec "Out of scope" for the link-
+                reachability analysis. */}
             <span class="path-current" aria-current="page">ch_{currentChapter.n} — {currentChapter.subtitle}</span>
           </li>
         </ol>
@@ -184,29 +222,25 @@ const collectionLabel: string = currentCollection
             rel="prev"
             aria-label={`Previous chapter: ch_${prevChapter.n} — ${prevChapter.subtitle}`}
           >
-            <span aria-hidden="true">‹</span>
+            {/* T3 D1: arrow glyphs (← / →) replace the cycle-1
+                guillemets (‹ / ›) per the UI-review F5 before/after
+                mock. Same width, more obviously navigational on
+                mobile. The functional test
+                `breadcrumb-prev-next-arrows` asserts presence. */}
+            <span aria-hidden="true">←</span>
             <span class="chapter-button-label">ch_{prevChapter.n}</span>
           </a>
         ) : (
           <span class="chapter-button prev is-disabled" aria-disabled="true">
-            <span aria-hidden="true">‹</span>
+            <span aria-hidden="true">←</span>
             <span class="chapter-button-label">prev</span>
           </span>
         )}
 
-        <ul class="collection-switcher" aria-label="Collection switcher">
-          {COLLECTIONS.map((c) => (
-            <li>
-              <a
-                href={chapterHref(c, currentChapter.id)}
-                class:list={['collection-pill', c === currentCollection && 'is-current']}
-                aria-current={c === currentCollection ? 'page' : undefined}
-              >
-                {COLLECTION_LABEL[c]}
-              </a>
-            </li>
-          ))}
-        </ul>
+        {/* T3 D1: collection-switcher `<ul class="collection-switcher">`
+            REMOVED. Hoisted to `CollectionTabs.astro` mounted directly
+            under the chapter H1. The link contract (cross-collection
+            navigation in one click) is preserved at that new home. */}
 
         {nextChapter ? (
           <a
@@ -216,12 +250,12 @@ const collectionLabel: string = currentCollection
             aria-label={`Next chapter: ch_${nextChapter.n} — ${nextChapter.subtitle}`}
           >
             <span class="chapter-button-label">ch_{nextChapter.n}</span>
-            <span aria-hidden="true">›</span>
+            <span aria-hidden="true">→</span>
           </a>
         ) : (
           <span class="chapter-button next is-disabled" aria-disabled="true">
             <span class="chapter-button-label">next</span>
-            <span aria-hidden="true">›</span>
+            <span aria-hidden="true">→</span>
           </span>
         )}
       </div>
@@ -304,44 +338,10 @@ const collectionLabel: string = currentCollection
     gap: var(--mux-space-2);
   }
 
-  .collection-switcher {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    gap: var(--mux-space-1);
-    border: 1px solid var(--mux-border-subtle);
-    border-radius: 6px;
-    background: var(--mux-surface-alt);
-    padding: 2px;
-  }
-
-  .collection-switcher li {
-    margin: 0;
-  }
-
-  .collection-pill {
-    display: inline-block;
-    padding: 2px var(--mux-space-3);
-    border-radius: 4px;
-    color: var(--mux-fg-muted);
-    text-decoration: none;
-    font-size: 0.8rem;
-    line-height: 1.4;
-  }
-
-  .collection-pill:hover {
-    background: var(--mux-surface);
-    color: var(--mux-fg);
-  }
-
-  .collection-pill.is-current {
-    background: var(--mux-accent-bg);
-    color: var(--mux-fg);
-    font-weight: 600;
-    /* Inset accent ring matches the LeftRail current-chapter idiom. */
-    box-shadow: inset 0 0 0 1px var(--mux-accent);
-  }
+  /* T3 D1 (2026-04-27): the `.collection-switcher` + `.collection-pill`
+     rules were removed alongside the collection-switcher markup. The
+     equivalent visual treatment lives on `.collection-tab` /
+     `.collection-tab.is-current` in `CollectionTabs.astro`. */
 
   .chapter-button {
     display: inline-flex;

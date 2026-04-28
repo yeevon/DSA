@@ -15,13 +15,78 @@
  * to every page + every chrome component without a per-component
  * import.
  *
- * Per ADR-0002, M-UX uses the system font stack + a single accent
- * colour. Palette decisions (full colour scheme, dark mode) are
- * deferred — `--mux-accent` defined here as the one-rule swap point
- * for a future dark-mode adoption (per ADR-0002 "CSS custom
- * properties used for the few colours M-UX introduces so dark-mode
- * is a CSS-variable swap when adopted").
+ * Palette decisions (full colour scheme, dark mode) are deferred —
+ * `--mux-accent` defined here as the one-rule swap point for a future
+ * dark-mode adoption (per ADR-0002 "CSS custom properties used for
+ * the few colours M-UX introduces so dark-mode is a CSS-variable
+ * swap when adopted").
+ *
+ * Typography (M-UX-REVIEW T6, 2026-04-27 — UI-review F11; ADR-0002
+ * "Visual style — typography" deferral resolved):
+ *   - Body: Source Sans 3 Variable (latin subset, weight axis covers
+ *     400/600/700; italic axis ships as a separate file because the
+ *     fontsource variable bundle splits italic). Self-hosted woff2 in
+ *     `public/fonts/` with `font-display: swap` so reading content
+ *     paints during font load rather than blocking on the network.
+ *   - Mono: JetBrains Mono Variable (latin subset, weight axis covers
+ *     400/600/700; italic axis omitted — the chapter mono surfaces
+ *     don't render italic mono today). Same self-hosted woff2 contract.
+ *   - Both pairs cleared the F11 review bar (ship the Greek + math
+ *     fallbacks KaTeX needs for ch_5/9/13 expressions). ASCII Latin is
+ *     the only subset shipped to keep the bundle delta inside the F11
+ *     budget; KaTeX's own font stack covers math glyphs not present
+ *     in the latin subset.
+ *   - Tokens `--mux-font-body` and `--mux-font-mono` are the
+ *     single-rule swap points for any future dark-mode / theme work
+ *     (per ADR-0002 "CSS custom properties used for the few colours
+ *     M-UX introduces so dark-mode is a CSS-variable swap when
+ *     adopted"; same idiom extended to typography).
+ *   - The system fallback chain (`-apple-system, ...`) stays inside
+ *     the token so the FOUT during font-display: swap renders in a
+ *     reasonable system font instead of the browser's default
+ *     serif.
  */
+
+/* @font-face declarations (M-UX-REVIEW T6 D2). Variable woff2 files
+   self-hosted under `public/fonts/`; copied during T6 build via a
+   transient `npm install -D` of @fontsource-variable/{source-sans-3,
+   jetbrains-mono} that was uninstalled + manifest-restored from
+   snapshot at the end of cycle 1 so the net package.json /
+   package-lock.json delta is zero (Path 2 procedure documented in the
+   T6 issue file). The fontsource packages were not retained as
+   dev-deps because the woff2 files don't change between releases — a
+   future Builder can re-run the same transient install if a font
+   needs replacing. `font-display: swap` is the F11-recommended
+   default: render in the fallback immediately, swap to the web font
+   when it loads. Brief FOUT is acceptable; persistent fallback (when
+   the font file fails to fetch) is what the
+   `font-loaded-not-fallback` functional-test case below catches.
+
+   `font-weight: 100 900` is the variable-axis range — Source Sans 3
+   Variable + JetBrains Mono Variable both ship a weight axis covering
+   the full 100–900 range so 400 / 600 / 700 cuts (the only weights
+   the chrome uses today) come from the same file. */
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('/DSA/fonts/source-sans-3-variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('/DSA/fonts/source-sans-3-variable-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/DSA/fonts/jetbrains-mono-variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   /* Accent — Canvas-LMS-style green; matches the existing M3
@@ -41,12 +106,19 @@
   --mux-surface: #ffffff;
   --mux-surface-alt: #f9fafb;
 
-  /* System font stack (per ADR-0002). One token so the visual sweep
-     follow-on swaps fonts in one rule. */
-  --mux-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  --mux-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  /* Pinned typography pair (per M-UX-REVIEW T6 / ADR-0002 typography
+     deferral resolved 2026-04-27 — UI-review F11). Source Sans 3 +
+     JetBrains Mono self-hosted via the `@font-face` blocks above. The
+     primary family is named first so `document.fonts.check('1em
+     "Source Sans 3"')` (functional-test case `font-loaded-not-fallback`)
+     reports `true` once the woff2 finishes loading. The system stack
+     stays in the token as the FOUT fallback during `font-display:
+     swap` and as the persistent fallback if the woff2 fetch fails on
+     a hostile network. */
+  --mux-font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --mux-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', 'Courier New', monospace;
 
   /* Breakpoint token. Used in component-internal media queries.
      Kept as a documentation reference — CSS @media doesn't accept
@@ -84,18 +156,103 @@
      viewport (rails snug to viewport edges). */
   --mux-chrome-max: 1400px;
 
-  /* M-UX T9 D2 — sticky-rail offset. Re-measured 2026-04-25 from
-     the rendered `.chrome > [data-slot="breadcrumb"]` slot wrapper
-     at viewport 1280×800 via the functional-test harness's
-     `breadcrumb-height-matches-token` invariant: actual rendered
-     height = 44.91px (T8 sticky-rule relocation moved padding
-     semantics from inner nav to outer slot wrapper, shrinking the
-     reserved space ~7px from the originally hand-measured 52px).
-     Token rounded to 46px (1px hairline buffer). The rails are
-     sticky-pinned this far below the viewport top so they sit
-     right under the sticky breadcrumb instead of overlapping it.
-     If breadcrumb padding/font sizes change, the harness's
-     `breadcrumb-height-matches-token` test fires; re-measure and
-     update both the token and the test bound. */
-  --mux-breadcrumb-height: 46px;
+  /* M-UX T9 D2 — sticky-rail offset. Re-measured 2026-04-27 at
+     M-UX-REVIEW T3 close: removing the collection-switcher pills +
+     the middle path segment from the breadcrumb (T3 D1, F5) shrank
+     the rendered height from 44.91px (post-T9) to 40.91px (post-T3).
+     Token rounded to 42px (1px hairline buffer, same convention as
+     T9). The rails are sticky-pinned this far below the viewport
+     top so they sit right under the sticky breadcrumb instead of
+     overlapping it. If breadcrumb padding/font sizes change, the
+     harness's `breadcrumb-height-matches-token` test fires;
+     re-measure and update both the token and the test bound.
+     Historical: T9 era token = 46px (44.91px measured); pre-T9
+     hand-measured = 52px. */
+  --mux-breadcrumb-height: 42px;
+}
+
+/*
+ * M-UX-REVIEW T2 D2 — Right-rail TOC H1/H2 visual hierarchy
+ * (UI-review F4). The rail now renders every section the lectures
+ * frontmatter declares (numbered top-level + immediate subsection;
+ * H3+ already dropped at the build-script boundary). Each `<li>`
+ * carries `data-level="1"` (top-level numbered, e.g. "4.1 The List
+ * ADT") or `data-level="2"` (H2 subsection, e.g. "The contract:
+ * operations") emitted by `RightRailTOC.astro` from the `level`
+ * field on each section frontmatter entry.
+ *
+ * Visual contract (per T2 spec D2):
+ *   - level 1 — bold (font-weight: 600), no extra indent, ~0.5rem
+ *     top margin separating from the previous H2 group. The
+ *     `:first-child` rule below suppresses the top margin on the
+ *     opening entry so the rail doesn't have a gap above its first
+ *     section.
+ *   - level 2 — regular weight, indented 1rem, muted colour (uses
+ *     `--mux-fg-subtle` — distinct from `.toc-link`'s default
+ *     `--mux-fg-muted` so H1 vs H2 reads as a hierarchy rather than
+ *     two shades of the same body colour). The label colour rule
+ *     targets the inner `.toc-link` so it overrides the existing
+ *     base rule's colour without resorting to `!important`.
+ *
+ * `[data-current]` styling is unchanged — the existing accent-bar
+ * idiom on `.toc-link[data-current="true"]` paints over both
+ * levels; the spec deliberately keeps current-state styling
+ * level-agnostic. The accent's role on the H1 vs H2 axis is
+ * deferred to nice_to_have.md §UX-5 (F12, the "current vs
+ * achievement" semantic split — pre-M5).
+ *
+ * Companion files:
+ *   - src/components/chrome/RightRailTOC.astro (emits data-level)
+ *   - scripts/build-content.mjs (extractSections — sets level on
+ *     each frontmatter section entry)
+ *   - design_docs/architecture.md §1.6 (right-rail TOC contract)
+ */
+[data-slot="right-rail"] li[data-level="1"] {
+  font-weight: 600;
+  padding-left: 0;
+  margin-top: 0.5rem;
+}
+
+[data-slot="right-rail"] li[data-level="1"]:first-child {
+  margin-top: 0;
+}
+
+[data-slot="right-rail"] li[data-level="2"] {
+  font-weight: 400;
+  padding-left: 1rem;
+}
+
+/* Override `.toc-link`'s base `color: var(--mux-fg-muted)` so H2
+   reads as more muted than H1 in the rail. Selector targets the
+   nested anchor; specificity (0,2,1) beats `.toc-link` (0,1,0)
+   without `!important`. */
+[data-slot="right-rail"] li[data-level="2"] .toc-link {
+  color: var(--mux-fg-subtle);
+}
+
+/*
+ * M-UX-REVIEW T3 D2 — chapter eyebrow caption (UI-review F6).
+ *
+ * The chapter route templates (lectures/notes/practice [id].astro)
+ * render `<p class="ch-eyebrow">Chapter 4 · Lectures</p>` directly
+ * above the topic-as-H1. Visual treatment: small, uppercase, tracked,
+ * muted — reads as a category label rather than competing with the
+ * H1 for attention. Per the T3 spec D2 contract.
+ *
+ * Lives in `chrome.css` (not scoped to a single component) because
+ * three chapter route templates render this class at the top of their
+ * `<header>` — keeping the rule global avoids three identical scoped
+ * `<style>` blocks.
+ *
+ * Tight margin on the bottom so the H1 sits close (not the default
+ * paragraph block-flow gap). Top margin reset because the chapter
+ * route's chrome already pads `<main>` from the breadcrumb.
+ */
+.ch-eyebrow {
+  margin: 0 0 var(--mux-space-2) 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mux-fg-subtle);
 }

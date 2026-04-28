@@ -1,24 +1,30 @@
 ---
 // src/components/chrome/DrawerTrigger.astro — M-UX T7 deliverable.
 //
-// Hamburger button that opens / closes the mobile drawer. Mounted
-// inside `Breadcrumb.astro`'s `drawer-trigger` named slot so the
-// breadcrumb's flexbox layout owns the button's placement (per
-// MUX-BO-DA2-F + breakout-audit MUX-BO-ISS-04 resolution + T7 spec
-// step 1 line 26 "inside `Breadcrumb.astro`'s component-internal
-// drawer-trigger slot — not directly in `Base.astro`'s `breadcrumb`
-// slot region").
+// Hamburger button that opens / closes the mobile drawer.
+//
+// **Mount position (M-UX T7 → M-UX-REVIEW T4 D1).**
+// Cycle 1 (M-UX T7) mounted the trigger inside `Breadcrumb.astro`'s
+// `drawer-trigger` named slot so the breadcrumb's flexbox layout
+// owned its placement. M-UX-REVIEW T4 D1 (UI-review F9) hides the
+// breadcrumb at <768px (`.breadcrumb-bar { display: none }`) — the
+// trigger has to survive that hide. T4 picks Option A from the spec:
+// extract the trigger so it mounts as a SIBLING of the breadcrumb in
+// `Base.astro` (via the new `drawer-trigger` named slot), giving the
+// trigger a stable parent regardless of viewport. The breadcrumb's
+// own `drawer-trigger` slot is gone post-T4. Communication contract
+// with `Drawer.astro` is unchanged — same `cs300:drawer-toggle`
+// CustomEvent.
 //
 // **Two-component split.** The actual drawer overlay (the aside +
 // backdrop + open/close logic) lives in `Drawer.astro`, mounted at
 // body level via `Base.astro`'s `slot="drawer"`. This file is
 // trigger-only. See `Drawer.astro`'s header docstring for the
 // rationale: a single Astro component cannot route to two parent
-// slots simultaneously, but the spec + breakout audit firmly fix
-// the BUTTON inside breadcrumb (so the breadcrumb's flex layout
-// owns its placement) and the ASIDE at body root (so the drawer's
-// `position: fixed` element escapes the sticky-breadcrumb's
-// `z-index: 50` stacking context).
+// slots simultaneously, but the breakout audit firmly fixes the
+// BUTTON near the chrome top (visible at <1024px) and the ASIDE at
+// body root (so the drawer's `position: fixed` element escapes the
+// sticky-breadcrumb's `z-index: 50` stacking context).
 //
 // **Communication** (per `Drawer.astro` header):
 // click dispatches `cs300:drawer-toggle` CustomEvent; the sibling
@@ -34,31 +40,62 @@
 // from the tab order so keyboard users at desktop don't reach a
 // dead trigger.
 //
-// **Accessibility** (T7 spec step 7):
+// **Accessibility** (T7 spec step 7 + T4 D3 chevron rule):
 //   - `aria-controls="drawer"` ties the button to the aside.
 //   - `aria-expanded` reflects open state — toggled by Drawer.astro
 //     in its open() / close() functions.
 //   - `aria-label="Open navigation"` reads as a friendly name for
-//     screen readers (the visible glyph is the three-bar icon ☰).
+//     screen readers. The visible "Chapters" label is decorative;
+//     the icon and chevron carry `aria-hidden="true"` so the SR
+//     announcement stays "Open navigation, collapsed/expanded".
 //   - `id="drawer-trigger"` is the focus-restore target on close
 //     (Drawer.astro's lastFocused fallback).
 //
+// **M-UX-REVIEW T4 D3 — label + chevron (UI-review F10).**
+// Cycle 1 markup was a bare `<button>☰</button>`. T4 adds:
+//   - `<span class="drawer-icon">☰</span>` — preserved from cycle 1
+//     (renamed from `.drawer-trigger-icon` for terser CSS).
+//   - `<span class="drawer-label">Chapters</span>` — visible label
+//     so first-open users know what the drawer contains. Hidden via
+//     `@media (max-width: 359.98px)` so very narrow phones (320px
+//     legacy iPhone SE 1st-gen, etc.) don't crowd the breadcrumb /
+//     trigger row; icon + chevron stay visible.
+//   - `<span class="drawer-chevron" aria-hidden="true">›</span>` —
+//     visual state indicator. CSS rotates 180° when the trigger has
+//     `data-drawer-state="open"` (set by Drawer.astro on the same
+//     toggle path that flips `aria-expanded`).
+//
+// `data-drawer-state` is the styling hook (CSS-only rotation).
+// `aria-expanded` remains the a11y hook. Two attributes on the
+// trigger because rotating via the `[aria-expanded="true"]` selector
+// would couple visuals to the a11y state — Drawer.astro flips both
+// in lockstep so the dual attributes never disagree, but keeping the
+// styling hook distinct means a future a11y refactor (e.g. adopting
+// `aria-controls` discoverability) can move the a11y attribute
+// without re-styling the chevron.
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T7_mobile_drawer.md
-//   - src/components/chrome/Drawer.astro (T7 sibling — the overlay)
-//   - src/components/chrome/Breadcrumb.astro (T3 — drawer-trigger
-//     slot host)
+//   - design_docs/milestones/m_ux_review/tasks/T4_mobile_reduction.md
+//   - src/components/chrome/Drawer.astro (T7 sibling — the overlay;
+//     T4 updates to flip `data-drawer-state` alongside `aria-expanded`)
+//   - src/layouts/Base.astro (T4 — the new `drawer-trigger` named slot)
+//   - src/components/chrome/Breadcrumb.astro (T4 — the in-breadcrumb
+//     `drawer-trigger` slot is gone; trigger no longer mounts here)
 ---
 
 <button
   type="button"
   id="drawer-trigger"
   class="drawer-trigger"
+  data-drawer-state="closed"
   aria-controls="drawer"
   aria-expanded="false"
   aria-label="Open navigation"
 >
-  <span class="drawer-trigger-icon" aria-hidden="true">☰</span>
+  <span class="drawer-icon" aria-hidden="true">☰</span>
+  <span class="drawer-label">Chapters</span>
+  <span class="drawer-chevron" aria-hidden="true">›</span>
 </button>
 
 <style>
@@ -75,11 +112,15 @@
     background: transparent;
     border: 1px solid var(--mux-border-subtle);
     border-radius: 4px;
-    padding: var(--mux-space-1) var(--mux-space-2);
+    padding: var(--mux-space-1) var(--mux-space-3);
     color: var(--mux-fg);
     cursor: pointer;
     line-height: 1;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
+    /* Inner gap between icon / label / chevron when the button is
+       displayed at <1024px. Inert at desktop because the button is
+       hidden there. */
+    gap: var(--mux-space-2);
   }
 
   .drawer-trigger:hover {
@@ -91,9 +132,42 @@
     outline-offset: 2px;
   }
 
-  .drawer-trigger-icon {
+  .drawer-icon {
+    /* The hamburger glyph itself. `aria-hidden` on the parent span
+       (markup above) keeps screen readers from announcing the
+       three-bar character. */
     display: inline-block;
     line-height: 1;
+    font-size: 1.1rem;
+  }
+
+  .drawer-label {
+    /* Visible "Chapters" text. Sized down from the icon so the
+       composite reads as a labelled icon, not as a sentence. */
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .drawer-chevron {
+    /* CSS-rotated state indicator. T4 D3 spec calls for a 180°
+       rotation when the drawer opens; the `›` glyph rotated 180°
+       reads as `‹`, which is the desired closed-when-open affordance.
+       Transition is the only motion we add — matches the rest of
+       M-UX's "instant where possible" rule (drawer slide is the
+       single animated chrome surface). */
+    display: inline-block;
+    line-height: 1;
+    font-size: 1rem;
+    color: var(--mux-fg-subtle);
+    transition: transform 150ms ease;
+  }
+
+  /* Open state — flip the chevron. Drawer.astro flips
+     `data-drawer-state` to "open" on the same toggle path that flips
+     `aria-expanded`. Pure CSS rotation, no JS animation. */
+  .drawer-trigger[data-drawer-state="open"] .drawer-chevron {
+    transform: rotate(180deg);
   }
 
   @media (max-width: 1023.98px) {
@@ -101,6 +175,15 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+    }
+  }
+
+  /* Very narrow phones — hide the "Chapters" label so the trigger
+     stays compact on 320-360px legacy widths. Icon + chevron remain.
+     T4 D3 spec calls for this hide threshold. */
+  @media (max-width: 359.98px) {
+    .drawer-label {
+      display: none;
     }
   }
 </style>

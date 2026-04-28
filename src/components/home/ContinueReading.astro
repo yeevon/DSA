@@ -1,0 +1,157 @@
+---
+// src/components/home/ContinueReading.astro — M-UX-REVIEW T1 deliverable D3.
+//
+// Per the 2026-04-27 UI/UX review F3 (MED) finding: in static mode the
+// home + collection-landing surfaces have nothing about the user. The
+// M5 mastery-dashboard slots (`recently-read`, `due-for-review`) are
+// correctly gated `data-interactive-only` per the M-UX T5 contract, so
+// they're invisible on the public deploy — but the public deploy is
+// the only mode most visitors see. A localStorage-backed "Continue
+// reading" strip costs nothing structural and replaces the empty
+// space until M5 lights up the SQLite-backed surface.
+//
+// Contract:
+//   - SSR renders an empty `<aside data-slot="continue-reading">` so
+//     the slot exists in the document immediately + reflows are
+//     bounded when the JS island populates it.
+//   - A small inline `<script>` reads `localStorage["cs300:last-visit"]`
+//     on DOMContentLoaded. If the key is present and parses, populates
+//     the slot with a resume card linking back to the recorded path.
+//   - If the key is absent, the script makes no DOM mutation; the
+//     `<aside>` stays empty + CSS `:empty { display: none }` collapses
+//     it so it occupies zero visual space (AC6).
+//   - One DOM mutation per page-load. No polling, no framework, no
+//     state-service round-trip.
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_review/tasks/T1_home_surface.md (D3)
+//   - src/layouts/Base.astro (the writer side — records the entry on
+//     every chapter route)
+//   - src/pages/index.astro (consumer)
+//   - src/pages/{lectures,notes,practice}/index.astro (consumers)
+//   - design_docs/architecture.md §1 (the page-chrome subsection
+//     documents this client-side primitive)
+//
+// localStorage key: `cs300:last-visit`. Schema:
+//   { path: string, title: string, scrollY: number, ts: number }
+// `path` is the chapter route (e.g. `/DSA/lectures/ch_4/`).
+// `title` is `document.title` at write-time.
+// `scrollY` is the most-recent debounced scroll position.
+// `ts` is `Date.now()` at write-time.
+//
+// M5 supersedes: when M5 lights up the SQLite-backed `recently-read`
+// dashboard slot, this localStorage primitive becomes redundant +
+// gets removed in M5's task. Until then the page actually knows you.
+---
+
+<aside data-slot="continue-reading" aria-label="Continue reading"></aside>
+
+<style is:global>
+  /* `is:global` is necessary because the inner `<span class="resume-eyebrow">`
+     + `<a class="resume-link">` elements are appended dynamically by
+     the inline `<script>` below — they have no Astro scoping
+     attribute. Astro's default scoped-style selectors would not
+     match them. The selectors are still well-namespaced (every rule
+     is scoped to `aside[data-slot="continue-reading"] …`) so global
+     leakage is bounded to the resume strip itself.
+
+     `:empty` collapses the slot to zero space when the localStorage
+     key is absent. The script below appends `<span>` + `<a>` when
+     the key is present; the `:empty` selector then no longer
+     matches and the slot renders. */
+  aside[data-slot="continue-reading"]:empty {
+    display: none;
+  }
+
+  aside[data-slot="continue-reading"] {
+    margin: 0 0 var(--mux-space-6) 0;
+    padding: var(--mux-space-3) var(--mux-space-4);
+    border: 1px solid var(--mux-border-subtle);
+    border-left: 3px solid var(--mux-accent);
+    border-radius: 6px;
+    background: var(--mux-surface-alt);
+  }
+
+  aside[data-slot="continue-reading"] .resume-eyebrow {
+    /* `display: block` puts the eyebrow on its own line above the
+       resume link so the inline whitespace between the appended
+       elements doesn't matter. */
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--mux-fg-subtle);
+    margin: 0 0 var(--mux-space-1) 0;
+  }
+
+  aside[data-slot="continue-reading"] a.resume-link {
+    color: var(--mux-fg);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 120ms ease, color 120ms ease;
+  }
+
+  aside[data-slot="continue-reading"] a.resume-link:hover {
+    color: var(--mux-accent-strong);
+    border-bottom-color: var(--mux-accent);
+  }
+</style>
+
+<script is:inline>
+  // Read the localStorage entry the writer in `Base.astro` records on
+  // every chapter visit. Inline so the strip can paint without waiting
+  // for a module bundle (the entire body is <30 lines).
+  (function () {
+    var slot = document.querySelector('aside[data-slot="continue-reading"]');
+    if (!slot) return;
+    var raw;
+    try {
+      raw = window.localStorage.getItem('cs300:last-visit');
+    } catch (_err) {
+      // Safari private mode + restrictive cookie configs throw on
+      // localStorage access. Treat as no-entry; the empty slot stays
+      // collapsed via the `:empty` rule.
+      return;
+    }
+    if (!raw) return;
+    var entry;
+    try {
+      entry = JSON.parse(raw);
+    } catch (_err) {
+      // Corrupt entry — clear it so the next visit can write a clean one.
+      try { window.localStorage.removeItem('cs300:last-visit'); } catch (_e) {}
+      return;
+    }
+    if (!entry || typeof entry.path !== 'string' || typeof entry.title !== 'string') return;
+    // Origin-check the persisted path before we trust it as an href.
+    // localStorage is user-writable from any tab on the same origin,
+    // so the writer-side regex guard at Base.astro:473 is NOT a
+    // security boundary for the reader. A malicious or self-authored
+    // entry like `{"path":"javascript:alert(1)"}` would otherwise
+    // produce a stored-DOM-injection on click. We require the
+    // resolved URL to be same-origin; anything that resolves to a
+    // different origin (or fails to parse — e.g. `entry.path = "::::"`)
+    // bails out of rendering, leaving the slot `:empty` so the CSS
+    // `:empty { display: none }` rule collapses it.
+    // Closes M-UX-REVIEW-T1 cycle-2 security advisory.
+    try {
+      if (new URL(entry.path, location.origin).origin !== location.origin) return;
+    } catch (_err) {
+      return;
+    }
+    // Build a single anchor element via DOM API (avoids innerHTML so
+    // the title text is escape-safe even though it comes from
+    // `document.title`).
+    var eyebrow = document.createElement('span');
+    eyebrow.className = 'resume-eyebrow';
+    eyebrow.textContent = 'Resume from where you left off';
+    var link = document.createElement('a');
+    link.className = 'resume-link';
+    link.href = entry.path;
+    link.textContent = entry.title;
+    slot.appendChild(eyebrow);
+    slot.appendChild(link);
+  })();
+</script>

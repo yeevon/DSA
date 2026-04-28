@@ -14,6 +14,18 @@
 // `<LeftRail slot="left-rail" />` IS the drawer at <1024px via
 // CSS rules in Base.astro that reposition the existing aside as a
 // fixed off-canvas element. Resolves M-UX-T7-ISS-02 + ISS-03.
+//
+// M-UX-REVIEW T4 update (2026-04-27): D1 moves `<DrawerTrigger>` out
+// of `<Breadcrumb>`'s `drawer-trigger` slot and into Base.astro's
+// chrome-level `drawer-trigger` slot so the trigger survives the
+// breadcrumb hide at <768px (UI-review F9). Notes routes have no
+// `sections` frontmatter, so D2's `<MobileChapterTOC>` is NOT
+// mounted here; the existing empty right-rail aside collapses
+// gracefully at <768px (Base.astro hides it via media query).
+//
+// M-UX-REVIEW T3 update (2026-04-27): mirrors the lectures route's
+// D2 structural change — eyebrow caption + topic-as-H1 + collection
+// tabs under the H1. See lectures/[id].astro for the rationale.
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Definition from '../../components/callouts/Definition.astro';
@@ -24,6 +36,7 @@ import Aside from '../../components/callouts/Aside.astro';
 import CodeBlock from '../../components/callouts/CodeBlock.astro';
 import LeftRail from '../../components/chrome/LeftRail.astro';
 import Breadcrumb from '../../components/chrome/Breadcrumb.astro';
+import CollectionTabs from '../../components/chrome/CollectionTabs.astro';
 import Drawer from '../../components/chrome/Drawer.astro';
 import DrawerTrigger from '../../components/chrome/DrawerTrigger.astro';
 
@@ -40,16 +53,18 @@ const { Content } = await render(entry);
 ---
 
 <Base title={`${entry.data.title} — Notes`}>
-  <Breadcrumb slot="breadcrumb">
-    <DrawerTrigger slot="drawer-trigger" />
-  </Breadcrumb>
+  <DrawerTrigger slot="drawer-trigger" />
+  <Breadcrumb slot="breadcrumb" />
   <LeftRail slot="left-rail" />
   <Drawer slot="drawer" />
   <header>
-    <h1>{entry.data.title} — Notes</h1>
-    <p><em>{entry.data.subtitle}</em></p>
+    {/* T3 D2 (F6): eyebrow + topic-as-H1 + tabs. */}
+    <p class="ch-eyebrow">{entry.data.title} · Notes</p>
+    <h1>{entry.data.subtitle}</h1>
+    <CollectionTabs current="notes" chapterId={entry.data.chapter_id} />
   </header>
   <article>
-    <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock }} />
+    {/* M-UX-REVIEW T5 — `pre: CodeBlock` (see lectures/[id].astro). */}
+    <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock, pre: CodeBlock }} />
   </article>
 </Base>

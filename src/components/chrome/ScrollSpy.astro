@@ -71,9 +71,13 @@
      * Guard (resolves M-UX-T4-ISS-01 / MEDIUM): the observer watches
      * every `article a[id^="ch_"]` (e.g. 111 anchors on ch_4) but
      * `tocLinks` only carries the section-level entries the lectures
-     * frontmatter declares (e.g. 68 on ch_4). When a non-TOC
-     * subsection anchor is the topmost intersecting one, we'd
-     * otherwise iterate the TOC and clear every `data-current`
+     * frontmatter declares (e.g. 68 on ch_4 post M-UX-REVIEW T2 —
+     * the rail now contains both `data-level="1"` numbered top-level
+     * sections + `data-level="2"` H2 subsections; H3+ anchors stay
+     * filtered at the build-script boundary). When a non-TOC
+     * subsection anchor (e.g. an unnumbered `\subsection*` not in
+     * frontmatter, or a deep H3+) is the topmost intersecting one,
+     * we'd otherwise iterate the TOC and clear every `data-current`
      * without setting a new one — the highlight would blank out
      * while the reader scrolls deep inside a long section. Bailing
      * early when `anchorId` isn't in `tocLinks` preserves the
@@ -81,6 +85,26 @@
      * below "If none intersect (e.g. between two long sections),
      * keep the current highlight rather than clearing — the
      * previous section is still the most relevant context."
+     *
+     * H1-vs-H2 most-specific-pick (M-UX-REVIEW T2 D3, 2026-04-27;
+     * cycle-2 hardening, M-UX-REVIEW-T2-ISS-03):
+     * with H2 entries restored to the rail, two intersecting headings
+     * (parent H1 + nested H2) could both qualify on the same
+     * observer call. Today's `rootMargin: '0px 0px -66% 0px'`
+     * geometry already lands on the H2 for the asserted ch_4 anchor
+     * pair because the parent H1 has scrolled past the upper third
+     * by the time the H2 enters it. The cycle-1 audit (LOW-3) flagged
+     * the geometric argument as fragile against future `rootMargin`
+     * tweaks (e.g. a relaxed `-50%` band could let H1 + H2 intersect
+     * simultaneously); the observer callback below adds a defensive
+     * `(level desc, top asc)` sort that prefers the higher
+     * `data-level` first and falls back to topmost-wins on level
+     * ties, so the most-specific entry always wins regardless of
+     * how the rootMargin is later tuned. `data-level` is read from
+     * the matching TOC link in `tocLinks` (article anchors don't
+     * carry the attribute; the TOC `<a class="toc-link">` does, per
+     * `RightRailTOC.astro` line 164). `setCurrent()` itself is
+     * unchanged — it just paints the winning anchor.
      */
     function setCurrent(anchorId: string): void {
       if (!tocLinks.has(anchorId)) return;
@@ -94,6 +118,22 @@
     }
 
     /**
+     * Read the `data-level` from the TOC link that mirrors this
+     * article anchor. Returns 1 by default when the anchor is
+     * level-agnostic (e.g. an article anchor not declared in
+     * frontmatter, or a future schema where `data-level` is absent).
+     * Defensive: keeps the sort stable on legacy data.
+     */
+    function levelFor(anchorId: string): number {
+      const link = tocLinks.get(anchorId);
+      if (!link) return 1;
+      const raw = link.dataset.level;
+      if (!raw) return 1;
+      const parsed = parseInt(raw, 10);
+      return Number.isFinite(parsed) ? parsed : 1;
+    }
+
+    /**
      * IntersectionObserver callback: pick the topmost intersecting
      * heading inside the viewport's upper third and mark it current.
      * If none intersect (e.g. between two long sections), keep the
@@ -103,14 +143,30 @@
     const observer = new IntersectionObserver(
       (entries) => {
         // Prefer entries that are intersecting; among those, pick
-        // the one closest to the top of the viewport.
+        // the most-specific (highest `data-level`) and fall back
+        // to topmost-wins on level ties.
+        //
+        // Defensive tiebreaker (M-UX-REVIEW-T2-ISS-03, cycle-2):
+        // today's `rootMargin: '0px 0px -66% 0px'` band makes
+        // simultaneous H1 + H2 intersection rare on real chapter
+        // content (the parent H1 has already scrolled past the
+        // upper third by the time the H2 enters), so the geometric
+        // sort below is normally a no-op tiebreaker. If the
+        // rootMargin is ever tweaked to a taller reading band the
+        // level-first sort guarantees the H2 still wins over its
+        // parent H1 — the contract `setCurrent` paints the most-
+        // specific intersecting entry stays intact.
         const intersecting = entries.filter((e) => e.isIntersecting);
         if (intersecting.length === 0) return;
-        intersecting.sort(
-          (a, b) =>
+        intersecting.sort((a, b) => {
+          const aLevel = levelFor(a.target.id);
+          const bLevel = levelFor(b.target.id);
+          if (aLevel !== bLevel) return bLevel - aLevel;
+          return (
             a.target.getBoundingClientRect().top -
-            b.target.getBoundingClientRect().top,
-        );
+            b.target.getBoundingClientRect().top
+          );
+        });
         const top = intersecting[0];
         if (top.target.id) {
           setCurrent(top.target.id);

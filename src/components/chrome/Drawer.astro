@@ -8,6 +8,16 @@
 // (Page chrome — Mobile (<1024px) — single column / left rail
 // collapses to hamburger drawer in the breadcrumb bar).
 //
+// **M-UX-REVIEW T4 update (2026-04-27).** D3 (UI-review F10) added
+// `data-drawer-state` as a CSS-rotation styling hook on the trigger
+// button. This island is the writer: open() sets `data-drawer-state=
+// "open"`, close() sets `"closed"`, in lockstep with the existing
+// `aria-expanded` flip. The CSS rule on
+// `.drawer-trigger[data-drawer-state="open"] .drawer-chevron` (in
+// `DrawerTrigger.astro`) handles the visual rotation; this island
+// only writes the attribute. No new event surface; the existing
+// `cs300:drawer-toggle` toggle path was extended in-place.
+//
 // **Cycle 2 refactor (2026-04-25 — closes M-UX-T7-ISS-02 + ISS-03).**
 // Cycle 1 twice-rendered LeftRail (a desktop instance in the left-
 // rail slot + a drawer instance in this Drawer's <slot />). That
@@ -210,6 +220,12 @@
       document.body.classList.add('drawer-open');
       const trigger = document.getElementById('drawer-trigger');
       trigger?.setAttribute('aria-expanded', 'true');
+      // M-UX-REVIEW T4 D3 — chevron rotation hook. `data-drawer-state`
+      // is the styling-only attribute the CSS rule on
+      // `[data-drawer-state="open"] .drawer-chevron` reads to apply
+      // the 180° rotation. Flipped in lockstep with `aria-expanded`
+      // so the visual + a11y states never disagree.
+      trigger?.setAttribute('data-drawer-state', 'open');
       // Move focus into the drawer for the focus-trap loop. Pick
       // the first focusable element inside the aside (typically the
       // first chapter link). Predictable + immediately accessible.
@@ -224,6 +240,8 @@
       document.body.classList.remove('drawer-open');
       const trigger = document.getElementById('drawer-trigger');
       trigger?.setAttribute('aria-expanded', 'false');
+      // M-UX-REVIEW T4 D3 — flip styling hook back to closed.
+      trigger?.setAttribute('data-drawer-state', 'closed');
       // Restore focus to whatever was focused before the drawer
       // opened — typically the trigger button.
       const restore = lastFocused ?? document.getElementById('drawer-trigger');

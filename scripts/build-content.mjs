@@ -68,27 +68,63 @@ async function runPandoc(srcAbs, outAbs, chapterId) {
 // Walk the pandoc-emitted MDX for header lines of the form
 //   `## Title text {#ch_N-section-slug}`
 // and capture them in document order as the section index.
+//
+// Per M-UX-REVIEW T2 D1 (2026-04-27): emit `level: 1 | 2` per entry
+// so the right-rail TOC can render H1 + H2 with a clear visual split
+// (UI-review F4). Heading-depth mapping after the chapter source is
+// run through pandoc:
+//   - `\section{4.1 The List ADT}`     → MDX `# 4.1 ...`  (depth 1)
+//   - `\subsection{The contract: …}`   → MDX `## …`        (depth 2)
+//   - `\subsubsection{…}`              → MDX `### …`       (depth 3)
+// Top-level numbered titles always match `^\d+\.\d+\s` (e.g. "4.1 ").
+// Subsection titles do not. We keep depth ≤ 2 (drop H3 and below —
+// too granular for a rail per spec) and assign:
+//   level: 1  if title matches /^\d+\.\d+\s/  (the numbered top-level)
+//   level: 2  otherwise  (H2 subsection under a numbered top-level)
+// Reverses the M-UX b29d409 frontmatter-side filter (which dropped
+// every non-`^\d+\.\d+\s` title outright); RightRailTOC.astro now
+// renders both levels and styles them via `data-level`.
 function extractSections(mdx, chapterId) {
   const sections = [];
   // ATX-style headers: 1-6 leading #, then the text, then the
-  // {#anchor} attribute block pandoc writes.
-  const re = /^#+\s+(.+?)\s*\{#(ch_[A-Za-z0-9_-]+)\}/gm;
+  // {#anchor} attribute block pandoc writes. Captures the depth
+  // (number of `#`) so we can drop H3+ entries below.
+  //
+  // Note: the trailing `\}` is intentionally strict — it does NOT
+  // match `{#anchor .unnumbered}` (pandoc emits this for
+  // `\subsection*{...}` starred headers). Loosening to allow the
+  // class block would balloon the rail far beyond the M-UX-REVIEW
+  // T2 spec's "~37 → ~60" envelope (chapters with heavy
+  // `\subsection*` use — ch_5/ch_3/etc. — would jump to 50–120
+  // entries each, regressing the b29d409 bundle savings by far
+  // more than the spec's expected ~80 KB). T2 scope is the H1/H2
+  // visual split; the unnumbered-subsection round-trip is out of
+  // scope and stays as-is until a future task explicitly authors
+  // it.
+  const re = /^(#+)\s+(.+?)\s*\{#(ch_[A-Za-z0-9_-]+)\}/gm;
+  const TOP_LEVEL_TITLE = /^\d+\.\d+\s/;
   let m;
   let ord = 0;
   while ((m = re.exec(mdx)) !== null) {
-    const [, title, id] = m;
-    if (id.startsWith(`${chapterId}-`)) {
-      sections.push({
-        id,
-        anchor: id,
-        // Inline code in titles (e.g. "## `std::vector`") arrives
-        // with backticks; strip for plain-text storage. The MDX body
-        // still renders them fine because the body uses the original
-        // header line, not this stripped copy.
-        title: title.replace(/`/g, ''),
-        ord: ord++,
-      });
-    }
+    const [, hashes, rawTitle, id] = m;
+    if (!id.startsWith(`${chapterId}-`)) continue;
+    const depth = hashes.length;
+    // Drop H3 and below — keep the rail focused on chapter section
+    // (`\section`) + immediate subsection (`\subsection`) entries.
+    if (depth > 2) continue;
+    // Inline code in titles (e.g. "## `std::vector`") arrives with
+    // backticks; strip for plain-text storage. The MDX body still
+    // renders them fine because the body uses the original header
+    // line, not this stripped copy.
+    const title = rawTitle.replace(/`/g, '');
+    const level = TOP_LEVEL_TITLE.test(title) ? 1 : 2;
+    sections.push({
+      id,
+      anchor: id,
+      title,
+      level,
+      ord: ord++,
+    });
   }
   return sections;
 }
@@ -293,6 +329,10 @@ function injectFrontmatter(body, frontmatter) {
         lines.push(`  - id: ${JSON.stringify(item.id)}`);
         lines.push(`    anchor: ${JSON.stringify(item.anchor)}`);
         lines.push(`    title: ${JSON.stringify(item.title)}`);
+        // M-UX-REVIEW T2 D1: visual-hierarchy level (1 = top-level
+        // numbered, 2 = subsection). Consumed by RightRailTOC.astro
+        // to set the `data-level` attr that drives the H1/H2 split.
+        lines.push(`    level: ${item.level}`);
         lines.push(`    ord: ${item.ord}`);
       }
     } else {

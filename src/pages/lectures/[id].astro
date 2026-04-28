@@ -78,6 +78,41 @@
 //     CompletionIndicator JSON and resolving the duplicate-id
 //     HTML5-invalid finding (M-UX-T7-ISS-02 + ISS-03).** No more
 //     `<LeftRail />` inside `<Drawer>`.
+//
+// M-UX-REVIEW T4 update (2026-04-27): D1 + D2 reshape mobile chrome.
+//   D1 — `<DrawerTrigger>` moves out of `<Breadcrumb>`'s component-
+//        internal `drawer-trigger` slot and into Base.astro's new
+//        chrome-level `drawer-trigger` slot. The trigger is now a
+//        sibling of the breadcrumb so it survives the
+//        `.breadcrumb-bar { display: none }` hide at <768px
+//        (UI-review F9). The slot host moved; the JSX import is
+//        unchanged.
+//   D2 — `<MobileChapterTOC>` mounts inside `<header>` after
+//        `<CollectionTabs>` so the mobile DOM order reads
+//        eyebrow → H1 → tabs → on-this-page → article. Hidden at
+//        ≥768px via its own component CSS rule; the desktop
+//        `<RightRailTOC>` remains the sole TOC surface above the
+//        breakpoint, and Base.astro's @media rule hides the
+//        right-rail aside at <768px so the two TOC surfaces never
+//        paint at the same viewport. Lectures-only mount because
+//        the mobile component requires the lectures-frontmatter
+//        `sections` array; notes / practice routes have no
+//        `sections` field on their content schemas.
+//
+// M-UX-REVIEW T3 update (2026-04-27): D2 promotes the chapter topic
+// to H1 and demotes the "Chapter N · Lectures" coordinates to a
+// small eyebrow caption (UI-review F6, MEDIUM). The user already
+// reads "Chapter 4" + "Lectures" from the URL, the breadcrumb crumbs,
+// the active LeftRail row, and the new collection tabs — making the
+// H1 carry the same coordinates again was redundant. The chapter
+// topic ("Lists, stacks, queues, deques") is the actual answer to
+// "what am I reading", so it lands as the H1.
+//   - eyebrow: `<p class="ch-eyebrow">Chapter 4 · Lectures</p>`
+//   - h1:      `<h1>Lists, stacks, queues, deques</h1>`
+//   - tabs:    `<CollectionTabs current="lectures" chapterId="ch_4" />`
+// CollectionTabs is the new home for the cross-collection link
+// (D1 removed the breadcrumb's collection-switcher pills + middle
+// path segment; the link contract is preserved here).
 // Right-rail TOC + AnnotationsPane wrap themselves in <details>
 // elements (always rendered, summary CSS-hidden at desktop) so
 // the same DOM tree handles both desktop fixed-rail and mobile
@@ -97,11 +132,13 @@ import AnnotationsPane from '../../components/annotations/AnnotationsPane.astro'
 import MarkReadButton from '../../components/read_status/MarkReadButton.astro';
 import LeftRail from '../../components/chrome/LeftRail.astro';
 import Breadcrumb from '../../components/chrome/Breadcrumb.astro';
+import CollectionTabs from '../../components/chrome/CollectionTabs.astro';
 import RightRailTOC from '../../components/chrome/RightRailTOC.astro';
 import ScrollSpy from '../../components/chrome/ScrollSpy.astro';
 import RightRailReadStatus from '../../components/chrome/RightRailReadStatus.astro';
 import Drawer from '../../components/chrome/Drawer.astro';
 import DrawerTrigger from '../../components/chrome/DrawerTrigger.astro';
+import MobileChapterTOC from '../../components/chrome/MobileChapterTOC.astro';
 
 export async function getStaticPaths() {
   const lectures = await getCollection('lectures');
@@ -117,9 +154,8 @@ const sectionIds = entry.data.sections.map((s) => s.id);
 ---
 
 <Base title={`${entry.data.title} — Lectures`}>
-  <Breadcrumb slot="breadcrumb">
-    <DrawerTrigger slot="drawer-trigger" />
-  </Breadcrumb>
+  <DrawerTrigger slot="drawer-trigger" />
+  <Breadcrumb slot="breadcrumb" />
   <LeftRail slot="left-rail" />
   <RightRailTOC
     slot="right-rail"
@@ -132,11 +168,24 @@ const sectionIds = entry.data.sections.map((s) => s.id);
   <Drawer slot="drawer" />
   <MarkReadButton />
   <header>
-    <h1>{entry.data.title} — Lectures</h1>
-    <p><em>{entry.data.subtitle}</em></p>
+    {/* T3 D2 (F6): eyebrow caption replaces the redundant
+        "Chapter N · Lectures" H1 the user already knows. The H1
+        below names the chapter TOPIC. */}
+    <p class="ch-eyebrow">{entry.data.title} · Lectures</p>
+    <h1>{entry.data.subtitle}</h1>
+    <CollectionTabs current="lectures" chapterId={entry.data.chapter_id} />
+    {/* T4 D2 — mobile-only "On this page" details. Hidden at
+        ≥768px via the component's own CSS; the desktop right-rail
+        TOC takes over above the breakpoint. */}
+    <MobileChapterTOC sections={entry.data.sections} />
   </header>
   <article>
-    <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock }} />
+    {/* M-UX-REVIEW T5 (2026-04-27) — `pre: CodeBlock` routes MDX-rendered
+        fenced code blocks (Shiki output, the dominant code path on
+        chapter pages) through the same envelope as explicit `<CodeBlock>`
+        JSX usage so every block on the page renders the F7 polish
+        (8px outer margin, top-right `C++` tag, copy button). */}
+    <Content components={{ Definition, KeyIdea, Gotcha, Example, Aside, CodeBlock, pre: CodeBlock }} />
   </article>
   <AnnotateButton />
 </Base>

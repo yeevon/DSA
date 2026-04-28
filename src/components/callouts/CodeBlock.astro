@@ -1,97 +1,257 @@
 ---
-// CodeBlock.astro — Syntax-highlighted code with a copy-to-clipboard
-// button. Receives the code as either a `code` prop or via the slot.
+// CodeBlock.astro — code-block envelope (header strip + copy button)
+// for both explicit JSX usage and the MDX `pre` element mapping.
 //
-// In M2 T2's Lua-filter output, code blocks ship as fenced markdown
-// with a `cpp` language hint. T4's MDX integration (next milestone
-// task) will configure Astro's `markdown.shikiConfig` so fenced
-// blocks pick up the right theme; a follow-up wiring step in
-// Astro's MDX `components` map can route `<pre><code class=…>` to
-// this component to attach the copy button. For T3, this component
-// is invokable directly from `.astro` pages (used by the
-// `_callouts-test.astro` smoke page).
+// History:
+//   - M2 T2/T5b: original component, hover-revealed copy button on
+//     `.codeblock .copy-btn`. Routed only the explicit
+//     `<CodeBlock code="..." />` JSX path; MDX-rendered fenced blocks
+//     bypassed it entirely (Shiki emitted bare `<pre class="astro-code">`).
+//   - M-UX-REVIEW T5 (2026-04-27, this edit) — UI-review F7 (MED).
+//     Markup reshaped to a `.code-block` wrapper with a top-right
+//     header strip carrying a `.code-block-lang` tag (fixed `C++` per
+//     spec D2 Path A — chapter set is uniformly C++17, per-block
+//     language detection deferred to architecture.md §6 forward-work)
+//     and a `.code-block-copy` button. Outer 8px margin (D1) gives
+//     adjacent prose breathing room. Same component is now ALSO
+//     mapped as the MDX `pre` element in the lectures / notes /
+//     practice route templates so chapter fenced code blocks (which
+//     dominate the corpus) ship the same envelope as explicit
+//     `<CodeBlock>` JSX usage.
+//
+// Two render modes (single component, branch on `code` prop):
+//
+//   1. **Explicit JSX** — `<CodeBlock code="..." lang="..." />`. Renders
+//      the envelope plus Astro's `<Code>` (Shiki) inside. Used by any
+//      `.astro` page that wants to drop a code listing inline; the
+//      M3 callouts smoke page is the canonical caller today.
+//
+//   2. **MDX `pre` mapping** — `components={{ pre: CodeBlock }}` on
+//      `<Content />`. MDX's renderer hands the original `<pre>`
+//      attributes to this component as props (className like
+//      `astro-code github-dark`, inline style with the Shiki
+//      background, `data-language="cpp"`, `tabindex="0"`); the inner
+//      `<code>` arrives via the default slot. We re-emit the `<pre>`
+//      verbatim with those attributes so Shiki's syntax highlighting
+//      survives unchanged — only the wrapper + header strip is added.
 //
 // Static-mode only — the "send to editor" affordance lands in M6
 // (code execution).
+//
+// Companion files:
+//   - design_docs/milestones/m_ux_review/tasks/T5_code_block_polish.md
+//   - design_docs/architecture.md §1 component-library subsection
+//     (T5 D5 — copy button + lang tag flip from forward-looking to
+//     shipped, send-to-editor stays forward-looking M6)
+//   - src/pages/{lectures,notes,practice}/[id].astro (T5 — register
+//     `pre: CodeBlock` in the MDX `components` map)
+//   - scripts/pandoc-filter.lua (T5 explicitly does NOT touch this;
+//     per-block language detection remains an architecture §6
+//     forward-work item, trigger = first non-C++ chapter block)
 import { Code } from 'astro:components';
 
 interface Props {
   /** Source language for syntax highlighting (e.g. "cpp", "ts"). */
   lang?: string;
-  /** Code content. If omitted, the slot is used (raw, unhighlighted). */
+  /** Code content. If omitted, the slot is used (Shiki output from
+   *  the MDX `pre` mapping, or raw text for direct slot usage). */
   code?: string;
+  /** Forwarded `<pre>` className when used as the MDX `pre` mapping
+   *  (Astro hands us Shiki's `astro-code github-dark` class). */
+  class?: string;
+  /** Forwarded `<pre>` inline style — Shiki uses this for the dark
+   *  background-color + foreground-color tokens that drive its theme. */
+  style?: string;
+  /** Forwarded data-language hint Astro emits on Shiki blocks. */
+  'data-language'?: string;
+  /** Forwarded tabindex (Shiki sets tabindex="0" so long blocks are
+   *  keyboard-scrollable). */
+  tabindex?: string | number;
 }
 
-const { lang = 'cpp', code } = Astro.props;
+const {
+  lang = 'cpp',
+  code,
+  class: preClass,
+  style: preStyle,
+  'data-language': dataLanguage,
+  tabindex,
+} = Astro.props;
 ---
 
-<div class="codeblock">
-  <button
-    class="copy-btn"
-    type="button"
-    aria-label="Copy code to clipboard"
-    data-code={code ?? ''}
-  >Copy</button>
-  {code
-    ? <Code code={code} lang={lang as any} theme="github-light" />
-    : <pre><code class={`language-${lang}`}><slot /></code></pre>
-  }
+<div class="code-block">
+  <div class="code-block-header" aria-hidden="true">
+    <span class="code-block-lang">C++</span>
+    <button class="code-block-copy" type="button" aria-label="Copy code to clipboard">Copy</button>
+  </div>
+  {code ? (
+    <Code code={code} lang={lang as any} theme="github-dark" />
+  ) : preClass ? (
+    /* MDX `pre` mapping — Shiki already produced the styled `<pre>`;
+       re-emit it with the original attrs so the highlight markup
+       inside `<slot />` stays valid HTML (`<pre>` parent, `<code>`
+       child). */
+    <pre class={preClass} style={preStyle} data-language={dataLanguage} tabindex={tabindex}><slot /></pre>
+  ) : (
+    /* Direct slot usage (no Shiki) — fall back to a plain `<pre><code>`
+       tagged with the requested language class for any future client-
+       side highlighter. Kept for parity with the M2 T3 contract; the
+       smoke page exercises this path. */
+    <pre><code class={`language-${lang}`}><slot /></code></pre>
+  )}
 </div>
 
 <script>
-  // Tiny client island: bind copy buttons. Works for both prop-driven
-  // (data-code carries the source) and slot-driven (read from <code>)
-  // CodeBlock instances.
-  for (const btn of document.querySelectorAll<HTMLButtonElement>('.codeblock .copy-btn')) {
+  /* Tiny client island: bind the copy button on every `.code-block`
+   * envelope present at parse time. Single event listener per button,
+   * no framework. Always loaded (static + interactive mode); ~0.5 KB
+   * after minification.
+   *
+   * Behaviour (M-UX-REVIEW T5 D3):
+   *   - Click → write the inner `<code>` text to the clipboard via
+   *     `navigator.clipboard.writeText`.
+   *   - On success: swap label to "Copied", set `data-state="copied"`
+   *     on the button for ~1.5s, then revert. The `data-state`
+   *     attribute is the test hook for `code-block-copy-functional`
+   *     (functional-tests.json) — clipboard read in headless Chrome
+   *     is unreliable, so the visible state-flip is the assertion.
+   *   - On error: swap label to "Failed", set `data-state="failed"`
+   *     for ~1.5s, then revert. `console.error` for dev surfacing.
+   */
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('.code-block .code-block-copy')) {
     btn.addEventListener('click', async () => {
-      let code = btn.getAttribute('data-code') ?? '';
-      if (!code) {
-        const codeEl = btn.parentElement?.querySelector('code');
-        code = codeEl?.textContent ?? '';
-      }
+      const codeEl = btn.closest('.code-block')?.querySelector('code');
+      const text = codeEl?.textContent ?? '';
+      const original = btn.textContent ?? 'Copy';
       try {
-        await navigator.clipboard.writeText(code);
-        const original = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => {
-          btn.textContent = original;
-        }, 1500);
+        await navigator.clipboard.writeText(text);
+        btn.textContent = 'Copied';
+        btn.setAttribute('data-state', 'copied');
       } catch (err) {
         console.error('CodeBlock copy failed:', err);
+        btn.textContent = 'Failed';
+        btn.setAttribute('data-state', 'failed');
       }
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.removeAttribute('data-state');
+      }, 1500);
     });
   }
 </script>
 
 <style>
-  .codeblock {
+  /* T5 D1 — outer margin: ~8px breathing room above and below so
+     adjacent prose / callouts don't kiss the code block. Token
+     `--mux-space-2` resolves to 8px (chrome.css). `margin-block` sets
+     both block-start and block-end with one rule. */
+  .code-block {
     position: relative;
-    margin: 1rem 0;
+    margin-block: var(--mux-space-2);
   }
-  .codeblock pre {
+
+  /* The Shiki `<pre>` (or the fallback `<pre><code>`) sits inside
+     `.code-block`. Reset its own margin so the wrapper's
+     `margin-block` is the single source of vertical rhythm. The
+     `<pre>` keeps Shiki's inline `background-color` + `color` style
+     so the theme survives — we only normalize the box.
+
+     M-UX-REVIEW T6 D2 (2026-04-27 — UI-review F11): pin the mono
+     font on the rendered `<pre>` itself. Shiki emits `<pre
+     class="astro-code">` without a `font-family` declaration, so the
+     `<pre>` UA default (`monospace`) was painting code blocks in the
+     browser's generic-monospace family — not the pinned JetBrains
+     Mono. Setting `font-family: var(--mux-font-mono)` here threads
+     the F11 typography pair through every Shiki render path
+     (explicit `<CodeBlock code="..." />` JSX + the MDX `pre`
+     mapping). The cascade still lets `.code-block-lang` /
+     `.code-block-copy` inherit the same family because the body
+     paragraph context above them is `var(--mux-font-body)`; both
+     header-strip rules above set the family explicitly so this rule
+     doesn't accidentally restyle the language tag or copy button. */
+  .code-block > pre {
     margin: 0;
-    padding: 0.75rem 1rem;
-    background: #f6f8fa;
+    padding: var(--mux-space-3) var(--mux-space-4);
     border-radius: 6px;
     overflow-x: auto;
     font-size: 0.875rem;
     line-height: 1.5;
+    font-family: var(--mux-font-mono);
   }
-  .codeblock .copy-btn {
+
+  /* T5 D2 — header strip pinned top-right of the wrapper. Absolute
+     positioning so the strip doesn't push the `<pre>` content down;
+     the `<pre>`'s own padding-right is wide enough that real code
+     content rarely runs under the strip, and Shiki's overflow-x
+     scroll lets the user pan if it does. `pointer-events: none` on
+     the strip itself (re-enabled on the button) so the lang tag
+     doesn't intercept text-selection drags inside the code. */
+  .code-block-header {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.75rem;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.15s;
+    top: var(--mux-space-2);
+    right: var(--mux-space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--mux-space-2);
+    pointer-events: none;
+    z-index: 1;
   }
-  .codeblock:hover .copy-btn,
-  .codeblock .copy-btn:focus {
-    opacity: 1;
+
+  /* Muted small-caps tag. Distinct from the body text colour so it
+     reads as metadata, not content. Kept aria-hidden on the parent
+     strip — screen readers should announce the code block's actual
+     contents, not the C++ label. */
+  .code-block-lang {
+    font-family: var(--mux-font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--mux-fg-subtle);
+    background: var(--mux-surface);
+    padding: 2px var(--mux-space-2);
+    border: 1px solid var(--mux-border-subtle);
+    border-radius: 3px;
+    line-height: 1.2;
+  }
+
+  /* Copy button — small outline button, re-enables pointer events
+     so clicks land. Hover/focus surface tweaks for affordance. */
+  .code-block-copy {
+    pointer-events: auto;
+    appearance: none;
+    background: var(--mux-surface);
+    border: 1px solid var(--mux-border);
+    border-radius: 4px;
+    padding: 2px var(--mux-space-2);
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--mux-fg);
+    cursor: pointer;
+    line-height: 1.2;
+  }
+
+  .code-block-copy:hover {
+    background: var(--mux-surface-alt);
+  }
+
+  .code-block-copy:focus-visible {
+    outline: 2px solid var(--mux-accent);
+    outline-offset: 2px;
+  }
+
+  /* `data-state="copied"` — brief affirmation styling. Accent green
+     matches the rest of the chrome (read-status, completion bar). */
+  .code-block-copy[data-state='copied'] {
+    background: var(--mux-accent-bg);
+    border-color: var(--mux-accent);
+    color: var(--mux-accent-strong);
+  }
+
+  /* `data-state="failed"` — error tone. Border + text use a muted
+     red that doesn't clash with the dark Shiki theme. */
+  .code-block-copy[data-state='failed'] {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #991b1b;
   }
 </style>

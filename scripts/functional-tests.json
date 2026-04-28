@@ -1,5 +1,23 @@
 [
   {
+    "name": "home-continue-reading-empty-by-default",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.removeItem('cs300:last-visit'); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"]",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 0
+      }
+    ]
+  },
+  {
     "name": "chrome-centered-2560",
     "url": "/DSA/lectures/ch_4/",
     "viewport": { "w": 2560, "h": 1080 },
@@ -115,63 +133,6 @@
     ]
   },
   {
-    "name": "breadcrumb-collection-link-notes",
-    "url": "/DSA/notes/ch_4/",
-    "viewport": { "w": 1280, "h": 800 },
-    "asserts": [
-      {
-        "type": "href-pattern",
-        "selector": ".breadcrumb-path li:nth-child(2) a",
-        "expected": "/DSA/notes/$"
-      },
-      {
-        "type": "attr",
-        "selector": ".breadcrumb-path li:nth-child(2) a",
-        "name": "textContent",
-        "expected": "^Notes$",
-        "regex": true
-      }
-    ]
-  },
-  {
-    "name": "breadcrumb-collection-link-lectures",
-    "url": "/DSA/lectures/ch_4/",
-    "viewport": { "w": 1280, "h": 800 },
-    "asserts": [
-      {
-        "type": "href-pattern",
-        "selector": ".breadcrumb-path li:nth-child(2) a",
-        "expected": "/DSA/lectures/$"
-      },
-      {
-        "type": "attr",
-        "selector": ".breadcrumb-path li:nth-child(2) a",
-        "name": "textContent",
-        "expected": "^Lectures$",
-        "regex": true
-      }
-    ]
-  },
-  {
-    "name": "breadcrumb-collection-link-practice",
-    "url": "/DSA/practice/ch_4/",
-    "viewport": { "w": 1280, "h": 800 },
-    "asserts": [
-      {
-        "type": "href-pattern",
-        "selector": ".breadcrumb-path li:nth-child(2) a",
-        "expected": "/DSA/practice/$"
-      },
-      {
-        "type": "attr",
-        "selector": ".breadcrumb-path li:nth-child(2) a",
-        "name": "textContent",
-        "expected": "^Practice$",
-        "regex": true
-      }
-    ]
-  },
-  {
     "name": "breadcrumb-current-page-no-link",
     "url": "/DSA/lectures/ch_4/",
     "viewport": { "w": 1280, "h": 800 },
@@ -236,12 +197,12 @@
     "asserts": [
       {
         "type": "count",
-        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "selector": "article.chapter-card .chapter-card-links a.ch-action--primary",
         "expected": 12
       },
       {
         "type": "href-pattern",
-        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "selector": "article.chapter-card .chapter-card-links a.ch-action--primary",
         "expected": "/DSA/lectures/ch_\\d+/$",
         "all": true
       }
@@ -254,12 +215,12 @@
     "asserts": [
       {
         "type": "count",
-        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "selector": "article.chapter-card .chapter-card-links a.ch-action--primary",
         "expected": 12
       },
       {
         "type": "href-pattern",
-        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "selector": "article.chapter-card .chapter-card-links a.ch-action--primary",
         "expected": "/DSA/notes/ch_\\d+/$",
         "all": true
       }
@@ -272,38 +233,38 @@
     "asserts": [
       {
         "type": "count",
-        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "selector": "article.chapter-card .chapter-card-links a.ch-action--primary",
         "expected": 12
       },
       {
         "type": "href-pattern",
-        "selector": "article.chapter-card .chapter-card-links a.is-current-collection",
+        "selector": "article.chapter-card .chapter-card-links a.ch-action--primary",
         "expected": "/DSA/practice/ch_\\d+/$",
         "all": true
       }
     ]
   },
   {
-    "name": "rhs-toc-top-level-only-ch1",
+    "name": "rhs-toc-h1-numbered-ch1",
     "url": "/DSA/lectures/ch_1/",
     "viewport": { "w": 1280, "h": 800 },
     "asserts": [
       {
         "type": "text-pattern",
-        "selector": ".right-rail-toc a.toc-link .toc-label",
+        "selector": ".right-rail-toc li[data-level=\"1\"] a.toc-link .toc-label",
         "expected": "^\\d+\\.\\d+\\s",
         "all": true
       }
     ]
   },
   {
-    "name": "rhs-toc-top-level-only-ch4",
+    "name": "rhs-toc-h1-numbered-ch4",
     "url": "/DSA/lectures/ch_4/",
     "viewport": { "w": 1280, "h": 800 },
     "asserts": [
       {
         "type": "text-pattern",
-        "selector": ".right-rail-toc a.toc-link .toc-label",
+        "selector": ".right-rail-toc li[data-level=\"1\"] a.toc-link .toc-label",
         "expected": "^\\d+\\.\\d+\\s",
         "all": true
       }
@@ -319,7 +280,7 @@
         "selector": ".chrome > [data-slot=\"breadcrumb\"]",
         "prop": "height",
         "op": "between",
-        "expected": [44, 48]
+        "expected": [40, 42]
       }
     ]
   },
@@ -353,6 +314,1017 @@
         "selector": "details.toc-mobile-collapse",
         "name": "open",
         "expected": null
+      }
+    ]
+  },
+  {
+    "name": "home-card-action-classes",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card",
+        "expected": 12
+      },
+      {
+        "type": "count",
+        "selector": "article.chapter-card a.ch-action--primary",
+        "expected": 12
+      },
+      {
+        "type": "count",
+        "selector": "article.chapter-card a.ch-action--outline",
+        "expected": 24
+      }
+    ]
+  },
+  {
+    "name": "home-card-progress-carrier",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card [data-slot=\"ch-progress\"]",
+        "expected": 12
+      },
+      {
+        "type": "count",
+        "selector": "article.chapter-card [data-slot=\"ch-progress\"][data-interactive-only][data-chapter-id]",
+        "expected": 12
+      }
+    ]
+  },
+  {
+    "name": "home-card-h3-chapter-label",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card h3.chapter-card-title span.ch-label",
+        "expected": 12
+      },
+      {
+        "type": "text-pattern",
+        "selector": "article.chapter-card h3.chapter-card-title span.ch-label",
+        "expected": "^Chapter \\d+$",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "home-card-subtitle-blurb",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "article.chapter-card p.ch-subtitle",
+        "expected": 12
+      },
+      {
+        "type": "attr",
+        "selector": "article.chapter-card[data-chapter-id=\"ch_4\"] p.ch-subtitle",
+        "name": "textContent",
+        "expected": "Lists, stacks, queues, deques",
+        "regex": true
+      },
+      {
+        "type": "attr",
+        "selector": "article.chapter-card[data-chapter-id=\"ch_1\"] p.ch-subtitle",
+        "name": "textContent",
+        "expected": "Programming basics, arrays, and vectors",
+        "regex": true
+      },
+      {
+        "type": "attr",
+        "selector": "article.chapter-card[data-chapter-id=\"ch_10\"] p.ch-subtitle",
+        "name": "textContent",
+        "expected": "Graphs: BFS, DFS, shortest paths",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "home-required-heading",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "h2#chapters-required-heading",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": "h2#chapters-required-heading",
+        "name": "textContent",
+        "expected": "^Required$",
+        "regex": true
+      },
+      {
+        "type": "count",
+        "selector": "h2#chapters-optional-heading",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": "h2#chapters-optional-heading",
+        "name": "textContent",
+        "expected": "^Optional$",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "home-required-subtitle",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "text-pattern",
+        "selector": "section[aria-labelledby=\"chapters-required-heading\"] p.ch-group-sub",
+        "expected": "graded chapters",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "landing-required-heading-lectures",
+    "url": "/DSA/lectures/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "h2#lectures-required-heading",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": "h2#lectures-required-heading",
+        "name": "textContent",
+        "expected": "^Required$",
+        "regex": true
+      },
+      {
+        "type": "count",
+        "selector": "h2#lectures-optional-heading",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "landing-required-heading-notes",
+    "url": "/DSA/notes/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "h2#notes-required-heading",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": "h2#notes-required-heading",
+        "name": "textContent",
+        "expected": "^Required$",
+        "regex": true
+      },
+      {
+        "type": "count",
+        "selector": "h2#notes-optional-heading",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "landing-required-heading-practice",
+    "url": "/DSA/practice/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "h2#practice-required-heading",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": "h2#practice-required-heading",
+        "name": "textContent",
+        "expected": "^Required$",
+        "regex": true
+      },
+      {
+        "type": "count",
+        "selector": "h2#practice-optional-heading",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "home-continue-reading-populated",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.setItem('cs300:last-visit', JSON.stringify({path: '/DSA/lectures/ch_4/', title: 'Chapter 4', scrollY: 0, ts: Date.now()})); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 1
+      },
+      {
+        "type": "href-pattern",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": "/DSA/lectures/ch_4/?$"
+      }
+    ]
+  },
+  {
+    "name": "landing-continue-reading-empty-lectures",
+    "url": "/DSA/lectures/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.removeItem('cs300:last-visit'); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"]",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "landing-continue-reading-populated-lectures",
+    "url": "/DSA/lectures/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.setItem('cs300:last-visit', JSON.stringify({path: '/DSA/lectures/ch_4/', title: 'Chapter 4', scrollY: 0, ts: Date.now()})); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 1
+      },
+      {
+        "type": "href-pattern",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": "/DSA/lectures/ch_4/?$"
+      }
+    ]
+  },
+  {
+    "name": "landing-continue-reading-empty-notes",
+    "url": "/DSA/notes/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.removeItem('cs300:last-visit'); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"]",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "landing-continue-reading-populated-notes",
+    "url": "/DSA/notes/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.setItem('cs300:last-visit', JSON.stringify({path: '/DSA/lectures/ch_4/', title: 'Chapter 4', scrollY: 0, ts: Date.now()})); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 1
+      },
+      {
+        "type": "href-pattern",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": "/DSA/lectures/ch_4/?$"
+      }
+    ]
+  },
+  {
+    "name": "landing-continue-reading-empty-practice",
+    "url": "/DSA/practice/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.removeItem('cs300:last-visit'); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"]",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "landing-continue-reading-populated-practice",
+    "url": "/DSA/practice/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.setItem('cs300:last-visit', JSON.stringify({path: '/DSA/lectures/ch_4/', title: 'Chapter 4', scrollY: 0, ts: Date.now()})); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 1
+      },
+      {
+        "type": "href-pattern",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": "/DSA/lectures/ch_4/?$"
+      }
+    ]
+  },
+  {
+    "name": "home-continue-reading-rejects-javascript-uri",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "window.localStorage.setItem('cs300:last-visit', JSON.stringify({path: 'javascript:alert(1)', title: 'x', scrollY: 0, ts: Date.now()})); location.reload();",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"]",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"continue-reading\"] a.resume-link",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "right-rail-toc-h1-h2-mix",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".right-rail-toc li[data-level=\"1\"]",
+        "op": ">=",
+        "expected": 4
+      },
+      {
+        "type": "count",
+        "selector": ".right-rail-toc li[data-level=\"2\"]",
+        "op": ">=",
+        "expected": 4
+      }
+    ]
+  },
+  {
+    "name": "right-rail-toc-h1-bold",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": ".right-rail-toc li[data-level=\"1\"]",
+        "prop": "font-weight",
+        "op": ">=",
+        "expected": 600
+      }
+    ]
+  },
+  {
+    "name": "right-rail-toc-h2-indented",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": ".right-rail-toc li[data-level=\"2\"]",
+        "prop": "padding-left",
+        "op": ">",
+        "expected": 0
+      },
+      {
+        "type": "computed-style",
+        "selector": ".right-rail-toc li[data-level=\"2\"]",
+        "prop": "padding-left",
+        "op": ">=",
+        "expected": 16
+      }
+    ]
+  },
+  {
+    "name": "right-rail-scroll-spy-on-h2",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "var h2 = document.querySelector('article a[id=\"ch_4-the-contract-operations\"]'); if (h2) { var y = h2.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo(0, y); }",
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".right-rail-toc a.toc-link[data-current=\"true\"][data-level=\"2\"]",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": ".right-rail-toc a.toc-link[data-current=\"true\"]",
+        "name": "data-anchor",
+        "expected": "ch_4-the-contract-operations"
+      }
+    ]
+  },
+  {
+    "name": "breadcrumb-no-collection-pills",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".breadcrumb .collection-switcher",
+        "expected": 0
+      },
+      {
+        "type": "count",
+        "selector": ".breadcrumb .collection-pill",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "breadcrumb-prev-next-arrows",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "text-pattern",
+        "selector": ".breadcrumb .chapter-button.prev",
+        "expected": "←",
+        "all": true
+      },
+      {
+        "type": "text-pattern",
+        "selector": ".breadcrumb .chapter-button.next",
+        "expected": "→",
+        "all": true
+      },
+      {
+        "type": "count",
+        "selector": ".breadcrumb .chapter-button.prev",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": ".breadcrumb .chapter-button.next",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "collection-tabs-under-h1",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "(function(){var e=document.querySelector('main header .ch-eyebrow');var h=document.querySelector('main header h1');var t=document.querySelector('main header .collection-tabs');if(!e||!h||!t){document.body.setAttribute('data-t3-order','missing');return;}var et=e.getBoundingClientRect().top;var ht=h.getBoundingClientRect().top;var tt=t.getBoundingClientRect().top;document.body.setAttribute('data-t3-order',(et<ht && ht<tt)?'ok':'wrong');})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t3-order",
+        "expected": "ok"
+      },
+      {
+        "type": "count",
+        "selector": "main header .ch-eyebrow",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": "main header > h1",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": "main header .collection-tabs",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "h1-is-topic-not-coordinates",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "text-pattern",
+        "selector": "main header h1",
+        "expected": "Lists, stacks, queues, deques",
+        "all": true
+      },
+      {
+        "type": "count",
+        "selector": "main header h1",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "eyebrow-has-coordinates",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "text-pattern",
+        "selector": "main header .ch-eyebrow",
+        "expected": "(?i)Chapter 4.*Lectures",
+        "all": true
+      }
+    ]
+  },
+  {
+    "name": "collection-tabs-current-aria",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".collection-tabs a[aria-current=\"page\"]",
+        "expected": 1
+      },
+      {
+        "type": "href-pattern",
+        "selector": ".collection-tabs a[aria-current=\"page\"]",
+        "expected": "/DSA/lectures/ch_4/$"
+      },
+      {
+        "type": "count",
+        "selector": ".collection-tabs a",
+        "expected": 3
+      }
+    ]
+  },
+  {
+    "name": "collection-tabs-on-notes",
+    "url": "/DSA/notes/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".collection-tabs a[aria-current=\"page\"]",
+        "expected": 1
+      },
+      {
+        "type": "href-pattern",
+        "selector": ".collection-tabs a[aria-current=\"page\"]",
+        "expected": "/DSA/notes/ch_4/$"
+      }
+    ]
+  },
+  {
+    "name": "left-rail-truncate-other-chapters",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": "aside[data-slot=\"left-rail\"] .chapter-link:not(.is-current) .chapter-label",
+        "prop": "text-overflow",
+        "op": "==",
+        "expected": "ellipsis"
+      },
+      {
+        "type": "computed-style",
+        "selector": "aside[data-slot=\"left-rail\"] .chapter-link:not(.is-current) .chapter-label",
+        "prop": "white-space",
+        "op": "==",
+        "expected": "nowrap"
+      },
+      {
+        "type": "computed-style",
+        "selector": "aside[data-slot=\"left-rail\"] .chapter-link.is-current .chapter-label",
+        "prop": "white-space",
+        "op": "==",
+        "expected": "normal"
+      }
+    ]
+  },
+  {
+    "name": "left-rail-title-attr-on-other-chapters",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "aside[data-slot=\"left-rail\"] .chapter-link:not(.is-current)",
+        "name": "title",
+        "expected": "^ch_\\d+\\s—\\s.+",
+        "regex": true
+      },
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"left-rail\"] .chapter-link[title]",
+        "op": ">=",
+        "expected": 11
+      },
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"left-rail\"] .chapter-link.is-current[title]",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "mobile-breadcrumb-hidden-375",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": ".breadcrumb-bar",
+        "prop": "display",
+        "op": "==",
+        "expected": "none"
+      }
+    ]
+  },
+  {
+    "name": "mobile-right-rail-aside-stays-rendered-375",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "aside[data-slot=\"right-rail\"]",
+        "expected": 1
+      },
+      {
+        "type": "computed-style",
+        "selector": "aside[data-slot=\"right-rail\"]",
+        "prop": "display",
+        "op": "==",
+        "expected": "block"
+      },
+      {
+        "type": "computed-style",
+        "selector": "aside[data-slot=\"right-rail\"] .right-rail-toc",
+        "prop": "display",
+        "op": "==",
+        "expected": "none"
+      },
+      {
+        "type": "computed-style",
+        "selector": "aside[data-slot=\"right-rail\"] details.toc-mobile-collapse",
+        "prop": "display",
+        "op": "==",
+        "expected": "none"
+      }
+    ]
+  },
+  {
+    "name": "mobile-drawer-trigger-visible-375",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": "#drawer-trigger",
+        "prop": "display",
+        "op": "==",
+        "expected": "inline-flex"
+      },
+      {
+        "type": "rect",
+        "selector": "#drawer-trigger",
+        "prop": "height",
+        "op": ">",
+        "expected": 0
+      },
+      {
+        "type": "rect",
+        "selector": "#drawer-trigger",
+        "prop": "width",
+        "op": ">",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "mobile-toc-below-h1-375",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "pre_js": "(function(){var h=document.querySelector('main header h1');var t=document.querySelector('main header details.rhs-toc-mobile');if(!h||!t){document.body.setAttribute('data-t4-mobile-toc-order','missing');return;}var ht=h.getBoundingClientRect().top;var tt=t.getBoundingClientRect().top;document.body.setAttribute('data-t4-mobile-toc-order',(ht<tt)?'ok':'wrong');})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t4-mobile-toc-order",
+        "expected": "ok"
+      },
+      {
+        "type": "count",
+        "selector": "main header details.rhs-toc-mobile",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "mobile-collection-tabs-below-h1-375",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "pre_js": "(function(){var h=document.querySelector('main header h1');var t=document.querySelector('main header .collection-tabs');if(!h||!t){document.body.setAttribute('data-t4-tabs-order','missing');return;}var ht=h.getBoundingClientRect().top;var tt=t.getBoundingClientRect().top;document.body.setAttribute('data-t4-tabs-order',(ht<tt)?'ok':'wrong');})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t4-tabs-order",
+        "expected": "ok"
+      },
+      {
+        "type": "count",
+        "selector": "main header .collection-tabs",
+        "expected": 1
+      }
+    ]
+  },
+  {
+    "name": "drawer-trigger-label-text",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "#drawer-trigger .drawer-label",
+        "expected": 1
+      },
+      {
+        "type": "text-pattern",
+        "selector": "#drawer-trigger .drawer-label",
+        "expected": "^Chapters$"
+      }
+    ]
+  },
+  {
+    "name": "drawer-trigger-chevron-presence",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": "#drawer-trigger .drawer-chevron",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": "#drawer-trigger .drawer-chevron",
+        "name": "aria-hidden",
+        "expected": "true"
+      }
+    ]
+  },
+  {
+    "name": "drawer-chevron-rotates-on-open",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "pre_js": "(function(){var t=document.getElementById('drawer-trigger');if(!t){document.body.setAttribute('data-t4-drawer-click','no-trigger');return;}t.click();document.body.setAttribute('data-t4-drawer-click','clicked');})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t4-drawer-click",
+        "expected": "clicked"
+      },
+      {
+        "type": "attr",
+        "selector": "#drawer-trigger",
+        "name": "data-drawer-state",
+        "expected": "open"
+      },
+      {
+        "type": "attr",
+        "selector": "#drawer-trigger",
+        "name": "aria-expanded",
+        "expected": "true"
+      },
+      {
+        "type": "computed-style",
+        "selector": "#drawer-trigger .drawer-chevron",
+        "prop": "transform",
+        "op": "==",
+        "expected": "matrix(-1, 0, 0, -1, 0, 0)"
+      }
+    ]
+  },
+  {
+    "name": "mobile-existing-drawer-contracts-preserved",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 375, "h": 812 },
+    "pre_js": "(function(){var t=document.getElementById('drawer-trigger');if(!t){document.body.setAttribute('data-t4-contract','no-trigger');return;}t.click();var openOk=document.body.classList.contains('drawer-open');document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));var closedOk=!document.body.classList.contains('drawer-open');document.body.setAttribute('data-t4-contract',(openOk && closedOk)?'open-then-escape-close':'fail-'+(openOk?'after-escape':'on-open'));})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t4-contract",
+        "expected": "open-then-escape-close"
+      },
+      {
+        "type": "attr",
+        "selector": "#drawer-trigger",
+        "name": "aria-expanded",
+        "expected": "false"
+      },
+      {
+        "type": "attr",
+        "selector": "#drawer-trigger",
+        "name": "data-drawer-state",
+        "expected": "closed"
+      },
+      {
+        "type": "attr",
+        "selector": "aside[data-slot=\"left-rail\"]",
+        "name": "aria-hidden",
+        "expected": "true"
+      }
+    ]
+  },
+  {
+    "name": "desktop-breadcrumb-visible-1280",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": ".breadcrumb-bar",
+        "prop": "display",
+        "op": "==",
+        "expected": "block"
+      },
+      {
+        "type": "rect",
+        "selector": ".breadcrumb-bar",
+        "prop": "height",
+        "op": ">",
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "name": "code-block-language-tag",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".code-block",
+        "op": ">=",
+        "expected": 1
+      },
+      {
+        "type": "count",
+        "selector": ".code-block .code-block-lang",
+        "op": ">=",
+        "expected": 1
+      },
+      {
+        "type": "text-pattern",
+        "selector": ".code-block .code-block-lang",
+        "expected": "^C\\+\\+$"
+      }
+    ]
+  },
+  {
+    "name": "code-block-copy-button",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "count",
+        "selector": ".code-block .code-block-copy",
+        "op": ">=",
+        "expected": 1
+      },
+      {
+        "type": "attr",
+        "selector": ".code-block .code-block-copy",
+        "name": "type",
+        "expected": "button"
+      }
+    ]
+  },
+  {
+    "name": "code-block-margin",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "asserts": [
+      {
+        "type": "computed-style",
+        "selector": ".code-block",
+        "prop": "margin-block-start",
+        "op": ">=",
+        "expected": 8
+      },
+      {
+        "type": "computed-style",
+        "selector": ".code-block",
+        "prop": "margin-block-end",
+        "op": ">=",
+        "expected": 8
+      }
+    ]
+  },
+  {
+    "name": "code-block-copy-functional",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "(function(){var btn=document.querySelector('.code-block .code-block-copy');if(!btn){document.body.setAttribute('data-t5-copy-click','no-button');return;}btn.click();document.body.setAttribute('data-t5-copy-click','clicked');})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t5-copy-click",
+        "expected": "clicked"
+      },
+      {
+        "type": "attr",
+        "selector": ".code-block .code-block-copy",
+        "name": "data-state",
+        "expected": "^(copied|failed)$",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "body-font-source-sans-3",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "document.body.setAttribute('data-t6-body-font', window.getComputedStyle(document.body).fontFamily || '');",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t6-body-font",
+        "expected": "^[\"']?Source Sans 3[\"']?",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "mono-font-jetbrains",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "(function(){var pre=document.querySelector('.code-block pre');if(!pre){document.body.setAttribute('data-t6-mono-font','no-pre');return;}document.body.setAttribute('data-t6-mono-font', window.getComputedStyle(pre).fontFamily || '');})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t6-mono-font",
+        "expected": "JetBrains Mono",
+        "regex": true
+      }
+    ]
+  },
+  {
+    "name": "font-loaded-not-fallback",
+    "url": "/DSA/lectures/ch_4/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "(async function(){try{await document.fonts.ready;document.body.setAttribute('data-t6-fonts-ready','yes');document.body.setAttribute('data-t6-body-loaded', String(document.fonts.check('1em \"Source Sans 3\"')));document.body.setAttribute('data-t6-mono-loaded', String(document.fonts.check('1em \"JetBrains Mono\"')));}catch(err){document.body.setAttribute('data-t6-fonts-ready','error:'+err.message);}})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t6-fonts-ready",
+        "expected": "yes"
+      },
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t6-body-loaded",
+        "expected": "true"
+      },
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t6-mono-loaded",
+        "expected": "true"
+      }
+    ]
+  },
+  {
+    "name": "mono-on-chapter-tag",
+    "url": "/DSA/",
+    "viewport": { "w": 1280, "h": 800 },
+    "pre_js": "(function(){var tag=document.querySelector('article.chapter-card .chapter-card-num');if(!tag){document.body.setAttribute('data-t6-tag-font','no-tag');return;}document.body.setAttribute('data-t6-tag-font', window.getComputedStyle(tag).fontFamily || '');})();",
+    "asserts": [
+      {
+        "type": "attr",
+        "selector": "body",
+        "name": "data-t6-tag-font",
+        "expected": "JetBrains Mono",
+        "regex": true
       }
     ]
   }

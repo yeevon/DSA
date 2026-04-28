@@ -29,22 +29,54 @@
 // M-UX T9 update (2026-04-25): adds the optional `highlight` prop so
 // the new collection landing pages (`/DSA/lectures/`, `/DSA/notes/`,
 // `/DSA/practice/`) can emphasise the page's collection on each card
-// — that collection's link gets the `is-current-collection` class
-// (filled accent treatment); the other two stay as subtle text links.
-// Default behaviour (no `highlight` prop) is unchanged: all three
-// links render with the original subtle styling, preserving the
-// index page's existing card shape verbatim.
+// — that collection's link gets the primary-button treatment; the
+// other two stay as outline buttons. Default behaviour on the index
+// page (no `highlight` prop) is to default the primary to `lectures`
+// (the most common destination for a first chapter visit per the
+// 2026-04-27 UI/UX review reasoning).
+//
+// M-UX-REVIEW T1 update (2026-04-27, F1 fix): replaces the three
+// plain underline links with a primary + two outline `.ch-action`
+// buttons, adds a per-chapter subtitle blurb (`<p class="ch-subtitle">`)
+// below the H3, and reserves a `data-slot="ch-progress"` SSR
+// carrier (`0 / N sections`, 0%-fill bar) the M5 / M3 read-status
+// island can light up on `cs300:read-status-changed`. The card-level
+// link, the `highlight` prop semantics (which collection is primary),
+// and the `data-interactive-only` carriers are unchanged — the
+// progress bar is one more such carrier so it stays invisible in
+// static mode where the read-status API is unreachable. AC1 / AC2 /
+// AC3 in the T1 spec assert each of those three changes; AC8 asserts
+// the no-regression on T9 contracts (still `<article class="chapter-card">`,
+// 12-card landing pages, 40 prerendered pages).
+//
+// M-UX-REVIEW T1 cycle-2 re-audit fix (2026-04-27, MUX-RV-T1-ISS-01,
+// Option A): the cycle-1 ChapterCard rendered the chapter blurb as
+// the H3 *and* again in the new `<p class="ch-subtitle">` line, which
+// printed the blurb twice on every card. The Auditor flagged this as
+// a visible UX regression undermining F1's intent ("clarify the card's
+// three jobs"). User picked Option A: H3 reverts to "Chapter N"
+// (consuming the manifest `n` field directly so the visible heading
+// matches the spec D1 example pattern verbatim), and `.ch-subtitle`
+// keeps the per-chapter blurb. Screen-reader naming gains the blurb
+// via a `visually-hidden` em-dash join so SR users still hear
+// "Chapter 1 — Programming basics, arrays, and vectors" — better than
+// the cycle-1 SR experience. A new functional-test assertion
+// (`home-card-h3-chapter-label`) guards the H3 ≠ subtitle invariant
+// going forward by asserting every H3's textContent matches
+// `^Chapter \d+$` (which the per-chapter blurbs cannot match).
 //
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T5_index_dashboard.md
 //   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D5)
+//   - design_docs/milestones/m_ux_review/tasks/T1_home_surface.md (D1)
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
 //   - src/pages/index.astro (original consumer)
 //   - src/pages/lectures/index.astro / notes/index.astro /
 //     practice/index.astro (T9 — landing pages, pass `highlight=`)
 //   - src/components/chrome/DashboardSlot.astro (sibling primitive
 //     for the `data-interactive-only` empty-state wrapper)
-//   - scripts/chapters.json (the props' source of truth)
+//   - scripts/chapters.json (the props' source of truth — `subtitle`
+//     field is the per-chapter blurb rendered in `.ch-subtitle`)
 
 type Collection = 'lectures' | 'notes' | 'practice';
 
@@ -60,21 +92,24 @@ interface Props {
   /** Manifest `required` flag. Not rendered (the parent groups by it) but accepted so
    * a single object spread from `chapters.json` rows works without prop pruning. */
   required?: boolean;
-  /** Optional collection emphasis — when set, the named collection link gets the
-   * `is-current-collection` accent treatment. Used by the T9 collection landing pages.
-   * Omitted on the index page so card behaviour stays identical to the cycle-1 shape. */
+  /** Optional collection emphasis — when set, the named collection action gets the
+   * primary-button treatment (`.ch-action--primary`); the other two render as
+   * `.ch-action--outline`. Used by the T9 collection landing pages. On the index
+   * page (no `highlight`) the primary defaults to `lectures` per M-UX-REVIEW T1
+   * D1 — first-time visitors most often want the long-form lecture for a chapter. */
   highlight?: Collection;
 }
 
 const { id, n, title, subtitle, highlight } = Astro.props;
 const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
 
-// Build per-collection link classes. When `highlight` is set, the
-// matching collection's `<a>` gets `is-current-collection`; otherwise
-// every link renders with the default subtle treatment. Helper keeps
-// the JSX below readable.
-function linkClass(c: Collection): string {
-  return c === highlight ? 'is-current-collection' : '';
+// Per M-UX-REVIEW T1 D1: when `highlight` is omitted (index page),
+// default the primary action to `lectures`. The other two collections
+// always render as outline. Helper centralises the rule so the JSX
+// below stays declarative.
+const primary: Collection = highlight ?? 'lectures';
+function actionClass(c: Collection): string {
+  return c === primary ? 'ch-action ch-action--primary' : 'ch-action ch-action--outline';
 }
 ---
 
@@ -82,7 +117,7 @@ function linkClass(c: Collection): string {
   <header class="chapter-card-header">
     <span class="chapter-card-num" aria-hidden="true">ch_{n}</span>
     <h3 class="chapter-card-title">
-      <span class="visually-hidden">{title} — </span>{subtitle}
+      <span class="ch-label">Chapter {n}</span><span class="visually-hidden"> — {subtitle}</span>
     </h3>
     <span
       class="chapter-card-badge"
@@ -95,11 +130,37 @@ function linkClass(c: Collection): string {
           paint doesn't reflow the card on first interactive boot. */}
     </span>
   </header>
-  <p class="chapter-card-subtitle">{title}</p>
+  <p class="ch-subtitle chapter-card-subtitle">{subtitle}</p>
+  {/*
+    M-UX-REVIEW T1 D1 — section-progress carrier. SSR-rendered in the
+    static "0 / N sections" empty state with 0%-fill bar. Carries
+    `data-interactive-only` (hidden in static mode via the global
+    rule) + `data-chapter-id` so a future M3/M5 island can scope its
+    fetch + repaint to this card on `cs300:read-status-changed`.
+    No new API surface today — the card simply reserves the slot
+    and a CSS shape so the M5 paint doesn't reflow.
+  */}
+  <div
+    class="ch-progress"
+    data-slot="ch-progress"
+    data-interactive-only
+    data-chapter-id={id}
+  >
+    <div class="ch-progress-bar" aria-hidden="true">
+      <div class="ch-progress-fill" style="width: 0%"></div>
+    </div>
+    <span class="ch-progress-label">0 / 0 sections</span>
+  </div>
   <ul class="chapter-card-links">
-    <li><a href={`${baseUrl}/lectures/${id}/`} class={linkClass('lectures')}>Lectures</a></li>
-    <li><a href={`${baseUrl}/notes/${id}/`} class={linkClass('notes')}>Notes</a></li>
-    <li><a href={`${baseUrl}/practice/${id}/`} class={linkClass('practice')}>Practice</a></li>
+    <li>
+      <a href={`${baseUrl}/lectures/${id}/`} class={actionClass('lectures')}>Lectures</a>
+    </li>
+    <li>
+      <a href={`${baseUrl}/notes/${id}/`} class={actionClass('notes')}>Notes</a>
+    </li>
+    <li>
+      <a href={`${baseUrl}/practice/${id}/`} class={actionClass('practice')}>Practice</a>
+    </li>
   </ul>
 </article>
 
@@ -158,59 +219,140 @@ function linkClass(c: Collection): string {
     font-weight: 700;
   }
 
+  /* M-UX-REVIEW T1 D1 — per-chapter blurb below the title. The
+     class name `.ch-subtitle` matches the spec's AC3 selector;
+     `.chapter-card-subtitle` is preserved as a backwards-compat
+     alias so any legacy consumer / cycle-1 selector still finds it.
+     Visual: muted text, body weight, single line on most cards
+     (chapters.json subtitles are <=80 chars). */
+  .ch-subtitle,
   .chapter-card-subtitle {
     margin: 0;
     font-size: 0.85rem;
     color: var(--mux-fg-subtle);
+    line-height: 1.4;
+  }
+
+  /* M-UX-REVIEW T1 D1 — section-progress carrier. SSR shape (0%-fill
+     bar + "0 / 0 sections" label) is the static-mode floor; an
+     interactive-mode island lights it up on read-status events.
+     The carrier itself is `data-interactive-only` so static mode
+     hides it via the global rule — until the read-status API is
+     reachable, the empty bar would mis-suggest "no progress"
+     rather than "no signal available". Once M5 lands the SQLite-
+     backed island can populate the label + fill width and the
+     carrier becomes visible (the surface is gated `interactive`
+     either way). */
+  .ch-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--mux-space-2);
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--mux-fg-subtle);
+  }
+  .ch-progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--mux-border-subtle);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .ch-progress-fill {
+    height: 100%;
+    background: var(--mux-accent);
+    transition: width 200ms ease;
+  }
+  .ch-progress-label {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 
   .chapter-card-links {
+    /* M-UX-REVIEW T1 D1 — three action buttons (one primary + two
+       outline). Replaces the cycle-1 plain-link triplet. Wider gap
+       than the previous `--mux-space-3` so the buttons don't crowd
+       at narrow card widths. `flex-wrap: wrap` keeps the row
+       readable on the narrowest card breakpoints (mobile, sub-280px
+       columns) — a button drops to its own row rather than
+       horizontal-scrolling out of frame. */
     display: flex;
-    gap: var(--mux-space-3);
+    flex-wrap: wrap;
+    gap: var(--mux-space-2);
     list-style: none;
     padding: 0;
     margin: var(--mux-space-2) 0 0 0;
-    font-size: 0.875rem;
   }
 
-  .chapter-card-links a {
-    color: var(--mux-fg-muted);
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: color 120ms ease, border-color 120ms ease;
-  }
-
-  .chapter-card-links a:hover {
-    color: var(--mux-accent-strong);
-    border-bottom-color: var(--mux-accent);
-  }
-
-  /* T9 D5 — emphasised collection link on the collection landing pages
-     (`/DSA/lectures/`, `/notes/`, `/practice/`). The matching link
-     gets a filled accent treatment so the user's eye lands on the
-     "open this collection for ch_N" target; the other two stay as
-     subtle text. Index page never sets `highlight=` so the rule is
-     inert there. */
-  .chapter-card-links a.is-current-collection {
-    background: var(--mux-accent-bg);
-    color: var(--mux-accent-strong);
+  /* M-UX-REVIEW T1 D1 — `.ch-action` button primitive.
+     Padding 8px 12px + min-height 44px keeps the tap target ≥44px
+     per the spec's mobile-friendliness note. Border-radius 6px
+     matches the card itself. Two variants: filled-primary +
+     transparent-outline. Hover/focus state on both for keyboard
+     accessibility. The class names are stable per AC1 — the
+     functional-test selector is `article.chapter-card .ch-action--primary`
+     (count == 1) and `.ch-action--outline` (count == 2) on every
+     card on every landing surface. */
+  .ch-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
     font-weight: 600;
-    padding: 2px var(--mux-space-2);
-    border-radius: 4px;
-    border-bottom-color: transparent;
-    box-shadow: inset 0 0 0 1px var(--mux-accent);
+    text-decoration: none;
+    transition: background-color 120ms ease, color 120ms ease,
+      border-color 120ms ease, box-shadow 120ms ease;
+    box-sizing: border-box;
   }
 
-  .chapter-card-links a.is-current-collection:hover {
-    color: var(--mux-fg);
+  .ch-action--primary {
     background: var(--mux-accent);
-    border-bottom-color: transparent;
+    color: #ffffff;
+    border: 1px solid var(--mux-accent);
+  }
+  .ch-action--primary:hover,
+  .ch-action--primary:focus-visible {
+    background: var(--mux-accent-strong);
+    border-color: var(--mux-accent-strong);
+    box-shadow: 0 0 0 3px var(--mux-accent-bg);
+    outline: none;
   }
 
-  /* Visually hidden — used so screen readers hear "Chapter 4 — Lists,
-     stacks, queues, deques" while sighted users see only the
-     subtitle (the `ch_4` tag carries the chapter-number affordance
-     visually). */
+  .ch-action--outline {
+    background: transparent;
+    color: var(--mux-fg);
+    border: 1px solid var(--mux-border);
+  }
+  .ch-action--outline:hover,
+  .ch-action--outline:focus-visible {
+    color: var(--mux-accent-strong);
+    border-color: var(--mux-accent);
+    background: var(--mux-accent-bg);
+    outline: none;
+  }
+
+  /* T9 D5 backwards-compat: `.is-current-collection` was the cycle-1
+     class for the highlighted collection link; M-UX-REVIEW T1 D1
+     replaces the visual treatment with `.ch-action--primary`, so the
+     T9 functional-test assertion (`a.is-current-collection`) needs
+     its updated selector path documented in the new T1 functional-
+     test cases. The class itself is no longer emitted by this
+     component — the T9 tests are updated to assert against
+     `.ch-action--primary` instead per AC8 (no-regression on the
+     "highlight class still on the right collection link" contract). */
+
+  /* Visually hidden — used so screen readers hear the topic blurb
+     joined to the chapter label, e.g. "Chapter 4 — Lists, stacks,
+     queues, deques", while sighted users see "Chapter 4" in the H3
+     (the topic blurb is rendered visibly in the `<p class="ch-subtitle">`
+     line below). The `.ch-tag` (`ch_N`) carries an additional
+     identifier affordance visually. Cycle-2 re-audit fix
+     (MUX-RV-T1-ISS-01, Option A): H3 visible text reverted to
+     "Chapter N" so the blurb no longer prints twice on every card. */
   .visually-hidden {
     position: absolute;
     width: 1px;

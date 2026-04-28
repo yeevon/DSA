@@ -30,16 +30,30 @@
 //
 // Build delta: +3 prerendered pages (37 → 40 post-T9).
 //
+// M-UX-REVIEW T1 update (2026-04-27):
+//   - F2: Required / Optional headings drop the 12px tracked treatment
+//     in favour of body-weight H2 + a real subtitle ("6 graded
+//     chapters, ~25 hours of reading"). Same change in the three
+//     sibling landing pages + the index.
+//   - F3: `<ContinueReading />` mounts at the top of the page; the
+//     localStorage-backed strip surfaces a resume card if the user
+//     has visited a chapter on this device before. Empty-by-default
+//     SSR (the `:empty { display: none }` rule keeps the slot
+//     invisible until the JS island populates it).
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D5)
+//   - design_docs/milestones/m_ux_review/tasks/T1_home_surface.md
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
 //   - src/pages/index.astro (sibling — same partition logic)
 //   - src/pages/notes/index.astro / practice/index.astro (T9 — siblings)
 //   - src/layouts/HomeLayout.astro
 //   - src/components/chrome/ChapterCard.astro (`highlight` prop added in T9)
+//   - src/components/home/ContinueReading.astro (T1 D3)
 //   - scripts/chapters.json (chapter manifest)
 import HomeLayout from '../../layouts/HomeLayout.astro';
 import ChapterCard from '../../components/chrome/ChapterCard.astro';
+import ContinueReading from '../../components/home/ContinueReading.astro';
 import chapters from '../../../scripts/chapters.json';
 
 // Sort by chapter number, then partition. Mirrors `LeftRail.astro` +
@@ -58,9 +72,11 @@ const optional = sorted.filter((c) => !c.required);
     </p>
   </header>
 
-  <section class="chapter-group" aria-labelledby="lectures-required-heading">
-    <h2 id="lectures-required-heading" class="chapter-group-heading">Required</h2>
-    <p class="chapter-group-blurb">SNHU CS 300 syllabus.</p>
+  <ContinueReading />
+
+  <section class="ch-group chapter-group" aria-labelledby="lectures-required-heading">
+    <h2 id="lectures-required-heading" class="ch-group-heading chapter-group-heading">Required</h2>
+    <p class="ch-group-sub chapter-group-blurb">6 graded chapters, ~25 hours of reading.</p>
     <div class="chapter-grid">
       {required.map((c) => (
         <ChapterCard
@@ -75,9 +91,9 @@ const optional = sorted.filter((c) => !c.required);
     </div>
   </section>
 
-  <section class="chapter-group" aria-labelledby="lectures-optional-heading">
-    <h2 id="lectures-optional-heading" class="chapter-group-heading">Optional</h2>
-    <p class="chapter-group-blurb">Depth chapters; outside the graded path.</p>
+  <section class="ch-group chapter-group" aria-labelledby="lectures-optional-heading">
+    <h2 id="lectures-optional-heading" class="ch-group-heading chapter-group-heading">Optional</h2>
+    <p class="ch-group-sub chapter-group-blurb">Depth chapters; outside the graded path.</p>
     <div class="chapter-grid">
       {optional.map((c) => (
         <ChapterCard
@@ -114,23 +130,35 @@ const optional = sorted.filter((c) => !c.required);
     font-size: 0.95rem;
   }
 
+  /* M-UX-REVIEW T1 D2 — see `src/pages/index.astro` for the rule
+     rationale (Required / Optional reads as a section header at H2
+     weight + body-weight subtitle; ~1.25rem above each group). The
+     rules duplicate across the four landing surfaces today; if a
+     fifth landing surface lands these go into a shared
+     `chrome.css` rule. */
+  .ch-group,
   .chapter-group {
-    margin: 0 0 var(--mux-space-8) 0;
+    margin: var(--mux-space-6) 0 var(--mux-space-8) 0;
+  }
+  .ch-group:first-of-type,
+  .chapter-group:first-of-type {
+    margin-top: var(--mux-space-4);
   }
 
+  .ch-group-heading,
   .chapter-group-heading {
     margin: 0 0 var(--mux-space-1) 0;
-    font-size: 0.75rem;
+    font-size: 1.5rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--mux-fg-subtle);
+    line-height: 1.25;
+    color: var(--mux-fg);
   }
 
+  .ch-group-sub,
   .chapter-group-blurb {
     margin: 0 0 var(--mux-space-4) 0;
-    font-size: 0.875rem;
-    color: var(--mux-fg-subtle);
+    font-size: 0.95rem;
+    color: var(--mux-fg-muted);
   }
 
   .chapter-grid {

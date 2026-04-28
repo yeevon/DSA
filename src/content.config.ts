@@ -30,10 +30,17 @@ const baseSchema = z.object({
   required: z.boolean(),
 });
 
+// `level` added in M-UX-REVIEW T2 D1 (2026-04-27): 1 = top-level
+// numbered section (title matches `^\d+\.\d+\s`); 2 = H2 subsection
+// underneath. Consumed by RightRailTOC.astro to set `data-level` on
+// each TOC `<li>` so the right-rail TOC renders H1 + H2 with a clear
+// visual split (UI-review F4). Reverses the M-UX b29d409 frontmatter-
+// side filter rule. Architecture.md §1.6 documents the new contract.
 const sectionSchema = z.object({
   id: z.string(),
   anchor: z.string(),
   title: z.string(),
+  level: z.union([z.literal(1), z.literal(2)]),
   ord: z.number().int().nonnegative(),
 });
 

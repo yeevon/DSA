@@ -46,6 +46,17 @@
 //      only rendered when `data-mode="interactive"` (via the same
 //      `data-interactive-only` rule).
 //
+// M-UX-REVIEW T6 update (2026-04-27): typography pair pinned per
+// ADR-0002 amendment + UI-review F11. The body font-family on
+// `:global(body)` switched from `var(--mux-font-sans)` (the M-UX-era
+// system stack) to `var(--mux-font-body)` (Source Sans 3 + system
+// fallback chain — see `src/styles/chrome.css` token + `@font-face`
+// declarations). Mono token name is unchanged but its primary family
+// is now JetBrains Mono. `font-display: swap` keeps page boot
+// non-blocking; the brief FOUT renders in the system fallback. No
+// layout / template changes here — typography swap is a token-level
+// edit.
+//
 // Article-wrapper contract (resolves MUX-BO-ISS-01 / HIGH-1):
 //   This layout does NOT wrap the default slot in `<article>`. The
 //   chapter routes (`src/pages/{lectures,notes,practice}/[id].astro`)
@@ -85,11 +96,56 @@
 // Mobile (<1024px) drawer behaviour is unchanged — sticky rules sit
 // inside the existing ≥1024px @media block.
 //
+// M-UX-REVIEW T4 update (2026-04-27): D1 + D2 reshape mobile chrome.
+//   D1 (UI-review F9, HIGH) hides the breadcrumb at <768px. The hide
+//   is a single CSS rule on the outer breadcrumb slot wrapper which
+//   now carries the `.breadcrumb-bar` class. The drawer trigger
+//   used to mount inside the breadcrumb's flex row (M-UX T7); it
+//   now mounts at chrome-level via the new `drawer-trigger` named
+//   slot so the trigger survives the breadcrumb hide. The slot is
+//   a row ABOVE the breadcrumb in the grid template; at ≥1024px the
+//   trigger has `display: none` (DrawerTrigger.astro media query)
+//   so the auto-sized row collapses with no content. At 768-1023px
+//   (tablet) the trigger sits as its own row above the visible
+//   breadcrumb (a minor visual change for tablet sizes vs the
+//   pre-T4 in-breadcrumb placement; acceptable per spec since the
+//   trigger is unchanged in function).
+//
+//   D2 (UI-review F9 continued) repositions the "On this page"
+//   `<details>` block to render below the chapter H1 + collection
+//   tabs at <768px. The desktop right-rail TOC stays in the
+//   right-rail aside. The mobile details is rendered by a separate
+//   component (`MobileChapterTOC.astro`) inside the chapter route's
+//   `<header>` after `<CollectionTabs>`. At <768px the right-rail
+//   aside hides (`display: none`) so the mobile details is the only
+//   TOC surface; at ≥768px the mobile details hides and the desktop
+//   right rail takes over. Two SSR renders, no shared selectors —
+//   the mobile component uses a distinct `.rhs-toc-mobile` class
+//   that ScrollSpy + RightRailReadStatus do NOT query, so the
+//   desktop islands keep operating against a single canonical
+//   `.right-rail-toc` instance regardless of viewport.
+//
+// M-UX-REVIEW T1 update (2026-04-27): D3 adds a tiny always-loaded
+// `<script>` that records the current chapter route to localStorage
+// under the key `cs300:last-visit` so the home + collection-landing
+// pages can render a "Continue reading" resume card via
+// `src/components/home/ContinueReading.astro`. The writer fires on
+// every chapter route (Base.astro is only used by chapter routes;
+// the four landing surfaces use HomeLayout.astro), so the spec D3
+// "skip writes on the four landing pages" requirement is satisfied
+// structurally — the writer literally cannot run on a landing page
+// because Base.astro never renders them. Strictly browser-local —
+// no state-service round-trip, no SQLite touch. Replaced by M5's
+// SQLite-backed dashboard slot when the review queue lands.
+//
 // Companion files:
 //   - design_docs/architecture.md §1.6 (Page chrome — UX layer)
 //   - design_docs/adr/0002_ux_layer_mdn_three_column.md
 //   - design_docs/milestones/m_ux_polish/tasks/T1_layout_shell.md
 //   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D1+D2)
+//   - design_docs/milestones/m_ux_review/tasks/T1_home_surface.md (D3)
+//   - src/components/home/ContinueReading.astro (reader side of the
+//     localStorage primitive)
 import '../styles/chrome.css';
 
 interface Props {
@@ -130,7 +186,7 @@ const { title = 'cs-300' } = Astro.props;
         padding: 0;
       }
       :global(body) {
-        font-family: var(--mux-font-sans);
+        font-family: var(--mux-font-body);
         color: var(--mux-fg);
         background: var(--mux-surface);
         line-height: 1.6;
@@ -158,8 +214,14 @@ const { title = 'cs-300' } = Astro.props;
         /* Mobile template (<1024px): no left-rail track. The aside
            still exists in the document, but it's pulled out of the
            grid flow and styled `position: fixed` by the @media
-           block below so it can slide in/out as the drawer. */
+           block below so it can slide in/out as the drawer.
+           T4 D1 adds a leading `drawer-trigger` row above the
+           breadcrumb so the hamburger button survives the
+           breadcrumb-hide at <768px. At ≥1024px the trigger has
+           display:none (via DrawerTrigger.astro's own media query)
+           so the auto-sized row collapses with no content. */
         grid-template-areas:
+          "drawer-trigger"
           "breadcrumb"
           "right-rail"
           "main";
@@ -183,9 +245,28 @@ const { title = 'cs-300' } = Astro.props;
         width: 100%;
       }
 
+      .chrome > [data-slot="drawer-trigger"] { grid-area: drawer-trigger; }
       .chrome > [data-slot="breadcrumb"] { grid-area: breadcrumb; }
       .chrome > [data-slot="main"]       { grid-area: main; min-width: 0; }
       .chrome > [data-slot="right-rail"] { grid-area: right-rail; }
+
+      /* T4 D1 — drawer-trigger row padding. Mirrors the breadcrumb's
+         own padding so a tablet that shows both rows (<1024px and
+         ≥768px) reads as a tidy stack, not a misaligned column.
+         At ≥1024px the trigger inside collapses to display:none and
+         the row's intrinsic height becomes zero — the padding is
+         inert there because the row collapses too. */
+      .chrome > [data-slot="drawer-trigger"] {
+        padding: var(--mux-space-2) var(--mux-space-4);
+      }
+      /* When the slot is empty (e.g. an index page that doesn't
+         mount a DrawerTrigger), zero out the padding so the row
+         doesn't reserve visual space. The :empty pseudo-class
+         matches because the slot wrapper has no element children
+         when no consumer fills it. */
+      .chrome > [data-slot="drawer-trigger"]:empty {
+        display: none;
+      }
 
       /* Center column constrains prose width for readability per
          ADR-0002 ("max-width ~75ch"). The constraint applies inside
@@ -244,9 +325,22 @@ const { title = 'cs-300' } = Astro.props;
       @media (min-width: 1024px) {
         .chrome {
           grid-template-columns: 260px 1fr 280px;
+          /* Desktop template — the leading `drawer-trigger` row
+             from the mobile template is dropped because the
+             trigger is hidden at ≥1024px (DrawerTrigger.astro's own
+             media query). The slot wrapper itself stays in the DOM
+             (chapter routes always pass <DrawerTrigger>), so the
+             `:empty` rule above doesn't fire (the wrapper has a
+             child even when that child is `display:none`); we hide
+             the wrapper explicitly here to keep it out of the
+             implicit grid track Chrome would otherwise place it in
+             at the bottom of `.chrome`. */
           grid-template-areas:
             "breadcrumb breadcrumb breadcrumb"
             "left-rail  main       right-rail";
+        }
+        .chrome > [data-slot="drawer-trigger"] {
+          display: none;
         }
         .chrome > [data-slot="left-rail"] {
           grid-area: left-rail;
@@ -373,10 +467,80 @@ const { title = 'cs-300' } = Astro.props;
          doesn't hit the viewport edge but also doesn't waste a
          third of the screen on inset. Typography stays at the base
          size; ADR-0002 explicitly defers full-typography sweep to a
-         post-M-UX follow-on. */
+         post-M-UX follow-on.
+
+         M-UX-REVIEW T4 (2026-04-27) layered three rules onto this
+         block:
+           D1 — `.breadcrumb-bar { display: none }` hides the
+                breadcrumb track at <768px (UI-review F9). The
+                drawer-trigger slot above it stays visible because
+                its row collapses with `:empty` only when the slot
+                has no content; chapter routes pass <DrawerTrigger>
+                into the slot, so the row keeps its intrinsic
+                height + padding.
+           D2 — at <768px hide the desktop right-rail TOC track
+                (`aside[data-slot="right-rail"] .right-rail-toc`)
+                AND the M-UX T7 mobile-collapse `<details>`
+                wrapper (`aside[data-slot="right-rail"]
+                details.toc-mobile-collapse`); the chapter route's
+                `<header>`-mounted `<MobileChapterTOC>` (rendered
+                as a sibling of `<CollectionTabs>`) takes over as
+                the on-this-page affordance below the H1 + tabs.
+                The mobile component itself is hidden at ≥768px
+                via its own component rule so the desktop
+                right-rail TOC remains the single TOC surface
+                above the breakpoint.
+                Cycle 2 narrowed the hide from the whole aside
+                to the inner TOC selectors so AnnotationsPane —
+                a sibling of RightRailTOC inside the same aside —
+                survives the mobile media query in interactive
+                mode (M-UX T7 line 19 + ADR-0002 line 75
+                contracts; see issue file MEDIUM-1 option (a)). */
       @media (max-width: 767.98px) {
         .chrome > [data-slot="main"] {
           padding: var(--mux-space-4) var(--mux-space-3);
+        }
+        /* T4 D1 — hide the breadcrumb track entirely. The drawer
+           trigger sits in its own row above the breadcrumb (see
+           grid-template-areas), so navigation affordances survive
+           the hide. Prev/next chapter buttons collapse into the
+           drawer's chapter list at this width per spec. */
+        .chrome > [data-slot="breadcrumb"].breadcrumb-bar {
+          display: none;
+        }
+        /* T4 D2 — hide the right-rail TOC track at mobile. The
+           in-chapter TOC affordance moves to the route's
+           `<MobileChapterTOC>` rendered after `<CollectionTabs>`
+           inside `<header>`. We hide instead of `grid-template-
+           areas`-removing because the aside still hosts the
+           desktop SSR TOC + RightRailReadStatus + ScrollSpy
+           islands — they need to stay in the DOM so a viewport
+           resize back to ≥768px finds them already mounted.
+
+           T4 cycle 2 (M-UX-REVIEW-T4-ISS-01 option a — narrow
+           hide): the prior rule
+           `.chrome > aside[data-slot="right-rail"] { display: none }`
+           hid the entire aside, which propagated `display: none`
+           to AnnotationsPane (mounted as a child of the same
+           aside per `lectures/[id].astro:167`) and silently
+           broke the M-UX T7 line 19 + ADR-0002 line 75
+           AnnotationsPane-in-right-rail-at-mobile contract in
+           interactive mode. The narrowed rules below hide ONLY
+           the desktop TOC track (`.right-rail-toc` — the
+           `<nav>` RightRailTOC.astro emits) and the M-UX T7
+           mobile-collapse `<details>` wrapper around it
+           (`details.toc-mobile-collapse`). The aside itself
+           stays in flow; AnnotationsPane (gated
+           `data-interactive-only`) renders only when interactive
+           mode flips. The on-this-page affordance for static +
+           interactive mobile lives in `<MobileChapterTOC>`
+           inside `<header>` per T4 D2 — see CHANGELOG entry
+           "M-UX-REVIEW T4 cycle-2 closure" + the issue file. */
+        aside[data-slot="right-rail"] :global(.right-rail-toc) {
+          display: none;
+        }
+        aside[data-slot="right-rail"] :global(details.toc-mobile-collapse) {
+          display: none;
         }
       }
 
@@ -402,7 +566,22 @@ const { title = 'cs-300' } = Astro.props;
   </head>
   <body data-mode="static">
     <div class="chrome">
-      <nav data-slot="breadcrumb" aria-label="Breadcrumb">
+      <div data-slot="drawer-trigger">
+        {/* M-UX-REVIEW T4 D1 — drawer-trigger lives at chrome level
+            (not inside the breadcrumb bar) so it survives the
+            breadcrumb-hide at <768px. Routes that don't need a
+            drawer (index, landing pages) leave this slot empty;
+            the `:empty { display: none }` rule above keeps the
+            row from reserving visual space. */}
+        <slot name="drawer-trigger" />
+      </div>
+      <nav class="breadcrumb-bar" data-slot="breadcrumb" aria-label="Breadcrumb">
+        {/* M-UX-REVIEW T4 D1 — `.breadcrumb-bar` is the styling hook
+            the <768px hide rule binds to (`@media (max-width: 767px)
+            .breadcrumb-bar { display: none }`). The class is on the
+            outer slot wrapper so the entire breadcrumb track —
+            including the inner `<nav class="breadcrumb">` and any
+            future siblings — vanishes from layout in one rule. */}
         <slot name="breadcrumb" />
       </nav>
       <aside id="drawer" data-slot="left-rail" aria-label="Chapter navigation">
@@ -435,6 +614,66 @@ const { title = 'cs-300' } = Astro.props;
       detectMode().then((mode) => {
         document.body.dataset.mode = mode;
       });
+    </script>
+    <script is:inline>
+      // M-UX-REVIEW T1 D3 — continue-reading writer.
+      // Records the current chapter route to localStorage under
+      // `cs300:last-visit` so the home + collection-landing pages
+      // can render a resume card. Inline because the body is small
+      // and we want the write to land before any user-initiated
+      // navigation (e.g. user clicks a sibling chapter link before
+      // module bundle is parsed). Strictly browser-local; no
+      // state-service round-trip. See companion reader at
+      // `src/components/home/ContinueReading.astro`.
+      (function () {
+        try {
+          var path = window.location.pathname;
+          // Defensive guard: only persist when the path looks like a
+          // chapter route (Base.astro renders only chapter routes
+          // today, but the regex makes the contract explicit so a
+          // future Base.astro consumer can't silently corrupt the
+          // resume entry with a non-chapter route).
+          if (!/\/(lectures|notes|practice)\/ch_\d+\/?$/.test(path)) return;
+          var write = function () {
+            try {
+              window.localStorage.setItem(
+                'cs300:last-visit',
+                JSON.stringify({
+                  path: path,
+                  title: document.title,
+                  scrollY: Math.round(window.scrollY || 0),
+                  ts: Date.now(),
+                })
+              );
+            } catch (_err) {
+              // Quota / private-mode / disabled storage — silent
+              // degradation; the resume card simply never paints.
+            }
+          };
+          // Initial write on load so the entry exists even if the
+          // user never scrolls.
+          write();
+          // Debounced scroll listener — at most ~4 writes/sec
+          // (250ms throttle). The whole point is the most-recent
+          // scrollY; precise sub-second granularity isn't worth the
+          // localStorage churn.
+          var pending = false;
+          window.addEventListener(
+            'scroll',
+            function () {
+              if (pending) return;
+              pending = true;
+              setTimeout(function () {
+                pending = false;
+                write();
+              }, 250);
+            },
+            { passive: true }
+          );
+        } catch (_err) {
+          // Catch-all so a hostile environment can't break page boot.
+        }
+      })();
     </script>
   </body>
 </html>

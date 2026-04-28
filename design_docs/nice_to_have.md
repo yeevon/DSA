@@ -201,3 +201,59 @@ functional-test harness with a fetch-vs-inline assertion).
 
 **Surfaced 2026-04-25** by M-UX T2 (M-UX-T2-ISS-02) +
 re-surfaced at milestone close by the M-UX deep review (M-UX-DR-05).
+
+---
+
+## §UX-5 — `--mux-accent` semantic split (current vs achievement)
+
+**What.** The single `--mux-accent` colour token currently signals
+seven different things: chapter-number tag, current section in the
+right-rail TOC, current item in the left rail, current collection
+pill, "Mark read" button, completion indicator, and the
+interactive-mode badge. The 2026-04-27
+[`UI_UX_Review.pdf`](UI_UX_Review.pdf) F12 finding (LOW) flags
+that this overloads the accent — when everything is green, nothing
+is. Proposed split: `--mux-current` for "where you are now"
+(neutral fill, no semantic weight); `--mux-achievement` for "what
+you've completed / what's due / what changed" (keep the green).
+
+**Status today.** Acceptable visual debt. The chrome shipped via
+M-UX with one colour because ADR-0002 explicitly deferred the
+visual style sweep ("M-UX uses the system font stack + one accent
+colour"). M-UX-REVIEW T6 picks up the typography half of that
+deferral but leaves the colour half intact for the §UX-5 reasons
+below.
+
+**Why deferred.** The split's value comes from contrasting
+*current* (a chrome-state signal — passive) against *achievement*
+(an event signal — completed, due, recently changed). M5 hasn't
+landed yet; in pre-M5 static + interactive mode, the only event
+signals are read-status (binary — read / unread, mostly painted
+in the left-rail completion indicators + right-rail per-section
+indicators, both already visible enough) and the interactive-mode
+badge (one-time, small). There's no review-due, no streak, no
+recency surface to *contrast* the "current" state against. Splitting
+the accent before that contrast exists is purely a refactor with
+no visual-design payoff — the user sees the same green either way.
+
+**Trigger to promote.** M5 ships AND introduces a review-due / FSRS
+queue surface that paints in the chrome (e.g. dot indicators on
+chapter cards, queue counts in the left rail, due-soon badges on
+section anchors). At that point the accent collision becomes
+observable — a "due for review" indicator shouldn't read the same
+as "this is the current chapter." Pre-promotion, capture the
+M5 surface list and decide whether the split needs two tokens
+(`--mux-current` + `--mux-achievement`) or three (separating
+"due-soon" from "completed").
+
+**Cost of promotion.** ~1 session — define the new token(s) in
+`src/styles/chrome.css`, sweep the seven existing `--mux-accent`
+consumers in the chrome components (each maps to either current or
+achievement), update ADR-0002's "Color palette" deferral entry
+similarly to T6's typography amendment, add functional-test
+assertions confirming the right consumer carries the right token.
+
+**Surfaced 2026-04-27** by the
+[`UI_UX_Review.pdf`](UI_UX_Review.pdf) F12 finding (LOW); review
+recommendation explicitly named M5 as the trigger ("Best done
+after M5 lights up completion").

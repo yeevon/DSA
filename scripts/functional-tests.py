@@ -59,6 +59,18 @@ ASSERTION TYPES
 - `aria-current` — `{type: "aria-current", selector, expected}`.
   Asserts the matched element's `aria-current` attribute equals
   `expected` (typically `"page"`).
+- `computed-style` — `{type: "computed-style", selector, prop, op,
+  expected}`. Runs `window.getComputedStyle(el).getPropertyValue(prop)`
+  and compares with `op` ∈ {`==`, `<=`, `>=`, `<`, `>`, `between`}.
+  The harness parses `<number><unit>` returns (`"16px"`, `"600"`) into
+  a float for numeric comparisons; non-parseable returns fall back to
+  string equality (use `op: "=="`). Added at M-UX-REVIEW T2 D5
+  (2026-04-27) for the F4 right-rail TOC H1/H2 visual-hierarchy
+  assertions (`computed font-weight ≥ 600` for `data-level="1"`,
+  `computed padding-left > 0` for `data-level="2"`). Distinct from
+  `rect` because `getBoundingClientRect` returns post-layout box
+  dimensions only — it cannot read `padding-left` or `font-weight`,
+  which are computed-style properties.
 
 CONFIG SCHEMA (functional-tests.json)
 
@@ -68,6 +80,17 @@ A JSON array of test cases. Each test case:
       "url": "/DSA/lectures/ch_4/",
       "viewport": {"w": 1280, "h": 800},
       "scroll": 2000,                     // optional, pixels
+      "pre_js": "window.localStorage.removeItem('cs300:last-visit');",
+                                          // optional, JS string run after
+                                          // driver.get(url) and BEFORE any
+                                          // assertion evaluates. Used to
+                                          // seed / clear localStorage so
+                                          // tests don't depend on suite
+                                          // ordering. Multi-line strings
+                                          // are fine via JSON's standard
+                                          // \\n escaping; the runner
+                                          // forwards the literal string
+                                          // verbatim to driver.execute_script.
       "asserts": [ { "type": "...", ... }, ... ]
     }
 
@@ -75,6 +98,13 @@ Test cases run sequentially; one Chrome instance for all of them.
 A failed assertion does NOT abort the suite — the run completes,
 the failed-assertion detail is printed inline, and the process
 exits non-zero at the end.
+
+When `pre_js` is present the runner calls `driver.execute_script(pre_js)`
+after the navigate completes (document.readyState == 'complete') and
+before any optional scroll / settle. This lets a test seed or clear
+`window.localStorage` for that page without depending on prior cases.
+Per cycle-3 of M-UX-REVIEW-T1: closes ISS-03 / ISS-04 ordering-dependence
+LOWs by giving each continue-reading test an explicit pre-step.
 
 DESIGN CONSTRAINTS
 
@@ -143,6 +173,7 @@ class TestCase:
     viewport_w: int
     viewport_h: int
     scroll: int = 0
+    pre_js: str | None = None
     asserts: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -208,6 +239,15 @@ def load_test_cases(config_path: Path) -> list[TestCase]:
     cases: list[TestCase] = []
     for entry in raw:
         viewport = entry.get("viewport", {"w": 1280, "h": 800})
+        # `pre_js` is optional. When absent, defaults to None; the runner
+        # skips `driver.execute_script` entirely. When present, must be a
+        # string — the runner forwards it verbatim to Selenium's JS context.
+        pre_js = entry.get("pre_js")
+        if pre_js is not None and not isinstance(pre_js, str):
+            raise TypeError(
+                f"test case {entry.get('name')!r}: pre_js must be a string, "
+                f"got {type(pre_js).__name__}"
+            )
         cases.append(
             TestCase(
                 name=entry["name"],
@@ -215,6 +255,7 @@ def load_test_cases(config_path: Path) -> list[TestCase]:
                 viewport_w=int(viewport["w"]),
                 viewport_h=int(viewport["h"]),
                 scroll=int(entry.get("scroll", 0)),
+                pre_js=pre_js,
                 asserts=list(entry.get("asserts", [])),
             )
         )
@@ -400,6 +441,114 @@ def _run_text_pattern(driver: webdriver.Chrome, spec: dict[str, Any]) -> Asserti
     return AssertionResult(ok, detail)
 
 
+def _parse_css_numeric(value: str) -> float | None:
+    """Parse a computed-style value like ``'16px'`` / ``'600'`` to a float.
+
+    Returns ``None`` if the leading token isn't a number — caller
+    falls back to string equality. Strips a trailing unit (``px``,
+    ``em``, ``rem``, ``%``, ``deg``) before parsing because every
+    computed-style numeric property lands as ``<number><unit>`` in
+    Chrome (lengths) or as a bare number for ``font-weight``.
+    """
+    if value is None:
+        return None
+    text = value.strip()
+    # Find the first non-numeric / non-dot character; everything
+    # before it is the numeric portion. Handles negatives + decimals
+    # (Chrome's getPropertyValue never returns scientific notation
+    # for these props).
+    end = 0
+    if end < len(text) and text[end] in "+-":
+        end += 1
+    saw_digit = False
+    saw_dot = False
+    while end < len(text):
+        ch = text[end]
+        if ch.isdigit():
+            saw_digit = True
+            end += 1
+        elif ch == "." and not saw_dot:
+            saw_dot = True
+            end += 1
+        else:
+            break
+    if not saw_digit:
+        return None
+    try:
+        return float(text[:end])
+    except ValueError:  # pragma: no cover — defensive
+        return None
+
+
+def _run_computed_style(driver: webdriver.Chrome, spec: dict[str, Any]) -> AssertionResult:
+    """computed-style — getComputedStyle(el)[prop] {op} expected.
+
+    Distinct from ``rect`` because ``getBoundingClientRect`` returns
+    post-layout box dimensions only; it cannot read ``font-weight``
+    or ``padding-left`` (those are computed-style values, not box
+    geometry). Added at M-UX-REVIEW T2 D5 for the F4 H1/H2 visual-
+    hierarchy ACs (AC2 ``font-weight >= 600`` on ``data-level="1"``;
+    AC3 ``padding-left > 0`` on ``data-level="2"``).
+    """
+    selector = spec["selector"]
+    prop = spec["prop"]
+    op_name = spec["op"]
+    expected = spec["expected"]
+    raw = driver.execute_script(
+        "var el = document.querySelector(arguments[0]);"
+        "if (!el) return null;"
+        "return window.getComputedStyle(el).getPropertyValue(arguments[1]);",
+        selector,
+        prop,
+    )
+    if raw is None:
+        return AssertionResult(
+            False,
+            f"computed-style: selector {selector!r} matched 0 elements",
+        )
+    if op_name == "between":
+        # `expected` is [lo, hi]; parse the raw value numerically.
+        actual = _parse_css_numeric(raw)
+        if actual is None:
+            return AssertionResult(
+                False,
+                f"computed-style: {selector!r}.{prop} = {raw!r} not numeric "
+                f"(needed for op 'between')",
+            )
+        lo, hi = expected[0], expected[1]
+        ok = lo <= actual <= hi
+        detail = (
+            f"computed-style: {selector!r}.{prop} expected in [{lo}, {hi}], "
+            f"actual={_fmt_value(actual)} (raw={raw!r})"
+        )
+        return AssertionResult(ok, detail)
+    op = _OPS.get(op_name)
+    if op is None:
+        return AssertionResult(False, f"computed-style: unsupported op {op_name!r}")
+    if op_name == "==" and isinstance(expected, str):
+        # String equality path — useful for asserting things like
+        # `display: 'block'` where parsing to float would lose data.
+        ok = op(raw, expected)
+        detail = (
+            f"computed-style: {selector!r}.{prop} expected == {expected!r}, "
+            f"actual={raw!r}"
+        )
+        return AssertionResult(ok, detail)
+    actual = _parse_css_numeric(raw)
+    if actual is None:
+        return AssertionResult(
+            False,
+            f"computed-style: {selector!r}.{prop} = {raw!r} not numeric "
+            f"(op {op_name!r} requires a parseable value)",
+        )
+    ok = op(actual, expected)
+    detail = (
+        f"computed-style: {selector!r}.{prop} expected {op_name} "
+        f"{_fmt_value(expected)}, actual={_fmt_value(actual)} (raw={raw!r})"
+    )
+    return AssertionResult(ok, detail)
+
+
 _RUNNERS: dict[str, Any] = {
     "attr": _run_attr,
     "count": _run_count,
@@ -408,6 +557,7 @@ _RUNNERS: dict[str, Any] = {
     "href-pattern": _run_href_pattern,
     "aria-current": _run_aria_current,
     "text-pattern": _run_text_pattern,
+    "computed-style": _run_computed_style,
 }
 
 
@@ -449,10 +599,44 @@ def run_test_case(
         if driver.execute_script("return document.readyState") == "complete":
             break
         time.sleep(0.05)
+    # Run the optional `pre_js` hook BEFORE scroll + settle so the
+    # localStorage seed (or clear) lands in the page's JS context
+    # before any inline `<script>` reader fires its DOMContentLoaded
+    # logic against fresh state. The reader in ContinueReading.astro
+    # runs on parse and reads localStorage immediately, so any
+    # post-load mutation must be paired with a reload — but for
+    # localStorage seeding the canonical pattern is: navigate to the
+    # target page (which schedules the inline reader), then write the
+    # seed, then reload via location.reload() so the inline reader
+    # fires again with the seed in place. This is implemented inline
+    # in the test config (each pre_js for a populated case writes the
+    # entry then calls location.reload()), keeping the harness simple.
+    if case.pre_js:
+        driver.execute_script(case.pre_js)
+        # Some pre_js scripts call `location.reload()` so the page's
+        # inline readers re-fire against the seeded localStorage.
+        # Re-wait for readyState complete after the hook to cover that
+        # case; if no reload happened, this loop exits immediately.
+        deadline = time.time() + page_load_timeout
+        while time.time() < deadline:
+            if driver.execute_script("return document.readyState") == "complete":
+                break
+            time.sleep(0.05)
     # Optional scroll BEFORE settle so the post-scroll layout has time
     # to land before assertions evaluate.
+    #
+    # Pass `case.scroll` via Selenium's positional-argument channel
+    # rather than f-string interpolation (cycle-2 hardening,
+    # M-UX-REVIEW T2 issue file SHIP advisory). `case.scroll` is
+    # already `int(...)` cast at parse time (line ~257), so the
+    # f-string was safe today — but `arguments[0]` parameter passing
+    # eliminates string-building entirely so a future contributor
+    # removing the cast cannot reintroduce a JS-injection vector via
+    # `functional-tests.json`.
     if case.scroll:
-        driver.execute_script(f"window.scrollTo(0, {case.scroll});")
+        driver.execute_script(
+            "window.scrollTo(0, arguments[0]);", case.scroll
+        )
     time.sleep(settle_ms / 1000.0)
 
     results = [run_assertion(driver, spec) for spec in case.asserts]

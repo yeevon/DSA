@@ -91,6 +91,18 @@ interface Section {
   id: string;
   anchor: string;
   title: string;
+  /**
+   * Visual hierarchy level emitted by `scripts/build-content.mjs`
+   * per M-UX-REVIEW T2 D1 (UI-review F4):
+   *   level 1 — top-level numbered section (`^\d+\.\d+\s` titles like
+   *             "4.1 The List ADT"). Renders bold + flush-left in the
+   *             rail (`data-level="1"`).
+   *   level 2 — H2 subsection underneath ("The contract: operations").
+   *             Renders indented + muted (`data-level="2"`).
+   * Reverses the M-UX b29d409 frontmatter-side filter rule that
+   * dropped every non-`^\d+\.\d+\s` entry; both levels now render.
+   */
+  level: 1 | 2;
   ord: number;
 }
 
@@ -116,18 +128,19 @@ const { chapterId, sections } = Astro.props;
 // Defensive sort by `ord` — the build script emits in-order today,
 // but pinning it here means a future frontmatter shape change (or an
 // unsorted handwritten override) cannot silently scramble the TOC.
+//
+// M-UX-REVIEW T2 D2 (2026-04-27): the M-UX b29d409 `^\d+\.\d+\s`
+// filter that dropped subsection titles is removed. The rail now
+// renders every entry the lectures frontmatter declares (top-level
+// numbered + H2 subsections; H3+ already dropped at the build-script
+// boundary per T2 D1). Visual hierarchy is delivered via the
+// `data-level` attribute set per <li> below — the chrome.css rules
+// at `src/styles/chrome.css` paint level=1 bold + flush-left and
+// level=2 indented + muted (UI-review F4). ScrollSpy's `setCurrent()`
+// guard still ignores non-TOC anchors; with the rail now covering
+// both H1 and H2 the guard rarely fires (only sub-subsection IDs in
+// articles that use `\subsubsection` would trip it).
 const ordered = [...sections].sort((a, b) => a.ord - b.ord);
-
-// Filter to top-level sections only (titles starting with `N.N ` —
-// e.g. "1.1 Arrays and Vectors", "1.6 Vector resize"). Subsection
-// titles like "Declaring a vector" or "Common errors" are excluded
-// from the TOC to keep navigation focused; their anchors still exist
-// in the article and remain reachable via in-page scroll, but they
-// don't clutter the rail. ScrollSpy's `setCurrent()` guard (added in
-// T4 cycle 2) already ignores non-TOC anchors, so subsection scroll
-// doesn't clear the current top-level highlight.
-const TOP_LEVEL_TITLE = /^\d+\.\d+\s/;
-const topLevel = ordered.filter((s) => TOP_LEVEL_TITLE.test(s.title));
 ---
 
 <details class="toc-mobile-collapse">
@@ -141,13 +154,14 @@ const topLevel = ordered.filter((s) => TOP_LEVEL_TITLE.test(s.title));
   >
     <h3 class="right-rail-toc-heading">On this page</h3>
     <ul>
-      {topLevel.map((s) => (
-        <li>
+      {ordered.map((s) => (
+        <li data-level={String(s.level)}>
           <a
             href={`#${s.anchor}`}
             class="toc-link"
             data-section-id={s.id}
             data-anchor={s.anchor}
+            data-level={String(s.level)}
           >
             <span
               class="read-indicator"

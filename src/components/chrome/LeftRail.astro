@@ -43,6 +43,17 @@
 // M3 contracts are unchanged — only the chapter-link `href` template
 // changes.
 //
+// M-UX-REVIEW T3 update (2026-04-27): D3 trims non-current chapter
+// subtitles to one line via CSS (UI-review F8). Each non-current
+// `<li>` chapter row now renders `ch_N — Title` with `white-space:
+// nowrap; overflow: hidden; text-overflow: ellipsis` so the rail
+// reads as a clean scannable list when the user wants to jump from
+// ch_4 to ch_5. The current chapter keeps the full text wrapping
+// naturally — that's the entry the user wants the most context on.
+// Each non-current `<a>` carries `title={fullSubtitle}` so hover /
+// long-press reveals the full string. CSS-only — no markup change
+// beyond the `title=` attribute on non-current entries.
+//
 // Companion files:
 //   - design_docs/milestones/m_ux_polish/tasks/T2_left_rail.md
 //   - design_docs/milestones/m_ux_polish/tasks/T9_layout_polish.md (D3)
@@ -105,40 +116,50 @@ for (const c of sorted) {
   <section class="group">
     <h3>Required</h3>
     <ul>
-      {required.map((c) => (
-        <li>
-          <a
-            href={`${baseUrl}/${currentCollection}/${c.id}/`}
-            aria-current={c.id === currentChapterId ? 'page' : undefined}
-            class:list={['chapter-link', c.id === currentChapterId && 'is-current']}
-          >
-            <span class="chapter-label">ch_{c.n} — {c.subtitle}</span>
-            <span class="checkmark-slot" data-chapter-id={c.id} data-interactive-only>
-              {/* Populated by CompletionIndicator island on mount. */}
-            </span>
-          </a>
-        </li>
-      ))}
+      {required.map((c) => {
+        const isCurrent = c.id === currentChapterId;
+        const fullLabel = `ch_${c.n} — ${c.subtitle}`;
+        return (
+          <li>
+            <a
+              href={`${baseUrl}/${currentCollection}/${c.id}/`}
+              aria-current={isCurrent ? 'page' : undefined}
+              class:list={['chapter-link', isCurrent && 'is-current']}
+              title={isCurrent ? undefined : fullLabel}
+            >
+              <span class="chapter-label">ch_{c.n} — {c.subtitle}</span>
+              <span class="checkmark-slot" data-chapter-id={c.id} data-interactive-only>
+                {/* Populated by CompletionIndicator island on mount. */}
+              </span>
+            </a>
+          </li>
+        );
+      })}
     </ul>
   </section>
 
   <section class="group">
     <h3>Optional</h3>
     <ul>
-      {optional.map((c) => (
-        <li>
-          <a
-            href={`${baseUrl}/${currentCollection}/${c.id}/`}
-            aria-current={c.id === currentChapterId ? 'page' : undefined}
-            class:list={['chapter-link', c.id === currentChapterId && 'is-current']}
-          >
-            <span class="chapter-label">ch_{c.n} — {c.subtitle}</span>
-            <span class="checkmark-slot" data-chapter-id={c.id} data-interactive-only>
-              {/* Populated by CompletionIndicator island on mount. */}
-            </span>
-          </a>
-        </li>
-      ))}
+      {optional.map((c) => {
+        const isCurrent = c.id === currentChapterId;
+        const fullLabel = `ch_${c.n} — ${c.subtitle}`;
+        return (
+          <li>
+            <a
+              href={`${baseUrl}/${currentCollection}/${c.id}/`}
+              aria-current={isCurrent ? 'page' : undefined}
+              class:list={['chapter-link', isCurrent && 'is-current']}
+              title={isCurrent ? undefined : fullLabel}
+            >
+              <span class="chapter-label">ch_{c.n} — {c.subtitle}</span>
+              <span class="checkmark-slot" data-chapter-id={c.id} data-interactive-only>
+                {/* Populated by CompletionIndicator island on mount. */}
+              </span>
+            </a>
+          </li>
+        );
+      })}
     </ul>
   </section>
 </nav>
@@ -209,9 +230,28 @@ for (const c of sorted) {
 
   .chapter-label {
     flex: 1;
-    /* Allow label to wrap if the subtitle is long; the rail is
-       narrow (260px) so ch_10's longer subtitle may wrap. */
-    overflow-wrap: anywhere;
+    /* min-width: 0 lets the flex child shrink below its content width
+       so `text-overflow: ellipsis` actually engages instead of the
+       label expanding the row. Without this, flex children default
+       to min-width: auto (their content's intrinsic min size), so a
+       long subtitle would push past the rail edge. */
+    min-width: 0;
+  }
+
+  /* T3 D3 (UI-review F8): truncate non-current chapter labels to one
+     line. The current chapter keeps the full multi-line text — it's
+     the one entry the user wants the most context on. The full
+     subtitle is mirrored into the `<a>` `title=` attribute (set in
+     the markup above) so hover / long-press reveals it.
+
+     Targets the `.chapter-label` span specifically so the checkmark
+     slot stays untruncated; the `:not(.is-current)` selector on the
+     parent `.chapter-link` keeps the current-chapter rendering
+     untouched. */
+  .chapter-link:not(.is-current) .chapter-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .checkmark-slot {

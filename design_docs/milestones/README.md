@@ -24,6 +24,7 @@ what definition of done.
 | M6    | [Phase 6 — Code execution](m6_phase6_code_exec/README.md)           | todo                  | —                    |
 | M7    | [Phase 7 — Audio narration](m7_phase7_audio/README.md)              | todo                  | —                    |
 | M-UX  | [UX polish — chrome + chapter pane](m_ux_polish/README.md)          | ✅ closed 2026-04-25 (re-closed after T9 polish) | —          |
+| M-UX-REVIEW | [Visual-hierarchy pass on the M-UX chrome](m_ux_review/README.md) | ✅ closed 2026-04-27 | — |
 
 The dependency graph is mostly linear: M1 → M2 → M3 fan-outs to M4
 → M5 (M5 needs question persistence + a review queue) and to M6
@@ -33,7 +34,13 @@ sidecar (not in the original `interactive_notes_roadmap.md` phasing)
 — promoted from `nice_to_have.md` 2026-04-24 after M3 closed and
 the M3 client surfaces (annotations, read-status, section nav)
 needed a deliberate place to live. See [ADR-0002](../adr/0002_ux_layer_mdn_three_column.md).
-Runs in parallel with M4's upstream gate.
+**M-UX-REVIEW** is the second UX sidecar — driven by the 2026-04-27
+[`UI_UX_Review.pdf`](../UI_UX_Review.pdf) audit's 12 findings (4 HIGH /
+6 MED / 2 LOW, ~18h), all CSS / single-template edits on surfaces M-UX
+shipped. ✅ closed 2026-04-27 — T1 + T2 + T3 + T4 + T5 + T6 closed in a
+single day (F1–F11 shipped; F12 deferred to nice_to_have.md §UX-5 with
+explicit M5 trigger). Both UX sidecars ran in parallel with M4's
+upstream gate.
 
 ## Parallel non-milestone tracks
 
