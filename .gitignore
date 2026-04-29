@@ -103,3 +103,5 @@ src/content/practice/ch_*.mdx
 Thumbs.db
 desktop.ini
 data/
+.smoke/
+coding_practice/build/
