@@ -39,20 +39,12 @@ course-passing.
 > caught + fixed a real sticky-breadcrumb regression at milestone close.
 > Optional chapters (ch_7, ch_9–ch_13) ship as committed-but-
 > un-augmented; deeper review is deferred to the post-build
-> content audit. **M4 (question generation) — re-blocked 2026-04-25
-> on an M16 follow-up upstream patch.** M16 (external workflow
-> module discovery) shipped in jmdl-ai-workflows v0.2.0 (2026-04-24)
-> — `aiw-mcp` now loads `cs300.workflows.*` via the
-> `AIW_EXTRA_WORKFLOW_MODULES` env var, verified end-to-end by
-> cs-300's pre-flight smoke. The smoke also surfaced four
-> undocumented convention hooks (builder return type, `initial_state`
-> hardcoded fallback to the planner's literal class name, MCP
-> wire-shape wrapping, `FINAL_STATE_KEY` honoring) that M4 task
-> breakout needs to be written against; rather than encode the
-> warts in cs-300's M4 specs, the upstream framework gets a
-> follow-up patch (documentation pass + dispatch cleanup —
-> [`aiw_workflow_convention_hooks_issue.md`](aiw_workflow_convention_hooks_issue.md))
-> and M4 unblocks again when it ships. Interactive features further
+> content audit. **M4 (question generation) — in progress.** jmdl-ai-workflows
+> v0.4.0 shipped the `WorkflowSpec` declarative API, resolving all
+> convention-hooks from the 2026-04-25 re-block. T01 (cs300 package
+> skeleton + architecture grounding) ✅ 2026-05-01; T02 (`question_gen`
+> workflow module — Ollama Qwen 14B, all four question types) ✅
+> 2026-05-02. Interactive features further
 > out (M5–M7: FSRS spaced repetition, in-browser code execution,
 > narrated audio) are designed but not built. Two M-UX residuals (collapsible
 > chapter sections; CompletionIndicator JSON → `GET /api/sections`

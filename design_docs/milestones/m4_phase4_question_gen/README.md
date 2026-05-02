@@ -1,7 +1,7 @@
 # M4 — Phase 4: Question generation (`aiw-mcp` + cs-300 workflows)
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 4
-**Status:** todo — **re-blocked 2026-04-25** on a follow-up upstream patch (M16 follow-up). The pre-flight smoke against jmdl-ai-workflows v0.2.0 surfaced four undocumented convention hooks (builder-returns-uncompiled, `initial_state` fallback hardcoded to literal class name `PlannerInput`, MCP `payload`-wrapping wire shape, `FINAL_STATE_KEY` honoring possibly-defective). Two diagnoses: (1) documentation gap — the discovery-issue spec cs-300 itself authored against the framework's docs didn't capture #1/#2/#4; (2) layer-leaky dispatch — `_dispatch._build_initial_state` falls back to the planner's literal class name. Full smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md); upstream feature request to address both diagnoses filed at [`../../../aiw_workflow_convention_hooks_issue.md`](../../../aiw_workflow_convention_hooks_issue.md).
+**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
 **Depends on:** M3 (state service must exist to receive generated
 questions; `POST /api/questions/bulk` must be live) + the upstream
 follow-up patch above.
@@ -68,9 +68,10 @@ play.
       M5/M6 can A/B (architecture.md §5 row 5). Mechanism: ai-workflows
       ships a `--tier-override` CLI flag + `tier_overrides` MCP arg
       (M5 T05 in the upstream framework).
-- [ ] `coding_practice/` decision resolved: prompts persisted as
-      files vs generated dynamically (architecture.md §5 row 6).
-      Document the call.
+- [x] `coding_practice/` decision resolved: **dynamic** — `question_gen`
+      receives `section_text` directly from the browser; no prompt files
+      in `coding_practice/` are read or required for Phase 4.
+      (architecture.md §5 row 6, resolved 2026-05-01 M4 T01)
 
 ## Tasks
 
@@ -143,12 +144,9 @@ play.
       pre-flight smoke (see `issues/m4_unblock_smoke.md`). Original
       discovery feature-request file `aiw_workflow_discovery_issue.md`
       deleted from cs-300 root at M16 unblock per its own author note.
-- [ ] **Upstream gate, round 2 (M16 follow-up — OPEN).** Smoke
-      surfaced four undocumented hooks the M16 surface didn't
-      cover; blocking M4 until upstream patch lands. Spec at
-      [`../../../aiw_workflow_convention_hooks_issue.md`](../../../aiw_workflow_convention_hooks_issue.md).
-      Owner: cs-300 user (also the upstream maintainer). On
-      patch ship, this checkbox flips `[x]`, M4 status flips
-      `todo → unblocked YYYY-MM-DD`, the convention-hooks
-      issue file is deleted from cs-300 root, and T01 of the
-      M4 task breakout proceeds against the cleaned surface.
+- [x] **Upstream gate, round 2 (M16 follow-up — RESOLVED 2026-05-01).** ✅
+      jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative
+      API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), addressing
+      all four convention hooks. The convention-hooks issue file
+      (`aiw_workflow_convention_hooks_issue.md`) deleted from cs-300 root
+      2026-05-02. T01 closed 2026-05-01; T02 closed 2026-05-02.

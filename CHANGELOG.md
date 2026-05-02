@@ -14,6 +14,45 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M4 T02 — `question_gen` workflow module** (`cs300/workflows/question_gen.py`).
+  Implements the primary M4 deliverable: a `WorkflowSpec`-based workflow that
+  generates `mc`, `short`, `llm_graded`, and `code` practice questions from a
+  chapter section via Ollama Qwen 14B (`ollama/qwen2.5:14b`). Key design points:
+  - Uses `prompt_fn` (Tier 2) rather than `prompt_template` to avoid `str.format()`
+    injection on `section_text` (per ADV-2 framework advisory).
+  - Tier registry keyed `"question-gen-llm"` enables runtime A/B override via
+    `tier_overrides` in the `run_workflow` MCP call — no source change needed.
+  - `ValidateStep(target_field="questions")` provides LangGraph-layer shape validation
+    before the result propagates (second validation at POST /api/questions/bulk per
+    architecture.md §3.1 "Validation runs twice").
+  - AC-2 smoke verified: `aiw show-inputs question_gen` lists all five input fields.
+  Dep audit: skipped — no manifest changes (module imports only from jmdl-ai-workflows
+  runtime, no new pyproject.toml entries).
+
+- **Fixed** **M4 status-surface drift** (HIGH findings from 2026-05-02 audit, findings 1–2):
+  - Deleted `aiw_workflow_convention_hooks_issue.md` from cs-300 root (was
+    supposed to be deleted per T01 AC-5, but deletion was never committed).
+  - Updated `design_docs/milestones/README.md` M4 row: `todo — re-blocked
+    2026-04-25` → `🟡 in progress 2026-05-02 (T01 ✅, T02 ✅)`.
+  - Updated `design_docs/milestones/m4_phase4_question_gen/README.md` status
+    line: replaced stale re-block narrative + dead link with current in-progress
+    status; flipped round-2 carry-over checkbox to `[x]`; flipped
+    `coding_practice/` Done-when checkbox to `[x]` (resolved dynamic 2026-05-01).
+  - Updated `README.md` M4 status callout: removed dead link, replaced with
+    current T01/T02 progress.
+  - Updated `design_docs/architecture.md` §3.1: replaced Tier-4 API language
+    (`TieredNode` / `ValidatorNode` / `RetryingEdge` / `register("name", build)`)
+    with v0.4.0 `WorkflowSpec` / `LLMStep` / `ValidateStep` / `register_workflow(spec)`;
+    added `section_text` to input shape; updated artifact field to `result.artifact`;
+    updated workflow-discovery paragraph to reference v0.4.0.
+  - Updated `design_docs/architecture.md` §2 line 302: `ValidatorNode` → `ValidateStep`.
+  - Updated `design_docs/architecture.md` §5 `coding_practice/` row: resolved ✅.
+  - Updated `design_docs/architecture.md` §6: closed open-question note.
+  - Updated `design_docs/roadmap_addenda.md` `coding_practice/` section: open
+    question closed, dynamic resolution recorded.
+
+
+
 - **Decided / Added** **LBD-15 — sandbox-vs-host git policy.** When
   Claude Code runs inside the Docker sandbox (detected by
   `/.dockerenv`), all work happens on `design_branch` (or feature

@@ -106,4 +106,4 @@ Run during Phase 1 idle time, not deferred to Phase 2 kickoff. One-hour experime
 
 Folders `cplusplus/`, `psuedo/`, `python/` stay. Purpose: hold prompt material for the ai-workflows question-generation workflow (Phase 4+). Likely to expand to support varying difficulty tiers.
 
-**Open:** whether prompts are persisted as files here or generated dynamically by the workflow each run. Defer until Phase 4 design.
+**Resolved 2026-05-01 (M4 T01):** question generation is **dynamic**, not prompt-corpus-driven. The `question_gen` workflow receives `section_text` directly from the browser; `aiw-mcp` does not read `coding_practice/` files. `coding_practice/` remains as the user's coding-exercise workspace (C++/Python/pseudocode exercises), unchanged by Phase 4. No `coding_practice/`-side prompt files are read, persisted, or required for Phase 4. See architecture.md §5 row 6.

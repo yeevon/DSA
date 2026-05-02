@@ -299,7 +299,7 @@ CREATE TABLE annotations (
 
 ### Schema-per-type payloads
 
-`answer_schema_json`, `reference_json`, `response_json` are the shapes that vary by question type. Locked per type so validators (both the generation-time `ValidatorNode` inside the cs-300 workflow module and the submission-time eval in the app) can be type-dispatched.
+`answer_schema_json`, `reference_json`, `response_json` are the shapes that vary by question type. Locked per type so validators (both the generation-time `ValidateStep` inside the cs-300 workflow module and the submission-time eval in the app) can be type-dispatched.
 
 | type         | answer_schema_json                              | reference_json                                  | response_json                |
 |--------------|-------------------------------------------------|-------------------------------------------------|------------------------------|
@@ -333,15 +333,15 @@ Four dynamic surfaces, each with a clear contract. Everything else is static ren
 
 ### 3.1 Question generation (`aiw-mcp` + cs-300 workflow modules)
 
-cs-300 contributes the `question_gen` workflow as a Python module under `./workflows/` that registers with ai-workflows' workflow registry on import. The module is a LangGraph `StateGraph` composed of `TieredNode` (Ollama Qwen tier) + `ValidatorNode` (KDR-004 in the upstream framework) + `RetryingEdge` (KDR-006). M4 owns authoring this module and the matching `grade` / `assess` modules.
+cs-300 contributes the `question_gen` workflow as a Python module under `cs300/workflows/` that registers with ai-workflows' workflow registry on import via `register_workflow(spec)`. The module uses jmdl-ai-workflows v0.4.0's `WorkflowSpec` declarative API: an `LLMStep` (Ollama Qwen 14B via `TierConfig`/`LiteLLMRoute`) plus a `ValidateStep` for shape-checking. M4 owns authoring this module and the matching `grade` / `assess` modules. `AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen` triggers the import at `aiw-mcp` startup.
 
-Frontend calls the `run_workflow` MCP tool on `aiw-mcp` with `{workflow_id: 'question_gen', inputs: {chapter_id, section_id?, count, types: [...]}}`. The MCP server returns `{run_id, status, ...}` per the `RunWorkflowOutput` schema; long-running runs come back as `status: 'pending'` with `awaiting: 'gate'` if a `HumanGate` is wired (cs-300's question_gen does not pause by default — generation is short and direct).
+Frontend calls the `run_workflow` MCP tool on `aiw-mcp` with `{workflow_id: 'question_gen', inputs: {chapter_id, section_id?, section_text, count, types: [...]}}`. `section_text` is the rendered text the browser already has in-page; `aiw-mcp` does not read `chapters/` directly. The MCP server returns `{run_id, status, ...}` per the `RunWorkflowOutput` schema; long-running runs come back as `status: 'pending'` (cs-300's question_gen does not pause at a `HumanGate` by default — generation is short and direct).
 
-Frontend polls via `list_runs(workflow_id='question_gen')` or `get_run_status(run_id)` until `status == 'completed'`. Completed runs surface artifacts via the workflow's terminal state read.
+Frontend polls via `list_runs(workflow_id='question_gen')` or `get_run_status(run_id)` until `status == 'completed'`. Completed runs surface artifacts via `result.artifact` (the value of `QuestionGenOutput.questions`, the first field of the output schema — first-field convention per jmdl-ai-workflows v0.4.0).
 
-Frontend POSTs artifacts to the cs-300 state service (`POST /api/questions/bulk`), which validates and inserts. **Validation happens twice**: once inside the cs-300 workflow's `ValidatorNode` (LangGraph-level, per KDR-004 in the upstream framework), once at insert (schema conformance against `questions.answer_schema_json`). Redundant on purpose; the upstream framework is an external surface and could change shape.
+Frontend POSTs artifacts to the cs-300 state service (`POST /api/questions/bulk`), which validates and inserts. **Validation happens twice**: once inside the cs-300 workflow's `ValidateStep` (LangGraph-level shape check at the framework boundary), once at insert (schema conformance against `questions.answer_schema_json`). Redundant on purpose; the upstream framework is an external surface and could change shape.
 
-**Workflow discovery.** ai-workflows v0.2.0 (2026-04-24, M16) shipped the env-var loader (`AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,cs300.workflows.grade`) and the mirroring CLI flag (`--workflow-module cs300.workflows.question_gen`, repeatable). cs-300 launches `aiw-mcp` with that env var pointing at `cs300.workflows.question_gen` etc.; each module's `register("name", build)` call fires at import time and the existing dispatch lookup keeps working unchanged. M4 unblocked 2026-04-25; the original feature request at `aiw_workflow_discovery_issue.md` was deleted at unblock time per its own author note ("delete this file once the feature ships").
+**Workflow discovery.** ai-workflows v0.4.0 (`WorkflowSpec` surface, 2026-05-01) is the authoring target. Each module calls `register_workflow(spec)` at import time (not `register("name", build)` from the Tier-4 escape hatch). cs-300 launches `aiw-mcp` with `AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,cs300.workflows.grade`; on startup `aiw-mcp` imports each named module and the `register_workflow` calls fire. M4 unblocked definitively 2026-05-01 when v0.4.0 resolved all four convention hooks from the 2026-04-25 re-block (WorkflowSpec declarative API replaces the Tier-4 builder-returns-compiled / initial_state / payload-wrapping / FINAL_STATE_KEY surface). The convention-hooks issue file (`aiw_workflow_convention_hooks_issue.md`) deleted 2026-05-02.
 
 Error shape for MCP calls:
 ```ts
@@ -459,7 +459,7 @@ These block nothing immediately but need resolution before the phase that depend
 | FSRS vs SM-2                             | Phase 5     | FSRS (`ts-fsrs`)            | Phase 5 start  |
 | Code language: C++ only vs C+++Python    | Phase 6     | C++ baseline, Python later  | Phase 6 start  |
 | Question-gen model tier (14B/32B/Claude) | Phase 4     | 14B start, A/B via tier_overrides | Phase 4 eval |
-| `coding_practice/` persisted vs dynamic  | Phase 4     | —                           | Phase 4 design |
+| `coding_practice/` persisted vs dynamic  | Phase 4     | **resolved: dynamic** — `question_gen` workflow receives `section_text` directly from the browser; `coding_practice/` is the coding-exercise workspace, unchanged. No Phase 4 prompt files needed. ✅ 2026-05-01 | — |
 
 Resolved here:
 - **Question persistence model:** accumulating (roadmap's "almost certainly" confirmed).
@@ -475,6 +475,6 @@ Not because unimportant — because already settled elsewhere or deferred to the
 
 - jmdl-ai-workflows internals (LangGraph substrate, FastMCP server, retry/cost primitives — closed surface from this repo's view; framework docs at <https://pypi.org/project/jmdl-ai-workflows/>; cs-300 is a downstream consumer that contributes workflow modules per §3.1).
 - TTS provider choice (Phase 7 open question).
-- Question prompt corpus shape under `coding_practice/` (Phase 4 open question; see `roadmap_addenda.md`).
+- Question prompt corpus shape under `coding_practice/` (**resolved 2026-05-01**: dynamic — `section_text` flows in from the browser; `coding_practice/` is the user's coding-exercise workspace, unchanged. See architecture.md §5 row 6.).
 - Phase 1 content acceptance criteria (deferred; see `roadmap_addenda.md`).
 - **Per-language `<CodeBlock>` syntax detection** (forward-work item, M2 T2/T5b implementation deferred). The Lua filter at `scripts/pandoc-filter.lua` currently maps every `CodeBlock` to `cpp` since the SNHU-required arc (ch_1–ch_6) is uniformly C++17; pseudo-code in ch_2 renders close enough as cpp. When the post-build optional-content audit augments ch_7 / ch_9–ch_13, any chapter that introduces a non-C++ block (Python, shell, SQL, etc. — none today) must reintroduce per-class language detection in the filter: read the source `\begin{lstlisting}[language=…]` opt-arg if present and set the `CodeBlock.classes` accordingly, falling back to `cpp` only when no hint exists. **Component-side counterpart:** the visible header tag at `src/components/callouts/CodeBlock.astro:84` is the static literal `<span class="code-block-lang">C++</span>` (Path A per M-UX-REVIEW T5 D2), not prop-derived; when the trigger fires the future Builder swaps that literal for a prop-driven render (`<span class="code-block-lang">{lang}</span>`) and threads the language hint from the pandoc filter through MDX frontmatter or a `data-language` read on the slot's `<pre>` (Shiki already emits `data-language="cpp"` on `<pre class="astro-code">` per the rendered output, so the MDX-route component can read it from the slotted child without a filter-side schema change). Trigger: first non-C++ chapter block. Owner: post-build content audit Builder. See `design_docs/m2_raw_passthrough_sweep.md` "Forward link" for the pandoc-side counterpart.

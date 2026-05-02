@@ -1,6 +1,6 @@
 # T02 — question_gen workflow module
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02
 **Depends on:** T01 (cs300 package skeleton must exist)
 **Blocks:** T04 (launch script smoke needs at least one real module), T05 (bulk endpoint
 validation mirrors the output schema here), T07 (UI calls this workflow)
