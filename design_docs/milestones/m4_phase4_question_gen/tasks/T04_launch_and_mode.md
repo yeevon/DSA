@@ -1,6 +1,6 @@
 # T04 — aiw-mcp launch script + mode.ts liveness probe
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02 (AC-8 npm build carry-over: verify on host with `npm ci && npm run build` — sandbox node_modules root-owned)
 **Depends on:** T02, T03 (modules must exist for the launch script to load them)
 **Blocks:** T07 (UI feature-detection depends on working mode.ts probe)
 

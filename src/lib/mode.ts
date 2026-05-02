@@ -12,22 +12,21 @@
 
 export type Mode = 'interactive' | 'static';
 
-// aiw-mcp HTTP transport URL. Aligned with the jmdl-ai-workflows
-// README example (port 8080) so cs-300 and the upstream framework
-// docs use the same default. Override via the aiw-mcp launch site
-// if needed (--port flag, or wrap in a launcher script).
-//
-// M4 forward-work: confirm the probe path. M14 smoke (jmdl-ai-workflows
-// CHANGELOG, 2026-04-22) hit '/mcp/' as the streamable-HTTP endpoint;
-// the '/health' path used here is a placeholder that may need to flip
-// to a HEAD/OPTIONS probe of '/mcp/' if FastMCP does not expose a
-// liveness endpoint. Resolved when M4 actually wires aiw-mcp up.
 const ADAPTER_URL = 'http://localhost:8080';
+// FastMCP's streamable-HTTP transport binds at /mcp, not /health.
+// Probe with a no-op JSON-RPC POST: any HTTP response (including a
+// method-not-found error) means the server is up; only ECONNREFUSED
+// or a CORS reject on a dead server reaches the .catch(() => false).
+const MCP_ENDPOINT = ADAPTER_URL + '/mcp';
 
 export async function detectMode(): Promise<Mode> {
   try {
     const [adapter, state] = await Promise.all([
-      fetch(ADAPTER_URL + '/health').then((r) => r.ok),
+      fetch(MCP_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 0, method: 'ping', params: {} }),
+      }).then(() => true).catch(() => false),
       fetch('/api/health').then((r) => r.ok),
     ]);
     return adapter && state ? 'interactive' : 'static';

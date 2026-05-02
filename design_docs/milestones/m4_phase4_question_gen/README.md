@@ -1,7 +1,7 @@
 # M4 — Phase 4: Question generation (`aiw-mcp` + cs-300 workflows)
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 4
-**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
+**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02, T04 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
 **Depends on:** M3 (state service must exist to receive generated
 questions; `POST /api/questions/bulk` must be live) + the upstream
 follow-up patch above.
@@ -31,18 +31,19 @@ play.
 
 ## Done when
 
-- [ ] **`aiw-mcp` runs locally** over the streamable-HTTP transport
+- [x] **`aiw-mcp` runs locally** over the streamable-HTTP transport
       on port 8080, with cs-300's workflow modules discovered via
-      `AIW_EXTRA_WORKFLOW_MODULES` (per the upstream issue file).
-      Launch command:
-      `AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,cs300.workflows.grade
-      uvx --from jmdl-ai-workflows aiw-mcp --transport http --port 8080
-      --cors-origin http://localhost:4321`.
-- [ ] `detectMode()` reaches `aiw-mcp` when running locally —
+      `AIW_EXTRA_WORKFLOW_MODULES`. Launch command codified in
+      `scripts/aiw-mcp.sh` (M4 T04 ✅ 2026-05-02 — see
+      [`issues/T04_issue.md`](issues/T04_issue.md)). AC-4 smoke
+      verified: FastMCP 3.2.4 started, `POST /mcp` returned MCP
+      `initialize` response with `serverInfo.name="ai-workflows"`.
+- [x] `detectMode()` reaches `aiw-mcp` when running locally —
       unreachable triggers the `adapter_unreachable` error shape,
       which downgrades the UI gracefully. Probe path
       ([`src/lib/mode.ts`](../../../src/lib/mode.ts)) confirmed
-      against FastMCP's actual liveness surface.
+      against FastMCP's actual liveness surface (POST to `/mcp`,
+      any HTTP response = alive; M4 T04 ✅ 2026-05-02).
 - [ ] Question generation UI: a per-section "generate questions"
       action that opens a small form (count, types) and triggers
       the workflow via the MCP `run_workflow` tool. Polling spinner

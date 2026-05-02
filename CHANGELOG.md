@@ -14,6 +14,24 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M4 T04 — `scripts/aiw-mcp.sh` launch script + `mode.ts` probe fix**
+  (`scripts/aiw-mcp.sh`, `src/lib/mode.ts`).
+  `aiw-mcp.sh`: single-command launcher for the local aiw-mcp backend; computes
+  `REPO_ROOT` from `${BASH_SOURCE[0]}` (no hardcoded paths); sets `PYTHONPATH` and
+  `AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,cs300.workflows.grade`; `exec`
+  replaces the shell process for clean signal handling; env-var overrides `AIW_PORT`/
+  `AIW_CORS_ORIGIN` for flexibility.
+  `mode.ts` probe fix: replaced `fetch(ADAPTER_URL + '/health').then(r => r.ok)` with a
+  `POST` to `/mcp` with a no-op JSON-RPC body — any HTTP response (including 4xx) counts
+  as alive; only ECONNREFUSED or CORS-reject on a dead server returns false. Removed the
+  stale "/health is a placeholder" forward-work comment.
+  AC-4 smoke verified: `bash scripts/aiw-mcp.sh` started aiw-mcp on `127.0.0.1:8080`,
+  `POST /mcp` returned non-empty JSON (FastMCP 3.2.4, `ai-workflows` server).
+  AC-8 (`npm run build`): NOT RUN — `node_modules` is root-owned in the sandbox
+  (EACCES on `npm ci`); TypeScript change is type-safe by inspection (same
+  `Promise<boolean>` shape); host must verify via `npm ci && npm run build`.
+  Dep audit: skipped — no manifest changes.
+
 - **Added** **M4 T03 — `grade` workflow module** (`cs300/workflows/grade.py`).
   Evaluates `llm_graded` student responses against a rubric via Ollama Qwen 14B.
   `GradeOutput.outcome` (`Literal['pass','fail','partial']`) is the first field
