@@ -97,6 +97,11 @@ src/content/notes/ch_*.mdx
 src/content/practice/ch_*.mdx
 
 # ------------------------------------------------------------------
+# Claude Code (per-machine permission cache; the rest of .claude/ is committed)
+# ------------------------------------------------------------------
+.claude/settings.local.json
+
+# ------------------------------------------------------------------
 # OS noise
 # ------------------------------------------------------------------
 .DS_Store

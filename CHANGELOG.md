@@ -12,6 +12,205 @@ non-decisions (a question raised and intentionally postponed).
 
 ---
 
+## 2026-05-02
+
+- **Added** **Workflow integrity validator** — `scripts/validate-claude-workflow.mjs`
+  + `scripts/validate-claude-workflow.md`. Static-integrity checker over
+  the `.claude/` tree: 47 paper-review checks across file existence,
+  agent/command frontmatter, link resolution, agent-name + LBD-N
+  reference validity, dep-manifest list consistency, verdict-ladder
+  consistency between agent files and the `_common/non_negotiables.md`
+  table, effort-table model match, drift-gatekeeper policy
+  (auditor + architect on opus-4-7; everything else sonnet-4-6),
+  `npm run …` script existence, and LBD-10 status-surface 4-way
+  enumeration in the 8 procedure files that drive task close.
+  Wired as `npm run workflow:validate`. Companion doc enumerates the 6
+  scenarios that still require a live workflow exercise (Builder/Auditor
+  handoff, security gate trigger, dep-auditor manifest detection,
+  progress.md append-only, gate integrity, cycle-limit behaviour).
+  Result: validator runs green (47/47) on first invocation.
+
+- **Fixed** **Workflow audit follow-ups** — addressed 3 MEDIUM and 3 LOW
+  findings from the post-refactor coherence audit:
+  - **`.gitignore` ↔ tracking inconsistency.** CLAUDE.md and the
+    `.claude/README.md` claimed `.claude/` was gitignored; it wasn't,
+    and 5 files were already tracked. Resolution: drop the "gitignored"
+    claims, treat `.claude/` as committed, and gitignore only
+    `.claude/settings.local.json` (per-machine permission cache).
+  - **`/clean-tasks` ↔ `task-analyzer` wiring.** SKILL.md routed
+    "clean up tasks" → `task-analyzer`, but `clean-tasks.md` never
+    spawned it and the verdict ladders disagreed. Added the spawn step
+    + a verdict-translation table (`READY → READY`,
+    `NOT_READY → UPDATED`, `NEEDS_CLARIFICATION → NEEDS_INPUT`).
+  - **Auditor gate table missing `content build`.** `auditor.md`'s
+    canonical example table omitted `node scripts/build-content.mjs`
+    and the `SKIPPED` result label, while the templates included both.
+    Added the row + label and pointed at `gate_parse_patterns.md` as
+    the canonical vocabulary source.
+  - **SEC-BLOCK / SEC-FIX → reviewer-verdict mapping** now explicit in
+    `clean-implement.md` (any `BLOCK` → `SEC-BLOCK`; any
+    `FIX-THEN-SHIP` → `SEC-FIX`; all `SHIP` → `CLEAN`). Cycle-limit
+    behaviour also documented (verdict is `OPEN`, not `CYCLE-LIMIT`;
+    security gate doesn't run on an unclean task).
+  - **`non_negotiables.md` default-return comment** flesh out — full
+    9-row per-agent verdict-ladder table replaces the earlier `<BUILT
+    / BLOCKED / STOP-AND-ASK> # or PASS / OPEN / BLOCKED for
+    reviewers` shorthand.
+  - **`task-analyzer.md`** report template now enumerates all four
+    status surfaces (was previously a single `<which of the 4>`
+    placeholder); the validator caught this on first run.
+  - **`.claude/README.md` provenance** section relativised — the
+    absolute host path to the generalized-workflow source is gone,
+    replaced with the `~/prj/...` mount layout (which is what's
+    actually meaningful inside the dev container).
+  - Skipped (audit was over-eager): tightening Write access on
+    auditor/architect (they legitimately write issue files / ADRs);
+    adding the verification-discipline reference to `sr-dev.md` (the
+    audit acknowledged it as benign).
+
+- **Changed** **Model assignments rebalanced** — flipped overhead of
+  Opus 4.7 for Sonnet 4.6 across agents and commands. Final policy:
+  **`auditor` and `architect` stay on Opus 4.7** (drift gatekeepers —
+  the loop is built around them catching what the builder missed, and
+  cheaping out defeats the loop). Everything else → Sonnet 4.6:
+  builder, security-reviewer, dependency-auditor, sr-dev, sr-sdet,
+  task-analyzer, roadmap-selector. All commands → Sonnet 4.6 with
+  `thinking: high` on the heavy orchestrators (`/clean-implement`,
+  `/auto-implement`, `/clean-tasks`) and `thinking: medium` on the
+  dispatchers (`/audit`, `/autopilot`, `/queue-pick`, `/implement`).
+  `_common/effort_table.md` rewritten to document the rationale and
+  the "when to manually escalate" guidance. The validator's
+  `drift-gatekeeper-model` check enforces this split.
+
+- **Changed** **Agent workflow refactored against generalized template** —
+  pulled in `~/prj/generalized_claude_workflow` (the read-only mounted
+  reference established 2026-05-01) and re-instantiated cs-300's
+  `.claude/` workflow on top of it. Result is a project-specific
+  workflow that uses the generalized scaffold (project profile table,
+  threat-model table, KDR/LBD table, `_common/` shared rules,
+  structured return verdicts) with cs-300 specifics filled in
+  (LBD-1..14, threat model, gate commands, file paths,
+  status-surface 4-way, dep-audit gate). Changes:
+  - **`CLAUDE.md` rewritten** — adopts the generalized section
+    ordering: project profile, grounding, load-bearing decisions
+    (LBD-1..14 codified from architecture.md + saved memory rules
+    + roadmap), repo layout, threat model table, canonical file
+    locations, verification commands, non-negotiables (architecture,
+    spec authority, carry-over, scope, docs, secrets, changelog,
+    status-surface, verification, dep-audit gate, git safety,
+    autonomous-mode boundary), Auditor issue-file structure,
+    glossary. Old free-form sections preserved as content but
+    reorganised under the new scaffold.
+  - **`.claude/agents/_common/`** added — `non_negotiables.md` and
+    `verification_discipline.md`, both cs-300-tuned and referenced
+    from every agent prompt.
+  - **`.claude/agents/`** — refactored existing `builder`, `auditor`,
+    `security-reviewer`, `dependency-auditor` to use the generalized
+    frontmatter + return-schema and reference `_common/`. Added
+    `architect`, `roadmap-selector`, `sr-dev`, `sr-sdet`,
+    `task-analyzer` (new for cs-300, all project-customised).
+    cs-300-specific knowledge in `security-reviewer` and
+    `dependency-auditor` bodies preserved — only the scaffolding
+    changed.
+  - **`.claude/commands/`** — preserved the rich existing
+    `/clean-implement` (its security-gate-after-functionally-clean
+    pattern is better than the generalized version) and refreshed
+    its references to `_common/` and `CLAUDE.md`. Added `/audit`,
+    `/auto-implement`, `/autopilot`, `/clean-tasks`, `/implement`,
+    `/queue-pick`. Added `_common/cycle_summary_template.md`,
+    `_common/effort_table.md`, `_common/gate_parse_patterns.md`.
+  - **`.claude/skills/project-development/SKILL.md`** added — invocable
+    skill that routes user intent to the right command/agent.
+  - **`.claude/README.md`** added — workflow index with provenance
+    note pointing back at the generalized template.
+  - **`agent_docs/long_running_pattern.md`** added — cs-300-tuned
+    plan.md/progress.md two-file carry-forward pattern for tasks
+    that opt in via `**Long-running:** yes` or reach cycle 3.
+  - **`runs/`** initialised with `.gitkeep` — durable run-artifact
+    directory for long-running tasks.
+
+  ACs satisfied: (a) CLAUDE.md follows generalized scaffold, (b) all
+  generalized agents installed, (c) all generalized commands installed
+  (including the existing /clean-implement preserved), (d) skill +
+  long-running pattern installed, (e) cs-300 institutional knowledge
+  (40-pp ceiling, 3–5 bounded additions, no Jekyll polish, status-
+  surface 4-way, code-vs-content verification, reference-solution
+  rule, code-execution non-sandbox decision, pandoc/Lua-filter
+  pipeline as the only LaTeX→MDX path) preserved as LBD-1..14.
+  No code or content surfaces touched outside the workflow files.
+  Dep audit: skipped — no manifest changes.
+
+  **Files touched:** `CLAUDE.md`; `.claude/README.md`;
+  `.claude/agents/{builder,auditor,security-reviewer,dependency-auditor,architect,roadmap-selector,sr-dev,sr-sdet,task-analyzer}.md`;
+  `.claude/agents/_common/{non_negotiables,verification_discipline}.md`;
+  `.claude/commands/{clean-implement,audit,auto-implement,autopilot,clean-tasks,implement,queue-pick}.md`;
+  `.claude/commands/_common/{cycle_summary_template,effort_table,gate_parse_patterns}.md`;
+  `.claude/skills/project-development/SKILL.md`;
+  `agent_docs/long_running_pattern.md`; `runs/.gitkeep`.
+
+## 2026-05-01
+
+- **Added** **Docker sandbox for agent development** — `Dockerfile`,
+  `docker-compose.yml`, `.dockerignore` providing a Linux container
+  with the project's pinned toolchain (Node 22 per `.nvmrc`, pandoc
+  3.1.3 per `.pandoc-version`, Python 3.12 via uv, Claude Code CLI)
+  so agents can be run with `--dangerously-skip-permissions`
+  confined to the project tree and `~/.claude`. **No LaTeX in the
+  image** — chapter sources are frozen (ch_1–ch_6 SNHU-required arc
+  closed 2026-04-23). User-confirmed scope decisions on this
+  containerization pass: (a) primary purpose is filesystem
+  sandboxing for `--dangerously-skip-permissions`, (b) skip LaTeX,
+  (c) plain Docker over devcontainer.
+
+  **Bind layout.** `${PWD}:${PWD}` (same absolute path on both sides
+  so Claude's `~/.claude/projects/<path>` memory key matches between
+  host and container sessions); `${HOME}/.claude:/home/node/.claude`
+  (auth + per-project memory persist);
+  `${HOME}/prj/generalized_claude_workflow` mounted **read-only**
+  at the same path — reference source the user consults when
+  building new agent workflows. Read-only is intentional: edits to
+  that workflow happen on the host, never from inside this
+  sandbox. Verified `touch` from inside returns "Read-only file
+  system." Named volumes shadow `node_modules`, `.venv`, `.astro`
+  so container installs don't fight host artifacts (better-sqlite3
+  native bindings in particular). Container runs as
+  `${SANDBOX_UID:-1000}:${SANDBOX_GID:-1000}` so bind-mounted files
+  retain host-correct ownership; override via env or a sibling
+  `.env` if your host UID differs from 1000. Names are
+  `SANDBOX_UID` / `SANDBOX_GID` rather than `UID` / `GID` because
+  bash exports `UID` as a readonly variable — a `UID=… make shell`
+  prefix assignment errors out and silently inherits the parent
+  shell's value. Renaming dodges the foot-gun; the original `UID`
+  spelling surfaced as a "UID: readonly variable" warning during
+  the first `make smoke` run, then was fixed before declaring the
+  sandbox done.
+
+  **Threat model.** A runaway agent can clobber the project tree
+  (it's git-versioned) and `~/.claude` (memory + auth). The rest
+  of `$HOME` — ssh keys, other school projects, photos — is not
+  mounted and not reachable from inside the container. Network is
+  unrestricted; the sandbox is filesystem-scoped, not net-scoped.
+
+  **Files added:** `Dockerfile`, `docker-compose.yml`,
+  `.dockerignore`, `Makefile`. The `Makefile` is the user-facing
+  entry per spec — `make shell` (auto-builds if image absent),
+  `make build`, `make rebuild`, `make smoke`, `make stop`,
+  `make clean`. `make help` is the default goal.
+
+  **Verification.** `make build` ran clean (BuildKit, exit 0,
+  image `cs-300-agent-sandbox:latest` tagged). `make smoke`
+  printed: Node `v22.22.2`, `pandoc 3.1.3`, `uv 0.11.8
+  (x86_64-unknown-linux-gnu)`, `2.1.126 (Claude Code)` — all four
+  tools present and on the pinned versions.
+
+  **Architecture / process notes.** Docker is dev infrastructure,
+  not project runtime — no `architecture.md` update, treated like
+  IDE config. Dep audit: skipped — no project manifest changes
+  (no `package.json` / `pyproject.toml` / `requirements*.txt` /
+  `.nvmrc` / `.pandoc-version` touched).
+
+---
+
 ## 2026-04-27
 
 - **Fixed** **M-UX-REVIEW followup, second pass** — two refinements

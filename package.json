@@ -15,7 +15,8 @@
     "build:content": "node scripts/build-content.mjs",
     "prebuild": "node scripts/build-content.mjs",
     "predev": "node scripts/build-content.mjs",
-    "check": "astro check"
+    "check": "astro check",
+    "workflow:validate": "node scripts/validate-claude-workflow.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^5.0.4",

@@ -1,33 +1,54 @@
 ---
-model: claude-opus-4-7
-thinking: max
+model: claude-sonnet-4-6
+thinking: high
 ---
 
 # /clean-implement
 
 You are the **Clean Implementation loop controller** for: $ARGUMENTS
 
-`$ARGUMENTS` is a task identifier — a task ID, spec file path, or feature descriptor.
+`$ARGUMENTS` is a task identifier — a task ID (e.g. `M4-T01`), spec file path, or feature descriptor.
 
 This loop drives a task to a clean state by cycling **builder → auditor** up to 10 times, then running a **security gate** (security-reviewer + dependency-auditor when relevant) before declaring the task shippable. Your job is orchestration and stop-condition evaluation. All substantive work runs in dedicated subagents.
+
+Read first:
+
+- [`/CLAUDE.md`](../../CLAUDE.md) — project contract (LBD-1..14, threat model, status-surface 4-way, dep-audit gate, glossary).
+- [`../agents/_common/non_negotiables.md`](../agents/_common/non_negotiables.md)
+- [`../agents/_common/verification_discipline.md`](../agents/_common/verification_discipline.md)
+- [`_common/cycle_summary_template.md`](_common/cycle_summary_template.md)
+- [`_common/gate_parse_patterns.md`](_common/gate_parse_patterns.md)
 
 ---
 
 ## Project setup (run once at the start of the first cycle)
 
-Load project conventions from the agent-guide file (usually `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/*.md`, or root `CONTRIBUTING.md`). Extract:
+Load conventions from `CLAUDE.md`. Extract into a **project context brief** included verbatim in every Task spawn:
 
-- **Task spec location** — where work specs live.
-- **Issue file location + pairing convention** — if absent, propose `<task>_issue.md` alongside the spec and ask the user to confirm.
-- **Architecture docs** — authoritative architecture file(s), ADRs/RFCs/KDRs.
-- **Deferred-ideas file** — where future-work notes live.
-- **Gate commands** — the project's actual verification suite, not a generic guess.
-- **Changelog conventions** — where and how changes are logged.
-- **Dependency manifests** — which files signal dep changes (`package.json`, `package-lock.json`, `requirements*.txt`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.).
+- **Task spec location** — `design_docs/milestones/m<M>_<name>/tasks/T<NN>_<slug>.md`.
+- **Issue file location** — `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md` (created on first audit).
+- **Architecture docs** — `design_docs/architecture.md`, `design_docs/adr/*.md`, plus the LBD-1..14 anchor list.
+- **Deferred-ideas file** — `design_docs/nice_to_have.md`.
+- **Gate commands** — pick the relevant ones from `CLAUDE.md` § Verification commands for the touched surface.
+- **Changelog conventions** — `CHANGELOG.md`, dated sections, tags Added / Changed / Removed / Fixed / Decided / Deferred.
+- **Dependency manifests** — `package.json`, `package-lock.json`, `pyproject.toml`, `uv.lock`, `requirements*.txt`, `.nvmrc`, `.pandoc-version`, `Dockerfile`, `docker-compose.yml`.
+- **Threat model** — `CLAUDE.md` § Threat model.
+- **Status-surface 4-way (LBD-10)** — per-task spec, milestone `tasks/README.md`, milestone README task-table row, milestone README `Done when` checkboxes.
 
 If anything is unclear or absent, **stop and ask the user**.
 
-Bundle these into a **project context brief** — a short block you'll include verbatim in every Task spawn so no subagent has to rediscover conventions.
+---
+
+## Long-running trigger
+
+If `**Long-running:** yes` is in the spec, or this loop reaches cycle 3, initialise:
+
+```text
+runs/<task-shorthand>/plan.md      # immutable, written once from the spec
+runs/<task-shorthand>/progress.md  # append-only, Auditor updates each cycle
+```
+
+See [`/agent_docs/long_running_pattern.md`](../../agent_docs/long_running_pattern.md). After the trigger, the Builder cycle inputs include `plan.md` and `progress.md` instead of preloading prior cycle summaries.
 
 ---
 
@@ -48,15 +69,15 @@ For cycles 1..10:
 
 ### Step 1 — Builder
 
-Spawn the `builder` subagent via Task with: task identifier, spec path, issue file path, the project context brief, and the parent/index doc path. Wait for completion. Capture the Builder's report.
+Spawn the `builder` subagent with: task identifier, spec path, issue file path, the project context brief, parent/index doc path, carry-over items, and (when long-running active) `plan.md` + `progress.md` paths. Wait for completion. Capture the Builder's report.
 
 ### Step 2 — Auditor
 
-Spawn the `auditor` subagent via Task with: task identifier, spec path, issue file path, architecture docs and design-record paths, gate commands, deferred-ideas file path, and the Builder's report from Step 1. Wait for completion.
+Spawn the `auditor` subagent with: task identifier, spec path, issue file path, architecture docs and ADR paths, gate commands, deferred-ideas file path, the Builder's report, the diff/changed-files reference, and the current cycle number. Wait for completion.
 
 ### Step 3 — Read issue file and evaluate stop conditions
 
-**Read the issue file on disk.** Do not trust the Auditor's chat summary — the issue file is the source of truth. Evaluate the four stop conditions in order against what's actually written. If condition 3 (FUNCTIONALLY CLEAN) triggers, go to the **security gate**. If none trigger and cycles remain, loop to Step 1 targeting only the OPEN issues the audit identified.
+**Read the issue file on disk.** Do not trust the Auditor's chat summary — the issue file is the source of truth. Evaluate the four stop conditions in order. If condition 3 (FUNCTIONALLY CLEAN) triggers, go to the **security gate**. If none trigger and cycles remain, loop to Step 1 targeting only the OPEN issues the audit identified.
 
 **Between Step 1 and Step 2, forbidden:**
 - Summary of what the Builder did.
@@ -74,15 +95,15 @@ The functional audit confirmed the task does what the spec says. The security ga
 
 ### Step S1 — Security reviewer (always runs)
 
-Spawn `security-reviewer` via Task with: task identifier, spec path, issue file path, the project context brief (including threat model if the agent-guide names one), list of files touched across the whole task (aggregate from all Builder reports), and the architecture docs + design-record paths.
+Spawn `security-reviewer` with: task identifier, spec path, issue file path, the project context brief (including the cs-300 threat model from `CLAUDE.md`), list of files touched across the whole task (aggregate from all Builder reports), and architecture docs + ADR paths.
 
-The security-reviewer writes findings directly into the same issue file, appended under a `## Security review` section. Structure follows the agent's Critical / High / Advisory / Verdict format.
+The security-reviewer appends findings to the same issue file under a `## Security review` section using the SHIP / FIX-THEN-SHIP / BLOCK verdict ladder.
 
 ### Step S2 — Dependency auditor (conditional)
 
 Run **only if** the aggregated diff across this task touched any dependency manifest (see project context brief). Check by comparing git state against the task's starting ref, or by inspecting the Builder reports for manifest edits.
 
-If triggered, spawn `dependency-auditor` via Task with: task identifier, list of dep-manifest files changed, project context brief, and lockfile paths. Output is appended to the same issue file under a `## Dependency audit` section.
+If triggered, spawn `dependency-auditor` with: task identifier, list of dep-manifest files changed, project context brief, and lockfile paths. Output is appended to the same issue file under a `## Dependency audit` section.
 
 If not triggered, note in the issue file: `Dependency audit: skipped — no manifest changes.`
 
@@ -95,6 +116,18 @@ Re-read the issue file. Evaluate in priority order:
 3. **CLEAN** — All applicable reviewers' verdicts are `SHIP`. Report the task fully CLEAN.
 
 When re-looping from SECURITY BLOCKER or SECURITY FIX-THEN-SHIP, the Builder's next-cycle inputs include the security findings as carry-over ACs (the Auditor will grade them as ACs on re-audit, which is exactly what you want — security fixes get the same "re-verify the whole scope" treatment as any other change).
+
+### Verdict-vocabulary mapping
+
+The reviewers use a `SHIP / FIX-THEN-SHIP / BLOCK` ladder; this command's final return uses `SEC-BLOCK / SEC-FIX / CLEAN`. Translation:
+
+| Reviewer verdict (any of `security-reviewer`, `dependency-auditor`) | Command verdict |
+| --- | --- |
+| any `BLOCK` | `SEC-BLOCK` |
+| any `FIX-THEN-SHIP` (and no `BLOCK`) | `SEC-FIX` |
+| all `SHIP` | `CLEAN` |
+
+**Cycle-limit case:** if the loop hits 10 cycles without reaching FUNCTIONALLY CLEAN, the security gate does **not** run. Final verdict is `OPEN` (with cycle count `10/10`), not `CYCLE-LIMIT` — the same `OPEN` verdict that mid-loop OPEN issues produce. The cycle count + outstanding-issues list distinguishes "user gave up" from "user paused for input."
 
 ---
 
@@ -112,6 +145,12 @@ Final-stop summary: stop condition triggered (functional or security), total cyc
 
 ---
 
+## Cycle summary
+
+After every Auditor cycle, the Auditor writes `runs/<task-shorthand>/cycle_<N>/summary.md` using [`_common/cycle_summary_template.md`](_common/cycle_summary_template.md). When long-running is active, the Auditor also appends to `runs/<task-shorthand>/progress.md`.
+
+---
+
 ## Why the security gate is separate, not per-cycle
 
 Running security-reviewer every cycle would burn tokens on the same code twice — once when it's broken and noisy, once when it's stable. And a Critical-severity security finding before the code even compiles is useless signal. The functional loop gets the code correct; the security gate then checks the corrected code against a threat model the functional Auditor doesn't own.
@@ -121,3 +160,13 @@ Security findings still re-enter the functional loop as carry-over ACs — so a 
 ## Why the reviewers don't run inline
 
 The security-reviewer and dependency-auditor have narrower scopes and more opinionated threat models than the Auditor. Giving them fresh context, their own system prompts, and read-only-ish tooling is what makes their output worth the spend. Running their logic inside the Auditor's context would dilute both.
+
+---
+
+## Return
+
+```text
+verdict: <CLEAN / FUNCTIONALLY-CLEAN / OPEN / BLOCKED / SEC-BLOCK / SEC-FIX>
+file: <repo-relative path to latest durable artifact, or "—">
+section: —
+```
