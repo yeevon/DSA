@@ -64,6 +64,21 @@ running picture of their weak topics.
 - **FSRS vs SM-2** (architecture.md §5 row 3). Default to FSRS;
   pick SM-2 only if `ts-fsrs` has surprises during integration.
 
+## Carry-over from prior audits
+
+- [ ] **M4-T05-SEC-HIGH — `stripSolution()` helper required before any GET question handler.**
+  Source: `design_docs/milestones/m4_phase4_question_gen/issues/T05_issue.md` § Security review.
+  The `questions` table stores `referenceJson` for all types, including `code` (where
+  `referenceJson.solution` must never reach the DOM per LBD-4). The `POST /api/questions/bulk`
+  handler correctly omits `referenceJson` from its 201 response, but no shared stripping guard
+  exists at the DB query layer. Before implementing `GET /api/review/due` (Task 2) or any other
+  GET endpoint that returns question rows, add a `src/lib/stripSolution.ts` utility that:
+  - Accepts a question row (or partial row).
+  - For `type === 'code'`: strips `referenceJson` (or at minimum sets `referenceJson` to `null`).
+  - For all other types: passes through unchanged.
+  Wire it into every handler that returns question data. Make it an explicit AC on Task 2's spec.
+  Severity: HIGH if GET handler ships without the guard.
+
 ## Out of scope
 
 - **Cross-device sync.** Local SQLite only, per architecture.md §2

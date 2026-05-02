@@ -1,7 +1,7 @@
 # M4 — Phase 4: Question generation (`aiw-mcp` + cs-300 workflows)
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 4
-**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02, T04 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
+**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02, T04 ✅ 2026-05-02, T05 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
 **Depends on:** M3 (state service must exist to receive generated
 questions; `POST /api/questions/bulk` must be live) + the upstream
 follow-up patch above.
@@ -48,9 +48,10 @@ play.
       action that opens a small form (count, types) and triggers
       the workflow via the MCP `run_workflow` tool. Polling spinner
       during run. Results inserted into the question bank on success.
-- [ ] All four question types validated and persisted at insert:
+- [x] All four question types validated and persisted at insert:
       `mc`, `short`, `llm_graded`, `code`. Schemas match
       architecture.md §2's per-type table.
+      (T05 ✅ 2026-05-02 — schema validation + insert done; AC-2/3/4/7 pending host `npm ci` — see [`issues/T05_issue.md`](issues/T05_issue.md))
 - [ ] **Answer evaluation** for the synchronous types lives at
       `POST /api/attempts`:
   - `mc` — index compare.
@@ -62,9 +63,10 @@ play.
       workflow via `run_workflow(workflow_id="grade", ...)`,
       attempt row created with `outcome = 'pending'`, transitions on
       completion). Full async loop verified.
-- [ ] Validation runs **twice** as architecture.md §3.1 mandates:
+- [x] Validation runs **twice** as architecture.md §3.1 mandates:
       once inside the cs-300 workflow's `ValidatorNode` (KDR-004 in
       the upstream framework), once at insert (schema conformance).
+      (T02 ✅ 2026-05-02 — `ValidateStep` in workflow; T05 ✅ 2026-05-02 — Zod schema conformance at insert)
 - [ ] Question-gen workflow is parameterized with the model tier so
       M5/M6 can A/B (architecture.md §5 row 5). Mechanism: ai-workflows
       ships a `--tier-override` CLI flag + `tier_overrides` MCP arg

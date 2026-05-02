@@ -1,6 +1,6 @@
 # T05 — POST /api/questions/bulk — validation + insert
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02 (AC-2/3/4/7 host-only — node_modules root-owned in sandbox)
 **Depends on:** T01 (schema shapes documented), T02 (output schema defines what bulk receives)
 **Blocks:** T07 (UI POSTs generated questions here after polling completes)
 

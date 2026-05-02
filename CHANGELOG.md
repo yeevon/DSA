@@ -14,6 +14,19 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M4 T05 — POST /api/questions/bulk: validation + insert**
+  (`src/lib/question-schemas.ts` (new), `src/pages/api/questions/bulk.ts`, `package.json`).
+  Replaced the M3 T3 501 stub with the real handler. Added `zod ^4.3.6` as a runtime dependency (aligned with lockfile transitive entry
+  from astro; v4 APIs confirmed compatible). Per-type Zod schemas (`mc`, `short`,
+  `llm_graded`, `code`) live in `src/lib/question-schemas.ts`; both
+  `validateAnswerSchema` and `validateReference` dispatch by type, collecting all
+  errors before any DB write (AC-5). The 201 response contains only
+  `{"inserted": [uuids]}` — `referenceJson` is stored in DB but never returned
+  (LBD-4 / AC-6). `prerender = false` retained. Chapter + section FK lookups return
+  422 on miss (AC-4). AC-1/5/6/8 satisfied in-sandbox. AC-2/3/4/7 (npm run dev +
+  curl smoke + npm run build) require `npm ci` on host — `node_modules` is root-owned
+  in sandbox. Dep audit: `zod ^4.3.6`; lockfile root entry aligned; SHIP.
+
 - **Added** **M4 T04 — `scripts/aiw-mcp.sh` launch script + `mode.ts` probe fix**
   (`scripts/aiw-mcp.sh`, `src/lib/mode.ts`).
   `aiw-mcp.sh`: single-command launcher for the local aiw-mcp backend; computes
