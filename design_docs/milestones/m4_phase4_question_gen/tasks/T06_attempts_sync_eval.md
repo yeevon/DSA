@@ -1,6 +1,6 @@
 # T06 — POST /api/attempts — mc + short synchronous evaluation
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02 (AC-3/4/5/8/9 host-only — node_modules root-owned in sandbox)
 **Depends on:** T05 (questions must exist in DB to create an attempt against them)
 **Blocks:** T07 (UI submits attempts here), T08 (llm_graded path extends this handler)
 

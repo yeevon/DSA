@@ -1,7 +1,7 @@
 # M4 — Phase 4: Question generation (`aiw-mcp` + cs-300 workflows)
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 4
-**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02, T04 ✅ 2026-05-02, T05 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
+**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02, T04 ✅ 2026-05-02, T05 ✅ 2026-05-02, T06 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
 **Depends on:** M3 (state service must exist to receive generated
 questions; `POST /api/questions/bulk` must be live) + the upstream
 follow-up patch above.
@@ -52,13 +52,14 @@ play.
       `mc`, `short`, `llm_graded`, `code`. Schemas match
       architecture.md §2's per-type table.
       (T05 ✅ 2026-05-02 — schema validation + insert done; AC-2/3/4/7 pending host `npm ci` — see [`issues/T05_issue.md`](issues/T05_issue.md))
-- [ ] **Answer evaluation** for the synchronous types lives at
+- [x] **Answer evaluation** for the synchronous types lives at
       `POST /api/attempts`:
   - `mc` — index compare.
   - `short` with `exact` — trim+lowercase.
   - `short` with `fuzzy` — Levenshtein ≤ threshold.
   - `short` with `numeric` — parse + tolerance, with Big-O /
     asymptotic canonicalization rules from question_gen.
+      (T06 ✅ 2026-05-02 — mc/short sync eval; AC-3/4/5/8/9 pending host `npm ci` — see [`issues/T06_issue.md`](issues/T06_issue.md))
 - [ ] `llm_graded` evaluation flow created (enqueues a `grade`
       workflow via `run_workflow(workflow_id="grade", ...)`,
       attempt row created with `outcome = 'pending'`, transitions on

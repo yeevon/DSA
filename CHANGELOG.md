@@ -14,6 +14,16 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M4 T06 — POST /api/attempts: mc + short synchronous evaluation**
+  (`src/lib/evaluators/mc.ts` (new), `src/lib/evaluators/short.ts` (new),
+  `src/pages/api/attempts.ts`). Replaces M3 T3 501 stub. mc: chosen_ix vs
+  correct_ix. short: exact (trim+lowercase), fuzzy (inline Levenshtein DP,
+  tol default 2), numeric (parseFloat ± tol; Big-O via normalizeAsymptotic
+  stripping spaces inside O(...)). llm_graded → 501 (T08); code → 501 (M6).
+  attempt row inserted into DB on success. AC-1/2/6/7/10 satisfied in-sandbox
+  (501 shape, no npm needed); AC-3/4/5/8/9 require npm ci on host. Dep audit:
+  skipped — no manifest changes.
+
 - **Added** **M4 T05 — POST /api/questions/bulk: validation + insert**
   (`src/lib/question-schemas.ts` (new), `src/pages/api/questions/bulk.ts`, `package.json`).
   Replaced the M3 T3 501 stub with the real handler. Added `zod ^4.3.6` as a runtime dependency (aligned with lockfile transitive entry
