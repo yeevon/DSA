@@ -12,7 +12,7 @@ This directory contains the cs-300 instantiation of the project-development work
 
 ## Project contract
 
-The workflow defers to [`/CLAUDE.md`](../CLAUDE.md) for project rules: load-bearing decisions LBD-1..14, threat model, status-surface 4-way (LBD-10), code-vs-content verification (LBD-11), the dependency audit gate, and the autonomous-mode boundary.
+The workflow defers to [`/CLAUDE.md`](../CLAUDE.md) for project rules: load-bearing decisions LBD-1..15, threat model, status-surface 4-way (LBD-10), code-vs-content verification (LBD-11), the dependency audit gate, and the autonomous-mode boundary.
 
 ## Subagents (in `agents/`)
 
@@ -39,6 +39,7 @@ The workflow defers to [`/CLAUDE.md`](../CLAUDE.md) for project rules: load-bear
 | `/autopilot` | `/queue-pick` + `/auto-implement`. |
 | `/implement` | Lightweight single-pass implementation. |
 | `/audit` | Standalone audit. |
+| `/check-claim` | Ad-hoc external-claim review (architect Trigger B); returns ADOPT / ADAPT / DECLINE. |
 
 ## Long-running work
 

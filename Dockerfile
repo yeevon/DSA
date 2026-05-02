@@ -61,6 +61,18 @@ RUN if [ "$(id -u node)" != "${USER_UID}" ] || [ "$(id -g node)" != "${USER_GID}
  && mkdir -p /home/node/.claude /home/node/.cache /home/node/.config /home/node/.local /workspace \
  && chown -R "${USER_UID}:${USER_GID}" /home/node /workspace
 
+# Default interactive bashrc for the sandbox user. The `claude` alias
+# auto-applies --dangerously-skip-permissions so the agent doesn't have
+# to be re-armed every shell. Use `\claude` (or `command claude`) to
+# bypass when you need stock behavior. /home/node is not bind-mounted,
+# so this file persists across runs and isn't shadowed by host state.
+RUN printf '%s\n' \
+      '# cs-300 sandbox bashrc — baked by Dockerfile.' \
+      '[ -z "$PS1" ] && return' \
+      'alias claude='"'"'claude --dangerously-skip-permissions'"'"'' \
+      > /home/node/.bashrc \
+ && chown "${USER_UID}:${USER_GID}" /home/node/.bashrc
+
 USER node
 ENV HOME=/home/node \
     PATH=/home/node/.local/bin:/usr/local/bin:/usr/bin:/bin

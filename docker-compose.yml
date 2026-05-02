@@ -14,6 +14,21 @@
 #                                                memory key matches host.
 #   ${HOME}/.claude   -> /home/node/.claude      auth + per-project memory
 #                                                persist across runs.
+#   ${HOME}/.claude.json
+#                     -> /home/node/.claude.json (rw) Claude Code's
+#                                                top-level config + OAuth
+#                                                tokens live here, NOT
+#                                                inside ~/.claude/. Without
+#                                                this mount the sandbox
+#                                                re-prompts auth every run.
+#                                                rw because tokens
+#                                                auto-refresh.
+#   ${HOME}/.gitconfig
+#                     -> /home/node/.gitconfig (ro) global git identity
+#                                                (user.name / user.email /
+#                                                signing). ro because the
+#                                                container has no business
+#                                                editing host git config.
 #   ${HOME}/prj/generalized_claude_workflow
 #                     -> same path  (read-only)  reference source for
 #                                                building new agent
@@ -26,6 +41,14 @@
 #                                                workflow happen on the
 #                                                host, not from inside
 #                                                this sandbox.
+#   ${HOME}/prj/ai-workflows
+#                     -> same path  (read-only)  jmdl-ai-workflows source
+#                                                for spelunking framework
+#                                                internals when registering
+#                                                cs300 workflow modules.
+#                                                ro — same rule as the
+#                                                generalized workflow
+#                                                mount.
 #
 # Named volumes shadow node_modules / .venv / .astro so the
 # container's installs don't clobber host artifacts (better-sqlite3
@@ -57,7 +80,10 @@ services:
     volumes:
       - ${PWD}:${PWD}
       - ${HOME}/.claude:/home/node/.claude
+      - ${HOME}/.claude.json:/home/node/.claude.json
+      - ${HOME}/.gitconfig:/home/node/.gitconfig:ro
       - ${HOME}/prj/generalized_claude_workflow:${HOME}/prj/generalized_claude_workflow:ro
+      - ${HOME}/prj/ai-workflows:${HOME}/prj/ai-workflows:ro
       - node_modules:${PWD}/node_modules
       - venv:${PWD}/.venv
       - astro_cache:${PWD}/.astro

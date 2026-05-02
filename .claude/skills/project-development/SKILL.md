@@ -1,6 +1,6 @@
 ---
 name: project-development
-description: Use the cs-300 project-development workflow — task analysis, implementation, audit, security gate, long-running carry-forward, and status-surface 4-way discipline. Trigger when the user asks to plan, implement, audit, queue, or continue structured project work using this repository's .claude workflow (any of /clean-tasks, /queue-pick, /clean-implement, /auto-implement, /audit, /autopilot, /implement) or asks about Builder/Auditor mode.
+description: Use when planning, implementing, auditing, or queueing cs-300 tasks via the .claude/ workflow, or asking about Builder/Auditor mode (slash commands and routing live in this skill's body).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -12,7 +12,7 @@ Use this skill when the user asks to plan, implement, audit, or continue structu
 
 ## Read first
 
-- [`/CLAUDE.md`](../../../CLAUDE.md) — project contract: LBD-1..14, threat model, status-surface 4-way, dep-audit gate, glossary.
+- [`/CLAUDE.md`](../../../CLAUDE.md) — project contract: LBD-1..15, threat model, status-surface 4-way, dep-audit gate, glossary.
 - [`../../agents/_common/non_negotiables.md`](../../agents/_common/non_negotiables.md)
 - [`../../agents/_common/verification_discipline.md`](../../agents/_common/verification_discipline.md)
 - [`../../../agent_docs/long_running_pattern.md`](../../../agent_docs/long_running_pattern.md)
@@ -28,6 +28,7 @@ Use this skill when the user asks to plan, implement, audit, or continue structu
 - Run queue-pick + auto-implement together (`/autopilot`).
 - Audit an existing change (`/audit`).
 - Lightweight one-off implementation (`/implement`).
+- Evaluate an external best-practice claim or advisory against cs-300's LBDs (`/check-claim`).
 - Continue long-running work using `runs/<task>/plan.md` and `runs/<task>/progress.md`.
 - Propagate carry-over from audits onto target task specs.
 - Keep status surfaces (per-task spec, `tasks/README.md`, milestone task table, milestone "Done when") synchronised.
@@ -45,6 +46,7 @@ Use this skill when the user asks to plan, implement, audit, or continue structu
 | "continue the queue autonomously" | `/autopilot` |
 | "audit this" / "review this change" | `/audit` → `auditor` |
 | "review architecture" / "I need an ADR" | `architect` |
+| "does this external claim apply to cs-300?" / "should we adopt this pattern?" | `/check-claim` → `architect` (Trigger B) |
 | "review tests / verification" | `sr-sdet` |
 | "review dependencies" | `dependency-auditor` |
 | "review security" | `security-reviewer` |

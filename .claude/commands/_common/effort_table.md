@@ -4,13 +4,13 @@ Default model + thinking-effort guidance for cs-300 commands and agents.
 
 cs-300 is a single-user, local-first side project. Sonnet 4.6 is the default across the fleet — cost / latency favours it when the loop runs many cycles, and most roles are mechanical given a clean spec.
 
-**Two exceptions earn Opus 4.7: `auditor` and `architect`.** These are the drift gatekeepers — they protect against silent LBD-1..14 violations, status-surface drift, and architecture decay. The whole loop is built around the auditor catching what the builder missed, and the architect catching what the auditor's role doesn't cover. Cheaping out here defeats the point of having the loop at all. The other reviewers (`security-reviewer`, `dependency-auditor`, `sr-dev`, `sr-sdet`) run narrower checklists against the auditor's already-graded output, so Sonnet is fine for them.
+**Two exceptions earn Opus 4.7: `auditor` and `architect`.** These are the drift gatekeepers — they protect against silent LBD-1..15 violations, status-surface drift, and architecture decay. The whole loop is built around the auditor catching what the builder missed, and the architect catching what the auditor's role doesn't cover. Cheaping out here defeats the point of having the loop at all. The other reviewers (`security-reviewer`, `dependency-auditor`, `sr-dev`, `sr-sdet`) run narrower checklists against the auditor's already-graded output, so Sonnet is fine for them.
 
 Tune the values in each agent or command frontmatter when needed.
 
 | Role / command | Model | Thinking | Notes |
 | --- | --- | --- | --- |
-| `auditor` | **opus-4-7** | (adaptive) | **Drift gatekeeper.** Re-runs gates, checks LBD-1..14 drift, status-surface 4-way, AC grading individually. Opus headroom pays for itself when the cs-300 LBDs are dense (14 anchors) and silent drift is HIGH-severity. |
+| `auditor` | **opus-4-7** | (adaptive) | **Drift gatekeeper.** Re-runs gates, checks LBD-1..15 drift, status-surface 4-way, AC grading individually. Opus headroom pays for itself when the cs-300 LBDs are dense (15 anchors) and silent drift is HIGH-severity. |
 | `architect` | **opus-4-7** | (adaptive) | **Architecture protector.** ADR drafting / `architecture.md` amendments / load-bearing-decision judgment. Fires rarely but the output binds the rest of the project, so the cycle to write it should not be the cheap one. |
 | `task-analyzer` | sonnet-4-6 | (adaptive) | Reads task scope, dependencies, risks; mostly checklist work against the recommended task spec shape. |
 | `builder` | sonnet-4-6 | (adaptive) | Implements strictly against task spec and carry-over. Mechanical given a clean spec; the auditor is the counterweight. |

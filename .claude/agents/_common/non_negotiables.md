@@ -119,7 +119,7 @@ Required behaviour:
 
 Decision changes are blocking when:
 
-- implementation would violate a current load-bearing decision (LBD-1..14 in `CLAUDE.md`)
+- implementation would violate a current load-bearing decision (LBD-1..15 in `CLAUDE.md`)
 - the task cannot complete without the new decision
 - multiple agents disagree on the decision
 - the change touches release, security, dependency, or data-handling behaviour
@@ -281,11 +281,11 @@ Per-agent verdict ladders (each agent file is authoritative — this list is for
 | `auditor` | `PASS / OPEN / BLOCKED` |
 | `security-reviewer` | `SHIP / FIX-THEN-SHIP / BLOCK` |
 | `dependency-auditor` | `SHIP / FIX-THEN-SHIP / BLOCK` |
-| `architect` | `APPROVE / REVISE / BLOCKED` |
-| `sr-dev` | `APPROVE / REVISE / BLOCKED` |
-| `sr-sdet` | `PASS / OPEN / BLOCKED` |
-| `task-analyzer` | `READY / NOT_READY / NEEDS_CLARIFICATION` |
-| `roadmap-selector` | `SELECTED / NONE_READY / NEEDS_INPUT` |
+| `architect` | `ALIGNED / MISALIGNED / OPEN / PROPOSE-NEW-DECISION` |
+| `sr-dev` | `SHIP / FIX-THEN-SHIP / BLOCK` |
+| `sr-sdet` | `SHIP / FIX-THEN-SHIP / BLOCK` |
+| `task-analyzer` | `CLEAN / LOW-ONLY / OPEN` |
+| `roadmap-selector` | `PROCEED / NEEDS-CLEAN-TASKS / HALT-AND-ASK` |
 
 The orchestrator reads durable artifacts directly. The chat return is control data, not the full report.
 
@@ -299,7 +299,7 @@ Stop and return control to the orchestrator when:
 - the task spec is ambiguous in a way that affects implementation
 - an acceptance criterion is unsatisfiable
 - the issue/audit file conflicts with the task spec
-- implementation would violate a load-bearing decision (LBD-1..14)
+- implementation would violate a load-bearing decision (LBD-1..15)
 - verification cannot be run or cannot prove the changed behaviour
 - there is a material subagent disagreement
 - a forbidden git/release/destructive operation would be required

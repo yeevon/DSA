@@ -24,6 +24,7 @@ Slash commands available:
 - `/autopilot` — `/queue-pick` followed by `/auto-implement`.
 - `/implement` — lightweight single-pass implementation.
 - `/audit` — standalone audit of an existing change.
+- `/check-claim` — ad-hoc external-claim review (architect Trigger B): evaluate a URL / blog post / advisory against cs-300's LBDs + threat model. Returns ADOPT / ADAPT / DECLINE.
 
 Subagents available:
 
@@ -186,7 +187,7 @@ The security reviewer must focus on the surfaces above. Generic findings outside
 | Milestone spec | `design_docs/milestones/m<M>_<name>/README.md` |
 | Task spec | `design_docs/milestones/m<M>_<name>/tasks/T<NN>_<slug>.md` |
 | Task issue / audit log | `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md` |
-| Task-analysis report | `design_docs/milestones/m<M>_<name>/issues/T<NN>_analysis.md` (created by `task-analyzer`) |
+| Task-analysis report | `design_docs/milestones/m<M>_<name>/issues/task_analysis.md` (one file per milestone, created by `task-analyzer` via `/clean-tasks`) |
 | Long-running run dir | `runs/<task-shorthand>/` (`plan.md`, `progress.md`, `cycle_<N>/summary.md`) |
 | Changelog | `CHANGELOG.md` |
 | CI gates | `.github/workflows/deploy.yml` |
@@ -385,6 +386,36 @@ Architecture decision additions land separately from implementation commits unle
 
 ---
 
+## Command behavior expectations
+
+Slash commands must not invent project rules.
+
+They use:
+
+1. This `CLAUDE.md`.
+2. The relevant subagent prompt.
+3. The task spec.
+4. The issue/audit file.
+5. The project grounding docs.
+
+Command files define procedure. They should not duplicate all project law.
+
+If a command duplicates a rule from this file, this file wins unless the user explicitly updates both.
+
+---
+
+## Agent behavior expectations
+
+Subagents are specialized reviewers/builders, not independent project owners.
+
+They may recommend, inspect, produce reports, and propose patches if the command allows it.
+
+They may not bypass project scope, architecture decisions, verification rules, or autonomous-mode boundaries.
+
+When agents disagree, stop and surface the disagreement. Do not average the answers.
+
+---
+
 ## Auditor — issue file structure
 
 At `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md`:
@@ -398,7 +429,7 @@ At `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md`:
 **Status:** ✅ PASS / ⚠️ OPEN / 🚧 BLOCKED
 
 ## Design-drift check
-(architecture.md, ADRs, LBD-1..14, memory rules, nice_to_have boundary)
+(architecture.md, ADRs, LBD-1..15, memory rules, nice_to_have boundary)
 
 ## AC grading
 | AC | Status | Evidence | Notes |
@@ -422,6 +453,15 @@ At `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md`:
 ## Dependency audit
 (populated by dependency-auditor when manifests changed)
 
+## Sr. Dev review
+(populated by sr-dev at the `/auto-implement` terminal gate; absent in `/clean-implement` runs)
+
+## Sr. SDET review
+(populated by sr-sdet at the `/auto-implement` terminal gate; absent in `/clean-implement` runs)
+
+## Architect review
+(populated by architect when invoked — Trigger A: new-decision proposal during autonomy mode; Trigger B: external-claim review via `/check-claim`)
+
 ## Deferred to nice_to_have
 (if any — only when the finding maps cleanly into nice_to_have.md)
 
@@ -431,7 +471,7 @@ At `design_docs/milestones/m<M>_<name>/issues/T<NN>_issue.md`:
 
 ### Severity
 
-- **HIGH** — AC unmet, spec deliverable missing, architectural rule broken, drift from a load-bearing decision (LBD-1..14) or memory rule, gate that should have run did not.
+- **HIGH** — AC unmet, spec deliverable missing, architectural rule broken, drift from a load-bearing decision (LBD-1..15) or memory rule, gate that should have run did not.
 - **MEDIUM** — deliverable partial, convention skipped, downstream risk, weak test coverage.
 - **LOW** — cosmetic, forward-looking, flag-only.
 
@@ -469,7 +509,7 @@ If a finding maps to an item in `nice_to_have.md`:
   (b) without it, **two or more** items within the *same* phase will fail or produce inaccurate output (intra-phase critical path).
   Anything that fails neither test is non-blocking — it can land late, defer, or be dropped without rescoping the phase. Use this definition in milestone READMEs and acceptance criteria; do not invent ad-hoc "blocking" judgments.
 - **Long-running task.** A task that opts in via `**Long-running:** yes` in its spec, or that reaches cycle 3 of `/clean-implement` / `/auto-implement`. From that point, the orchestrator initialises `runs/<task>/plan.md` (immutable) and `runs/<task>/progress.md` (append-only after each cycle). See [agent_docs/long_running_pattern.md](agent_docs/long_running_pattern.md).
-- **Drift.** Implementation that contradicts a load-bearing decision (LBD-1..14), an ADR, architecture.md, or a saved feedback/project memory rule. Always HIGH.
+- **Drift.** Implementation that contradicts a load-bearing decision (LBD-1..15), an ADR, architecture.md, or a saved feedback/project memory rule. Always HIGH.
 - **Functionally clean.** `/clean-implement` reached audit verdict `✅ PASS` with no OPEN issues; the security gate has not yet run.
 - **Clean.** Functionally clean **plus** the security gate (security-reviewer + dependency-auditor when relevant) returned `SHIP` / `PASS`.
 

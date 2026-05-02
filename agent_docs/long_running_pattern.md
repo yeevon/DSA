@@ -60,7 +60,7 @@ runs/<task-shorthand>/
   cycle_3/summary.md
 ```
 
-`<task-shorthand>` is the lowercased milestone-task ID (e.g. `m4-t01`, `m-ux-t3`, `m3-t05`).
+`<task-shorthand>` is `m<MM>_t<NN>` with both M and T zero-padded to two digits (e.g. `m04_t01`, `m04_t08`, `m05_t02`). The zero-padded underscore form avoids lexical ambiguity between `m4_t1` and `m4_t10`, and matches the convention enforced in [`.claude/commands/_common/cycle_summary_template.md`](../.claude/commands/_common/cycle_summary_template.md) §Directory layout.
 
 ---
 

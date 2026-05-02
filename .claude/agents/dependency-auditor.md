@@ -3,6 +3,10 @@ name: dependency-auditor
 description: Audits npm and pip dependencies in cs-300 for supply-chain and vulnerability issues. Use when adding/bumping a dep, before commits that touch a dep manifest, or on a periodic cadence. Focuses on install-time execution risk, typosquats, unpinned versions, and known CVEs across the full tree (not just direct deps).
 tools: Read, Grep, Glob, Bash
 model: claude-sonnet-4-6
+thinking:
+  type: adaptive
+effort: medium
+# Per-role effort assignment: see .claude/commands/_common/effort_table.md
 ---
 
 **Non-negotiables:** read [`_common/non_negotiables.md`](_common/non_negotiables.md) before acting.
@@ -141,8 +145,12 @@ If no manifests changed: skip the audit and write `Dependency audit: skipped —
 
 ## Return
 
+Three lines, exactly. No prose before or after — see [`../commands/_common/agent_return_schema.md`](../commands/_common/agent_return_schema.md):
+
 ```text
 verdict: <SHIP / FIX-THEN-SHIP / BLOCK>
 file: <repo-relative path to durable artifact, or "—">
-section: "## Dependency audit"
+section: ## Dependency audit (YYYY-MM-DD)
 ```
+
+A return that includes any text outside the three-line schema is non-conformant — the orchestrator halts the autonomy loop and surfaces the agent's full raw return for user investigation.
