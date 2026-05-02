@@ -1,8 +1,10 @@
 // src/pages/api/fsrs_state/[question_id].ts
 //
-// M3 T3 stub — PATCH /api/fsrs_state/:question_id upserts the
-// FSRS scheduling state per architecture.md §3.4. M5 impl
-// (ts-fsrs runs client-side; this endpoint persists the result).
+// M3 T3 stub — was originally the client-to-server PATCH path for FSRS state.
+// M5 T01 moved ts-fsrs.next() server-side: the attempts handler updates
+// fsrs_state directly per architecture.md §3.5. This endpoint is no longer the
+// cs-300 update path; it remains as a 501 placeholder for any future
+// direct-state-update use case (e.g. operator manual override).
 
 import type { APIRoute } from 'astro';
 

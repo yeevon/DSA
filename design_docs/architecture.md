@@ -401,13 +401,22 @@ POST is idempotent (`ON CONFLICT DO UPDATE` refreshes `read_at`). UI gates on `m
 
 ### 3.5 Review loop (Phase 5)
 
-FSRS library (`ts-fsrs` npm package) runs client-side after each attempt:
+FSRS library (`ts-fsrs` npm package) runs **server-side** in the state service. After each attempt's outcome is resolved — synchronously for `mc`/`short`, asynchronously via `PATCH /api/attempts/[id]/outcome` for `llm_graded` — the same handler calls `ts-fsrs.next(state, grade)` and UPDATEs the `fsrs_state` row for the question in one transaction:
 
 ```
-attempt submitted → outcome + rating (pass/fail/partial maps to FSRS grade)
-                 → ts-fsrs.next(state, grade) → new_state
-                 → PATCH /api/fsrs_state/:question_id
+attempt submitted → outcome resolved → ts-fsrs.next(state, grade) → new_state
+                 → UPDATE fsrs_state SET due_at=?, stability=?, difficulty=?, ... WHERE question_id=?
 ```
+
+**Outcome → FSRS grade mapping** (M5 T01):
+
+| cs-300 outcome | FSRS grade |
+| --- | --- |
+| `pass` | `Good` |
+| `partial` | `Hard` |
+| `fail` | `Again` |
+
+The historical client-side design (browser calls `ts-fsrs.next()`, then `PATCH /api/fsrs_state/:question_id`) was rejected during M5 T01 to avoid shipping `ts-fsrs` to the browser bundle and to colocate FSRS computation with the SQLite state it reads from. The `PATCH /api/fsrs_state/:question_id` stub at `src/pages/api/fsrs_state/[question_id].ts` is no longer the cs-300 update path — kept as a 501 placeholder for any future direct-state-update use case but not invoked by the review loop.
 
 Review queue UI queries `GET /api/review/due?before=<now>&limit=N` → ordered by `due_at`.
 
