@@ -14,6 +14,20 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M4 T08 — llm_graded async flow + pollUntilDone helper**
+  (`src/db/schema.ts`, `src/lib/aiw-client.ts`, `src/components/questions/QuestionGenButton.astro`,
+  `src/pages/api/attempts.ts`, `src/pages/api/attempts/[id]/outcome.ts` (new)).
+  llm_graded POST /api/attempts: inserts attempt with outcome='pending', fire-and-start
+  run_workflow('grade', ...), stores grade_run_id, returns {id, outcome:'pending', grade_run_id}.
+  If aiw-mcp unreachable: outcome='fail', error:'grade_unavailable'. PATCH
+  /api/attempts/:id/outcome: validates pending→{pass,fail,partial} transition, 409 on
+  already-resolved, 404 on unknown id. pollUntilDone() helper in aiw-client.ts closes T07
+  MED-1 carry-over; QuestionGenButton.astro updated to use pollUntilDone (removes ad-hoc
+  loop + 2s first-call sleep). DB schema: added gradeRunId TEXT (nullable) to attempts table
+  and updated outcome comment to include 'pending'; host must run drizzle-kit push to apply.
+  AC-1/2/3/4/5/7 satisfied in-sandbox by inspection; AC-1 (full Ollama loop) and AC-6
+  (build) host-only. Dep audit: skipped — no manifest changes.
+
 - **Added** **M4 T07 — Question-gen UI**
   (`src/lib/aiw-client.ts` (new), `src/components/questions/QuestionGenButton.astro` (new),
   `src/pages/lectures/[id].astro`). Generates practice questions from chapter content via

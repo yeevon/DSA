@@ -61,8 +61,9 @@ export const attempts = sqliteTable(
     startedAt: integer('started_at').notNull(),
     submittedAt: integer('submitted_at').notNull(),
     responseJson: text('response_json').notNull(),
-    outcome: text('outcome').notNull(),              // 'pass' | 'fail' | 'partial'
-    llmTagsJson: text('llm_tags_json'),              // nullable; filled by assessment job
+    outcome: text('outcome').notNull(),              // 'pass' | 'fail' | 'partial' | 'pending'
+    llmTagsJson: text('llm_tags_json'),              // nullable; grading score+feedback (M4) or topic tags (M5)
+    gradeRunId: text('grade_run_id'),                // nullable; set for llm_graded attempts
   },
   (t) => [index('idx_attempts_question').on(t.questionId, t.submittedAt)],
 );

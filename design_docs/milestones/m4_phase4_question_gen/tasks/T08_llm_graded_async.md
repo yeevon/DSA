@@ -1,6 +1,6 @@
 # T08 — llm_graded async flow
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02 (AC-1 Ollama loop + AC-6 build host-only; host must run drizzle-kit push for schema migration)
 **Depends on:** T03 (grade workflow), T06 (attempts handler stubs llm_graded as 501),
 T07 (UI can reuse polling pattern)
 **Blocks:** nothing (M4 terminal task)

@@ -64,3 +64,28 @@ export async function getRunStatus(run_id: string): Promise<RunStatus> {
   if (json.error) throw new McpError('workflow_failed', json.error.message);
   return json.result!;
 }
+
+// pollUntilDone — M4 T08 carry-over (T07 MED-1).
+// Shared helper that checks status immediately (0ms initial delay), then loops
+// with a configurable interval. Eliminates the ad-hoc 2s-before-first-check
+// pattern in QuestionGenButton.astro and avoids duplicating the loop for the
+// grade-run polling added by T08.
+export async function pollUntilDone(
+  run_id: string,
+  opts?: { intervalMs?: number; timeoutMs?: number },
+): Promise<RunStatus> {
+  const intervalMs = opts?.intervalMs ?? 2000;
+  const timeoutMs = opts?.timeoutMs ?? 60_000;
+  const deadline = Date.now() + timeoutMs;
+
+  // Check immediately — runWorkflow may have already completed.
+  let status = await getRunStatus(run_id);
+  if (status.status !== 'pending') return status;
+
+  while (Date.now() < deadline) {
+    await new Promise<void>(r => setTimeout(r, intervalMs));
+    status = await getRunStatus(run_id);
+    if (status.status !== 'pending') return status;
+  }
+  throw new McpError('workflow_failed', 'timeout');
+}

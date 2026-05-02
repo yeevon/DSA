@@ -1,6 +1,6 @@
 // src/pages/api/attempts.ts
 // M4 T06 — POST /api/attempts: evaluate mc/short synchronously;
-// llm_graded → 501 (T08); code → 501 (M6).
+// llm_graded → async grade via aiw-mcp (T08); code → 501 (M6).
 
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
@@ -9,6 +9,7 @@ import { db } from '../../db/client';
 import { questions, attempts } from '../../db/schema';
 import { evaluateMc } from '../../lib/evaluators/mc';
 import { evaluateShort } from '../../lib/evaluators/short';
+import { runWorkflow } from '../../lib/aiw-client';
 
 export const prerender = false;
 
@@ -46,12 +47,6 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const question = rows[0];
 
-  if (question.type === 'llm_graded') {
-    return new Response(
-      JSON.stringify({ kind: 'not_implemented', impl_milestone: 'M4 T08' }),
-      { status: 501, headers: { 'Content-Type': 'application/json' } },
-    );
-  }
   if (question.type === 'code') {
     return new Response(
       JSON.stringify({ kind: 'not_implemented', impl_milestone: 'M6' }),
@@ -59,6 +54,50 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
+  if (question.type === 'llm_graded') {
+    const id = randomUUID();
+    const submittedAt = Date.now();
+    const answerSchema = JSON.parse(question.answerSchemaJson) as { rubric: string[] };
+    const responseText = (resp as { text?: string }).text ?? '';
+
+    // Insert attempt row with outcome='pending' before calling aiw-mcp.
+    db.insert(attempts).values({
+      id,
+      questionId: question_id,
+      startedAt: started_at,
+      submittedAt,
+      responseJson: JSON.stringify(resp),
+      outcome: 'pending',
+      llmTagsJson: null,
+      gradeRunId: null,
+    }).run();
+
+    let gradeRunId: string | null = null;
+    try {
+      const run = await runWorkflow('grade', {
+        attempt_id: id,
+        question_prompt_md: question.promptMd,
+        rubric_criteria: answerSchema.rubric ?? [],
+        response_text: responseText,
+      });
+      gradeRunId = run.run_id;
+      db.update(attempts).set({ gradeRunId }).where(eq(attempts.id, id)).run();
+    } catch {
+      // aiw-mcp unreachable — fail the attempt immediately.
+      db.update(attempts).set({ outcome: 'fail' }).where(eq(attempts.id, id)).run();
+      return new Response(
+        JSON.stringify({ id, outcome: 'fail', error: 'grade_unavailable' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ id, outcome: 'pending', grade_run_id: gradeRunId }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // mc and short — synchronous evaluation
   let outcome: 'pass' | 'fail' | 'partial' = 'fail';
   try {
     const answerSchema = JSON.parse(question.answerSchemaJson) as Record<string, unknown>;
@@ -95,6 +134,7 @@ export const POST: APIRoute = async ({ request }) => {
     responseJson: JSON.stringify(resp),
     outcome,
     llmTagsJson: null,
+    gradeRunId: null,
   }).run();
 
   return new Response(

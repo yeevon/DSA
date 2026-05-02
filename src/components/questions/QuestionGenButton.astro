@@ -37,7 +37,7 @@ const { chapterId, sectionId = '' } = Astro.props;
 </div>
 
 <script>
-  import { runWorkflow, getRunStatus, McpError } from '../../lib/aiw-client';
+  import { runWorkflow, pollUntilDone, McpError } from '../../lib/aiw-client';
 
   document.querySelectorAll<HTMLElement>('.question-gen-wrap').forEach((wrap) => {
     const btn = wrap.querySelector<HTMLButtonElement>('.question-gen-btn')!;
@@ -83,19 +83,16 @@ const { chapterId, sectionId = '' } = Astro.props;
           types,
         });
 
-        // Poll for completion (max 60s, every 2s)
+        // Poll for completion using shared helper (max 60s, every 2s).
+        // pollUntilDone checks immediately — no unnecessary 2s sleep on fast paths.
         let runStatus;
-        const deadline = Date.now() + 60_000;
-        while (Date.now() < deadline) {
-          await new Promise(r => setTimeout(r, 2000));
-          runStatus = await getRunStatus(run.run_id);
-          if (runStatus.status !== 'pending') break;
-        }
-
-        if (!runStatus || runStatus.status === 'pending') {
+        try {
+          runStatus = await pollUntilDone(run.run_id, { intervalMs: 2000, timeoutMs: 60_000 });
+        } catch {
           showStatus('Workflow timed out. Try again.', true);
           return;
         }
+
         if (runStatus.status === 'failed') {
           showStatus(`Workflow failed: ${runStatus.error ?? 'unknown error'}`, true);
           return;
