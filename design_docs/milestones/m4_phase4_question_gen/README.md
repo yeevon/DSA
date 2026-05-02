@@ -1,7 +1,7 @@
 # M4 — Phase 4: Question generation (`aiw-mcp` + cs-300 workflows)
 
 **Maps to:** `interactive_notes_roadmap.md` Phase 4
-**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02, T04 ✅ 2026-05-02, T05 ✅ 2026-05-02, T06 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
+**Status:** 🟡 in progress — T01 ✅ 2026-05-01, T02 ✅ 2026-05-02, T03 ✅ 2026-05-02, T04 ✅ 2026-05-02, T05 ✅ 2026-05-02, T06 ✅ 2026-05-02, T07 ✅ 2026-05-02. jmdl-ai-workflows v0.4.0 shipped the `WorkflowSpec` declarative API (`LLMStep` / `ValidateStep` / `register_workflow(spec)`), resolving all four convention hooks surfaced by the 2026-04-25 re-block. Pre-flight smoke evidence in [`issues/m4_unblock_smoke.md`](issues/m4_unblock_smoke.md).
 **Depends on:** M3 (state service must exist to receive generated
 questions; `POST /api/questions/bulk` must be live) + the upstream
 follow-up patch above.
@@ -44,10 +44,12 @@ play.
       ([`src/lib/mode.ts`](../../../src/lib/mode.ts)) confirmed
       against FastMCP's actual liveness surface (POST to `/mcp`,
       any HTTP response = alive; M4 T04 ✅ 2026-05-02).
-- [ ] Question generation UI: a per-section "generate questions"
+- [x] Question generation UI: a per-section "generate questions"
       action that opens a small form (count, types) and triggers
       the workflow via the MCP `run_workflow` tool. Polling spinner
       during run. Results inserted into the question bank on success.
+      (T07 ✅ 2026-05-02 — QuestionGenButton.astro; spec deviation .astro not .tsx;
+      AC-2/3/4/6/8/9 host-only — see [`issues/T07_issue.md`](issues/T07_issue.md))
 - [x] All four question types validated and persisted at insert:
       `mc`, `short`, `llm_graded`, `code`. Schemas match
       architecture.md §2's per-type table.

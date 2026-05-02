@@ -105,6 +105,20 @@ Add `grade_run_id TEXT` to the `attempts` table in `src/db/schema.ts` and run
 - [ ] **AC-6.** `npm run build` exits 0.
 - [ ] **AC-7.** CHANGELOG has an M4 T08 entry.
 
+## Carry-over from prior audits
+
+- [ ] **M4-T07-ISS-MED-1 — Factor `pollUntilDone` helper into `src/lib/aiw-client.ts`.**
+  Source: `design_docs/milestones/m4_phase4_question_gen/issues/T07_issue.md` § MED-1.
+  T07's `QuestionGenButton.astro` polling loop sleeps 2s before the first `getRunStatus`
+  call, ignoring any status already returned by `runWorkflow`. T08 introduces a second
+  polling loop for the grade run. Before implementing T08's browser-side polling (§ C),
+  extract a shared `pollUntilDone(run_id: string, opts?: { intervalMs?: number; timeoutMs?: number }): Promise<RunStatus>` helper in `src/lib/aiw-client.ts` that:
+  - Checks the status immediately (0ms initial delay) by calling `getRunStatus` once.
+  - If still pending, loops with a configurable `intervalMs` (default 2000ms).
+  - Throws a `McpError('workflow_failed', 'timeout')` after `timeoutMs` (default 60s).
+  Then update `QuestionGenButton.astro` to use `pollUntilDone` (removes the ad-hoc loop).
+  Severity: MEDIUM if T08 ships its own duplicate polling loop without addressing this.
+
 ## Notes
 
 - Server-side `fetch` from the Astro API route to aiw-mcp: Node's built-in `fetch` (Node

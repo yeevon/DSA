@@ -14,6 +14,18 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M4 T07 — Question-gen UI**
+  (`src/lib/aiw-client.ts` (new), `src/components/questions/QuestionGenButton.astro` (new),
+  `src/pages/lectures/[id].astro`). Generates practice questions from chapter content via
+  aiw-mcp. `aiw-client.ts`: `runWorkflow` + `getRunStatus` with FastMCP `params.payload`
+  wrapper (AC-1/7). `QuestionGenButton.astro`: inline form (count 1–10, mc/short/llm_graded/
+  code type checkboxes), polling spinner, success/error status (AC-5/6). Wired into
+  right-rail of lectures route behind `data-interactive-only` (AC-3/4). Spec deviation:
+  `.astro` instead of `.tsx` — no React dep added; functionally equivalent, consistent with
+  all other interactive components (AnnotationsPane.astro, ScrollSpy.astro, etc.).
+  AC-2 (`npm run check`) and AC-3/4/6/8/9 (runtime) require `npm ci` on host.
+  Dep audit: skipped — no manifest changes.
+
 - **Added** **M4 T06 — POST /api/attempts: mc + short synchronous evaluation**
   (`src/lib/evaluators/mc.ts` (new), `src/lib/evaluators/short.ts` (new),
   `src/pages/api/attempts.ts`). Replaces M3 T3 501 stub. mc: chosen_ix vs

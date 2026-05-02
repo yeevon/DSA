@@ -1,0 +1,145 @@
+---
+// src/components/questions/QuestionGenButton.astro
+// M4 T07 — "Generate questions" button + inline form for a chapter section.
+// Spec deviation: implemented as .astro (vanilla JS) instead of .tsx (React)
+// to stay consistent with all existing interactive components in the project
+// (AnnotationsPane.astro, ScrollSpy.astro, MarkReadButton.astro, etc.) and
+// avoid adding React deps (@astrojs/react + react + react-dom) beyond T07 scope.
+// Gated behind data-interactive-only (hidden in static mode per M3 T5 CSS contract).
+
+interface Props {
+  chapterId: string;
+  sectionId?: string;
+}
+const { chapterId, sectionId = '' } = Astro.props;
+---
+
+<div class="question-gen-wrap" data-interactive-only
+     data-chapter-id={chapterId} data-section-id={sectionId}>
+  <button class="question-gen-btn" type="button">Generate questions</button>
+  <div class="question-gen-form" hidden>
+    <label>
+      Count
+      <input type="number" class="qg-count" min="1" max="10" value="3" />
+    </label>
+    <fieldset>
+      <legend>Types</legend>
+      <label><input type="checkbox" class="qg-type" value="mc" checked /> mc</label>
+      <label><input type="checkbox" class="qg-type" value="short" checked /> short</label>
+      <label><input type="checkbox" class="qg-type" value="llm_graded" /> llm_graded</label>
+      <label><input type="checkbox" class="qg-type" value="code" /> code</label>
+    </fieldset>
+    <div class="qg-status" hidden></div>
+    <div class="qg-spinner" hidden aria-label="Generating…">⏳ Generating…</div>
+    <button type="button" class="qg-submit">Generate</button>
+    <button type="button" class="qg-cancel">Cancel</button>
+  </div>
+</div>
+
+<script>
+  import { runWorkflow, getRunStatus, McpError } from '../../lib/aiw-client';
+
+  document.querySelectorAll<HTMLElement>('.question-gen-wrap').forEach((wrap) => {
+    const btn = wrap.querySelector<HTMLButtonElement>('.question-gen-btn')!;
+    const form = wrap.querySelector<HTMLElement>('.question-gen-form')!;
+    const submitBtn = wrap.querySelector<HTMLButtonElement>('.qg-submit')!;
+    const cancelBtn = wrap.querySelector<HTMLButtonElement>('.qg-cancel')!;
+    const spinner = wrap.querySelector<HTMLElement>('.qg-spinner')!;
+    const status = wrap.querySelector<HTMLElement>('.qg-status')!;
+    const countInput = wrap.querySelector<HTMLInputElement>('.qg-count')!;
+
+    const chapterId = wrap.dataset.chapterId!;
+    const sectionId = wrap.dataset.sectionId || undefined;
+
+    btn.addEventListener('click', () => {
+      form.hidden = false;
+      btn.hidden = true;
+    });
+    cancelBtn.addEventListener('click', () => {
+      form.hidden = true;
+      btn.hidden = false;
+      status.hidden = true;
+    });
+
+    submitBtn.addEventListener('click', async () => {
+      const count = parseInt(countInput.value, 10) || 3;
+      const types = Array.from(wrap.querySelectorAll<HTMLInputElement>('.qg-type:checked'))
+        .map(cb => cb.value);
+      if (types.length === 0) { showStatus('Select at least one question type.', true); return; }
+
+      const sectionText = document.querySelector('article')?.textContent ?? '';
+
+      submitBtn.disabled = true;
+      cancelBtn.disabled = true;
+      spinner.hidden = false;
+      status.hidden = true;
+
+      try {
+        const run = await runWorkflow('question_gen', {
+          chapter_id: chapterId,
+          section_id: sectionId ?? null,
+          section_text: sectionText,
+          count,
+          types,
+        });
+
+        // Poll for completion (max 60s, every 2s)
+        let runStatus;
+        const deadline = Date.now() + 60_000;
+        while (Date.now() < deadline) {
+          await new Promise(r => setTimeout(r, 2000));
+          runStatus = await getRunStatus(run.run_id);
+          if (runStatus.status !== 'pending') break;
+        }
+
+        if (!runStatus || runStatus.status === 'pending') {
+          showStatus('Workflow timed out. Try again.', true);
+          return;
+        }
+        if (runStatus.status === 'failed') {
+          showStatus(`Workflow failed: ${runStatus.error ?? 'unknown error'}`, true);
+          return;
+        }
+
+        // Extract questions from artifact
+        const artifact = runStatus.artifact as { questions?: unknown[] } | undefined;
+        const questions = artifact?.questions ?? [];
+
+        const res = await fetch('/api/questions/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source_run_id: run.run_id,
+            chapter_id: chapterId,
+            section_id: sectionId ?? null,
+            questions,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json() as { errors?: string[] };
+          showStatus(`Insert failed: ${err.errors?.join(', ') ?? res.status}`, true);
+          return;
+        }
+
+        const body = await res.json() as { inserted: string[] };
+        showStatus(`${body.inserted.length} question${body.inserted.length !== 1 ? 's' : ''} added`, false);
+        setTimeout(() => { showStatus('', false); status.hidden = true; }, 3000);
+
+      } catch (err) {
+        const msg = err instanceof McpError ? `MCP error: ${err.kind}` : 'Unexpected error';
+        showStatus(msg, true);
+      } finally {
+        spinner.hidden = true;
+        submitBtn.disabled = false;
+        cancelBtn.disabled = false;
+      }
+    });
+
+    function showStatus(msg: string, isError: boolean) {
+      status.textContent = msg;
+      status.hidden = !msg;
+      status.style.color = isError ? 'var(--color-error, red)' : 'var(--color-success, green)';
+    }
+  });
+</script>

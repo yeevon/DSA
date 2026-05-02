@@ -139,6 +139,7 @@ import RightRailReadStatus from '../../components/chrome/RightRailReadStatus.ast
 import Drawer from '../../components/chrome/Drawer.astro';
 import DrawerTrigger from '../../components/chrome/DrawerTrigger.astro';
 import MobileChapterTOC from '../../components/chrome/MobileChapterTOC.astro';
+import QuestionGenButton from '../../components/questions/QuestionGenButton.astro';
 
 export async function getStaticPaths() {
   const lectures = await getCollection('lectures');
@@ -165,6 +166,10 @@ const sectionIds = entry.data.sections.map((s) => s.id);
   <ScrollSpy slot="right-rail" />
   <RightRailReadStatus slot="right-rail" chapterId={entry.data.chapter_id} />
   <AnnotationsPane slot="right-rail" sectionIds={sectionIds} />
+  <QuestionGenButton
+    slot="right-rail"
+    chapterId={entry.data.chapter_id}
+  />
   <Drawer slot="drawer" />
   <MarkReadButton />
   <header>

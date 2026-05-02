@@ -1,6 +1,6 @@
 # T07 — Question-gen UI
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02 (spec deviation: .astro not .tsx; AC-2/3/4/6/8/9 host-only)
 **Depends on:** T04 (mode.ts probe must work), T05 (bulk endpoint must accept questions)
 **Blocks:** nothing in M4 (T08 extends the attempt submission UI, but T07 is not a strict
 dep for T08's state-service work)
