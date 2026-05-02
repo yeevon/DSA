@@ -14,6 +14,33 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Decided / Added** **LBD-15 — sandbox-vs-host git policy.** When
+  Claude Code runs inside the Docker sandbox (detected by
+  `/.dockerenv`), all work happens on `design_branch` (or feature
+  branches off it) — never `main`. The sandbox commits locally; the
+  host pushes / pulls / fetches / merges to main / pushes tags. SSH
+  and remote auth aren't forwarded into the container by design, so
+  the split prevents silent half-failures and stops a stray
+  `git push origin main` from inside the sandbox from accidentally
+  triggering the GH Pages deploy. Codified as:
+  - `CLAUDE.md` — new LBD-15 row in the load-bearing-decisions table;
+    project-profile `Working branch` line updated to reflect the
+    sandbox-vs-host split; `Autonomous-mode boundary` section now
+    table-driven (sandbox vs host) with explicit hard-halts for
+    sandbox→main commits and sandbox→remote operations.
+  - `.claude/agents/_common/non_negotiables.md` — Rule 1 forbidden
+    list extended (`git pull`, `git fetch <remote>` added; sandbox-
+    specific paragraph added); hard-halt triggers list updated.
+  - `scripts/sandbox-guard.sh` — runtime check (`/.dockerenv` +
+    current branch). Exits non-zero on `main` inside sandbox; no-ops
+    on host. Supports `--quiet` and `--warn-only`. Wired into
+    `make shell` so the sandbox shell will not start on `main`.
+    `make guard` exposes the check on demand.
+  - `Makefile` — new `guard` target; `shell` target prefixes the
+    sandbox bash session with the guard.
+  - Validator now reports `15 LBDs defined` and stays green (47/47
+    PASS) under the new rule.
+
 - **Added** **CI workflow-validate gate** — `.github/workflows/deploy.yml`
   now runs `npm run workflow:validate` after Node setup and before
   `npm ci`. Workflow drift fails the build cheaply (before paying for

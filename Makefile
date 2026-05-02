@@ -19,7 +19,7 @@ HOST_GID := $(shell id -g)
 DC_ENV   := SANDBOX_UID=$(HOST_UID) SANDBOX_GID=$(HOST_GID)
 
 .DEFAULT_GOAL := help
-.PHONY: help shell build rebuild stop clean smoke _ensure_image
+.PHONY: help shell build rebuild stop clean smoke guard _ensure_image
 
 help:
 	@echo "cs-300 sandbox targets:"
@@ -27,11 +27,21 @@ help:
 	@echo "  make build    — build the sandbox image"
 	@echo "  make rebuild  — force clean rebuild (--no-cache --pull)"
 	@echo "  make smoke    — print toolchain versions inside a fresh container"
+	@echo "  make guard    — run scripts/sandbox-guard.sh (LBD-15 branch-policy check)"
 	@echo "  make stop     — stop and remove any running sandbox container"
 	@echo "  make clean    — remove image + named volumes (node_modules / .venv / .astro)"
 
+guard:
+	@bash scripts/sandbox-guard.sh
+
+# 2026-05-02: `make shell` runs the LBD-15 sandbox guard inside the
+# fresh container before invoking bash. If the current branch is
+# `main` (or detached HEAD) the guard prints a remediation hint and
+# the shell does not start. Pass `--warn-only` to scripts/sandbox-guard.sh
+# if you ever need a one-off bypass — but the right answer is almost
+# always `git switch design_branch`.
 shell: _ensure_image
-	$(DC_ENV) $(COMPOSE) run --rm $(SERVICE) bash
+	$(DC_ENV) $(COMPOSE) run --rm $(SERVICE) bash -lc 'bash scripts/sandbox-guard.sh && exec bash'
 
 build:
 	$(DC_ENV) $(COMPOSE) build

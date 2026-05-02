@@ -15,7 +15,7 @@ Project-specific values are defined in [`/CLAUDE.md`](../../../CLAUDE.md). When 
 | Setting | Project value |
 | --- | --- |
 | Default branch | `main` |
-| Working branch | `main` (single-user; feature branches are optional) |
+| Working branch | `design_branch` when running inside the sandbox (LBD-15); `main` allowed only on the host |
 | Release command | static GH Pages — pushing to `main` triggers `.github/workflows/deploy.yml` |
 | Package managers | `npm` (Node 22) · `uv` (Python 3.12) |
 | Architecture decision location | `design_docs/adr/*.md` |
@@ -30,10 +30,12 @@ If those values are missing, stop and ask the orchestrator before proceeding.
 
 Subagents must not run branch-mutating, history-mutating, tag-mutating, or release/publish commands.
 
-Forbidden commands include:
+Forbidden commands (every subagent, host or sandbox):
 
 - `git commit`
 - `git push`
+- `git pull`
+- `git fetch <remote>`
 - `git merge`
 - `git rebase`
 - `git reset --hard`
@@ -49,6 +51,18 @@ Forbidden commands include:
 Pushing to `main` triggers the GH Pages deploy. Never trigger that as a subagent.
 
 If a subagent believes a git operation is needed, it must describe the needed action in its report. It must not run the command.
+
+### Additional sandbox restrictions (LBD-15)
+
+When the subagent is running inside the Docker sandbox (detected by `/.dockerenv` existing), even *describing* a needed `git push` / `git pull` / `git fetch` / `merge to main` / `tag push` is a signal that the sandbox is being asked to do host work. Surface it back to the user as "this needs to run on the host" — do not attempt to execute it inside the sandbox.
+
+Inside the sandbox:
+
+- All work happens on `design_branch` (or a feature branch off it).
+- Commits to `main` are forbidden — even if a path through the orchestrator would technically authorise them, the sandbox-vs-host policy supersedes.
+- Network-touching git operations (push / pull / fetch / clone from non-bind-mounted sources) are forbidden — SSH and remote auth aren't forwarded into the container by design.
+
+The orchestrator may run `scripts/sandbox-guard.sh` to validate the current branch is policy-compliant before any commit.
 
 ### Allowed git commands
 
@@ -66,6 +80,8 @@ Do not use read-only commands as a workaround to perform mutation through shell 
 
 Halt immediately and report if any of the following occurs or is requested:
 
+- attempt to commit to `main` from inside the sandbox (LBD-15)
+- attempt to `git push` / `pull` / `fetch` / `merge` / tag-push from inside the sandbox (LBD-15)
 - merge to `main` from outside without explicit user instruction
 - push to `main`
 - force-push

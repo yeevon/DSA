@@ -52,7 +52,7 @@ When a skill or slash command says "follow Builder mode" or "follow Auditor mode
 | Test root | `scripts/*-smoke.mjs` and `scripts/functional-tests.py` (no formal test tree yet — per-task verification is the gate) |
 | Documentation root | `design_docs/` |
 | Default branch | `main` |
-| Working branch | `main` (single-user, local-first; feature branches are optional) |
+| Working branch | **Sandbox sessions:** `design_branch` only — never `main` (LBD-15). **Host sessions:** `main` is allowed for merges, pushes, pulls, tags. |
 | Package/build tool | `npm` (Node 22 pinned in `.nvmrc`) · `uv` (Python via `pyproject.toml` / `uv.lock`) · `pandoc` 3.1.3 pinned in `.pandoc-version` |
 | Release target | GitHub Pages — static `dist/` only |
 | CI config | `.github/workflows/deploy.yml` |
@@ -95,6 +95,7 @@ Drift-check anchors for the Auditor. Violation severity is the default the Audit
 | LBD-12 | **Cross-chapter references must point at chapters that exist** in the cs-300 chapter map (`ch_1`–`ch_7`, `ch_9`–`ch_13`). References to non-existent chapters (e.g. `ch_8`) or the wrong chapter are HIGH. | Pedagogical integrity. | HIGH |
 | LBD-13 | **Pre-Phase-1 sequencing** (per `project_pre_phase1_sequence.md`). A pre-Phase-1 task touching M2+ surfaces is out-of-order; flag HIGH. (`resources/` removed in M2 T7, 2026-04-23 — week-level sidecar TeX was orphaned by chapter augmentation.) | Phase ordering is load-bearing. | HIGH |
 | LBD-14 | **Toolchain pins are load-bearing.** Node 22 (`.nvmrc`), pandoc 3.1.3 (`.pandoc-version`). Bumps require an explicit task. | Build reproducibility. | MEDIUM (HIGH if Builder bumps silently) |
+| LBD-15 | **Sandbox-vs-host git policy.** When Claude Code runs inside the Docker sandbox (detected by `/.dockerenv`, typically with `--dangerously-skip-permissions`), all work happens on `design_branch` (or a feature branch off it) — **never `main`**. From the sandbox: no `git push`, no `git pull`, no `git fetch` against the remote, no merges to `main`, no tag pushes. Those operations are the host's job: the user runs them on the host where the SSH key, GPG key, and known_hosts are already configured. The sandbox commits locally; the host pushes / pulls / merges. | SSH and remote auth aren't forwarded into the container by design — pretending they are produces silent half-failures and tempts unsafe workarounds. The split also means a stray `git push origin main` from inside the sandbox can't trigger the GH Pages deploy by accident. | HIGH |
 
 If an implementation requires changing one of these, it must land as a separate architecture decision (ADR or architecture.md amendment) before — not inside — the implementation commit.
 
@@ -337,13 +338,20 @@ No commits, PRs, or pushes unless the user explicitly asks. Ask before:
 
 ### Autonomous-mode boundary (`/auto-implement` / `/autopilot`)
 
-Only the orchestrator may run `git commit` or `git push`, and only on `main` (cs-300 is single-user / single-branch by default).
+Only the orchestrator may run `git commit`. The branch policy depends on **where the orchestrator is running** (LBD-15):
 
-Subagents may not run:
+| Where | Allowed branches for `git commit` | `git push` / `pull` / `fetch` / `merge to main` / `tag` |
+| --- | --- | --- |
+| **Sandbox** (`/.dockerenv` exists; typically `--dangerously-skip-permissions`) | `design_branch` only (or feature branch off it) — **never `main`** | **Forbidden** — the host owns these |
+| **Host** (no `/.dockerenv`) | Any branch the user authorises, including `main` | Allowed when the user explicitly asks |
+
+Subagents — regardless of host or sandbox — may not run:
 
 ```text
 git commit
 git push
+git pull
+git fetch <remote>
 git merge
 git rebase
 git tag
@@ -360,14 +368,18 @@ A subagent report claiming it performed any of the above is a hard halt.
 
 The orchestrator hard-halts on:
 
-- merge to `main` from outside (cs-300 commits land directly on `main`; merges from feature branches need explicit user approval)
-- push to `main` without user instruction
+- attempt to commit to `main` from inside the sandbox (LBD-15)
+- attempt to `git push` / `pull` / `fetch` / `merge` from inside the sandbox (LBD-15)
+- merge to `main` from outside without explicit user approval
+- push to `main` without explicit user instruction (host only)
 - publish/release command without explicit approval
 - version bump (Node, pandoc, package versions) beyond task scope
 - subagent disagreement on correctness, architecture, security, or dependency safety
 - unresolved HIGH audit finding
 - missing verification for changed behavior
 - dirty working tree containing unrelated user changes
+
+The sandbox guard at [`scripts/sandbox-guard.sh`](scripts/sandbox-guard.sh) provides a runtime check the orchestrator (and the user) can run on demand: it exits non-zero if the current branch is `main` and `/.dockerenv` exists. `make shell` runs it automatically before dropping into the sandbox shell.
 
 Architecture decision additions land separately from implementation commits unless the user explicitly says otherwise.
 
