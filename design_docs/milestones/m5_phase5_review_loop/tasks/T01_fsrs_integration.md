@@ -1,6 +1,6 @@
 # T01 — `ts-fsrs` integration into POST /api/attempts
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02 (no issue file — cycle 1)
 **Long-running:** no
 **Milestone:** [m5_phase5_review_loop](../README.md)
 **Depends on:** M3 (`fsrs_state` table + PATCH route), M4 T06 (POST /api/attempts mc/short eval), M4 T08 (llm_graded async flow + outcome PATCH)

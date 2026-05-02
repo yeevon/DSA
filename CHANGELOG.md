@@ -14,6 +14,27 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M5 T01 — `ts-fsrs` integration into POST /api/attempts**
+  (`package.json` (ts-fsrs ^4.0.0 added — host must run `npm install` to materialise
+  lockfile entry), `src/lib/fsrs.ts` (new), `src/pages/api/attempts.ts`,
+  `src/pages/api/attempts/[id]/outcome.ts`, `src/pages/api/questions/bulk.ts`,
+  `scripts/fsrs-smoke.mjs` (new), status-surface flips on T01 spec + M5 README).
+  Implements server-side FSRS scheduling (architecture.md §3.5) via the `ts-fsrs`
+  library. `src/lib/fsrs.ts` exports `applyAttempt(state, outcome)` and
+  `defaultState(now)`. Outcome→grade mapping: pass→Good, fail→Again, partial→Hard.
+  `POST /api/attempts` (mc/short path) calls `applyAttempt()` and UPSERTs `fsrs_state`
+  after inserting the attempt row. `PATCH /api/attempts/:id/outcome` (llm_graded path)
+  calls `applyAttempt()` after resolving the outcome. `POST /api/questions/bulk` now
+  UPSERTs a default `fsrs_state` row per inserted question so every question is
+  immediately eligible for review scheduling. FSRS-vs-SM-2 decision resolved: FSRS via
+  `ts-fsrs` is the default; SM-2 remains a named fallback only on integration surprise.
+  ACs: 1 (package.json — in-sandbox), 2/3 (fsrs.ts — in-sandbox), 5 (bulk seeding —
+  in-sandbox), 6 (outcome PATCH — in-sandbox), 9 (CHANGELOG — in-sandbox).
+  AC-4 (fsrs-smoke), AC-7 (npm run check), AC-8 (npm run build) — NOT RUN —
+  sandbox node_modules permission (host-only carry-overs; same pattern as M4 T08).
+  Dep audit: `ts-fsrs ^4.0.0` added to dependencies — host must run
+  `dependency-auditor` before merging to main.
+
 - **Changed** **Workflow infra — `.claude/` restoration from generalized template + 13 review fixes**
   (`CLAUDE.md`, `agent_docs/long_running_pattern.md`, all `.claude/agents/*.md` (9), `.claude/agents/_common/*.md` (3 incl. new `skills_pattern.md`), all `.claude/commands/*.md` (7 + new `check-claim.md`), `.claude/commands/_common/*.md` (8 incl. 5 new), 5 new `.claude/skills/{check,dep-audit,ship,sweep,triage}/`, `.claude/skills/project-development/SKILL.md`, `Dockerfile`, `docker-compose.yml`).
   Restored cs-300's `.claude/` tree from `~/prj/generalized_claude_workflow/` (mounted read-only into the dev container). Generalized template's `<TOKEN>` placeholders resolved for cs-300 specifics: gate commands (`npm run check`, `node scripts/*-smoke.mjs`, `node scripts/build-content.mjs`, `npm run build`), dependency manifests (npm + Python + toolchain pins + Docker), GH Pages deploy via push-to-main, LBD-15 sandbox/host policy, LBD-1..15 (was truncated to LBD-1..14 in 11 files), zero-padded `m<MM>_t<NN>` task shorthand.

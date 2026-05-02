@@ -16,18 +16,18 @@ running picture of their weak topics.
 
 ## Done when
 
-- [ ] `ts-fsrs` integrated. Each `POST /api/attempts` (in addition
+- [x] `ts-fsrs` integrated. Each `POST /api/attempts` (in addition
       to the M4 dispatch logic) runs `ts-fsrs.next(state, grade)`
       and PATCHes the new state. Grade mapping documented:
-      pass / fail / partial → FSRS grade.
+      pass / fail / partial → FSRS grade. (T01 — 2026-05-02)
 - [ ] Review queue UI — a `/review` page that:
   - Pulls from `GET /api/review/due?before=<now>&limit=N`.
   - Renders one question at a time (any of the four types).
   - Submits, transitions to next due item.
   - Shows count remaining, accuracy this session, est. time.
-- [ ] FSRS state initialized for every newly-generated question
+- [x] FSRS state initialized for every newly-generated question
       (M4 generation now upserts `fsrs_state` with default
-      stability/difficulty per the library defaults).
+      stability/difficulty per the library defaults). (T01 — 2026-05-02)
 - [ ] **LLM assessment workflow** runs async after every `fail`
       or `partial` attempt (architecture.md §3.4). Topic tags
       land in `attempts.llm_tags_json`.
@@ -35,8 +35,8 @@ running picture of their weak topics.
       across all attempts, ordered by tag frequency among
       failures. "You're missing 12 questions tagged
       `open-addressing`" type output.
-- [ ] FSRS-vs-SM-2 decision resolved (architecture.md §5 row 3 —
-      lean is FSRS via `ts-fsrs`). Document the call.
+- [x] FSRS-vs-SM-2 decision resolved (architecture.md §5 row 3 —
+      lean is FSRS via `ts-fsrs`). Document the call. (T01 — 2026-05-02)
 
 ## Tasks
 

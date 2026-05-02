@@ -1,15 +1,20 @@
 // src/pages/api/attempts.ts
 // M4 T06 — POST /api/attempts: evaluate mc/short synchronously;
 // llm_graded → async grade via aiw-mcp (T08); code → 501 (M6).
+// M5 T01 — after mc/short outcome resolution, call applyAttempt()
+// and UPDATE fsrs_state for the question. For llm_graded, the FSRS
+// update happens in PATCH /api/attempts/[id]/outcome.ts (where the
+// final outcome lands).
 
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db } from '../../db/client';
-import { questions, attempts } from '../../db/schema';
+import { questions, attempts, fsrsState } from '../../db/schema';
 import { evaluateMc } from '../../lib/evaluators/mc';
 import { evaluateShort } from '../../lib/evaluators/short';
 import { runWorkflow } from '../../lib/aiw-client';
+import { applyAttempt, defaultState } from '../../lib/fsrs';
 
 export const prerender = false;
 
@@ -126,16 +131,57 @@ export const POST: APIRoute = async ({ request }) => {
 
   const id = randomUUID();
   const submittedAt = Date.now();
-  db.insert(attempts).values({
-    id,
-    questionId: question_id,
-    startedAt: started_at,
-    submittedAt,
-    responseJson: JSON.stringify(resp),
-    outcome,
-    llmTagsJson: null,
-    gradeRunId: null,
-  }).run();
+
+  // M5 T01 — wrap attempt INSERT + fsrs_state UPSERT in a single transaction
+  // so a crash between the two statements cannot leave the schedule out of sync
+  // with the attempt history (sr-dev review #2). Drizzle/better-sqlite3
+  // synchronous transactions are a single .run().
+  db.transaction((tx) => {
+    tx.insert(attempts).values({
+      id,
+      questionId: question_id,
+      startedAt: started_at,
+      submittedAt,
+      responseJson: JSON.stringify(resp),
+      outcome,
+      llmTagsJson: null,
+      gradeRunId: null,
+    }).run();
+
+    // Read current state (or manufacture a default if the row is missing),
+    // apply the outcome, then UPSERT back into fsrs_state.
+    const existingFsrs = tx.select().from(fsrsState).where(eq(fsrsState.questionId, question_id)).all();
+    const currentState = existingFsrs.length > 0
+      ? {
+          stability: existingFsrs[0].stability,
+          difficulty: existingFsrs[0].difficulty,
+          due_at: existingFsrs[0].dueAt,
+          last_review_at: existingFsrs[0].lastReviewAt ?? null,
+          lapses: existingFsrs[0].lapses,
+          reps: existingFsrs[0].reps,
+        }
+      : defaultState(submittedAt);
+    const { state: nextState } = applyAttempt(currentState, outcome as 'pass' | 'fail' | 'partial', submittedAt);
+    tx.insert(fsrsState).values({
+      questionId: question_id,
+      dueAt: nextState.due_at,
+      stability: nextState.stability,
+      difficulty: nextState.difficulty,
+      lastReviewAt: nextState.last_review_at,
+      lapses: nextState.lapses,
+      reps: nextState.reps,
+    }).onConflictDoUpdate({
+      target: fsrsState.questionId,
+      set: {
+        dueAt: nextState.due_at,
+        stability: nextState.stability,
+        difficulty: nextState.difficulty,
+        lastReviewAt: nextState.last_review_at,
+        lapses: nextState.lapses,
+        reps: nextState.reps,
+      },
+    }).run();
+  });
 
   return new Response(
     JSON.stringify({ id, outcome, submitted_at: submittedAt }),

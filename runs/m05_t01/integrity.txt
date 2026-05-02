@@ -1,0 +1,14 @@
+=== Pre-commit ceremony integrity checks (M5 T01 cycle 2 close) ===
+
+Check 1 — Non-empty diff: PASS
+  git diff --stat HEAD shows 8 modified + 4 new files (working tree).
+
+Check 2 — Non-empty test diff (code task): PASS
+  scripts/fsrs-smoke.mjs is new (untracked); appears in `git status` and
+  will be added to the upcoming commit. AC-4 smoke harness lands.
+
+Check 3 — Independent gate re-run: NOT RUN
+  Reason: sandbox node_modules permission (root-owned). npm-dependent gates
+  (`npm run check`, `npm run build`, `node scripts/fsrs-smoke.mjs`) cannot
+  run in-sandbox. Recorded as host-only carry-overs M5-T01-HOST-02..04.
+  Same pattern as M4 T08 (precedent in CHANGELOG 2026-05-02).

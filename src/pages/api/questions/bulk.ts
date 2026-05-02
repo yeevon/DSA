@@ -2,13 +2,16 @@
 // M4 T05 — POST /api/questions/bulk: validate + batch-insert
 // generated questions. architecture.md §3.1: schema conformance
 // validation runs here; workflow ValidateStep is the upstream leg.
+// M5 T01 — also UPSERTs a default fsrs_state row per inserted question
+// so the review loop can schedule it immediately.
 
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db } from '../../../db/client';
-import { chapters, sections, questions } from '../../../db/schema';
+import { chapters, sections, questions, fsrsState } from '../../../db/schema';
 import { validateAnswerSchema, validateReference } from '../../../lib/question-schemas';
+import { defaultState } from '../../../lib/fsrs';
 
 export const prerender = false;
 
@@ -97,6 +100,7 @@ export const POST: APIRoute = async ({ request }) => {
   const ids: string[] = [];
   for (const q of qs!) {
     const id = randomUUID();
+    const now = Date.now();
     db.insert(questions).values({
       id,
       chapterId: chapter_id!,
@@ -107,8 +111,32 @@ export const POST: APIRoute = async ({ request }) => {
       answerSchemaJson: JSON.stringify(q.answer_schema),
       referenceJson: JSON.stringify(q.reference),
       sourceRunId: source_run_id!,
-      createdAt: Date.now(),
+      createdAt: now,
     }).run();
+
+    // M5 T01 — seed default fsrs_state so the question is immediately
+    // eligible for review scheduling. UPSERT in case of a re-insert.
+    const initState = defaultState(now);
+    db.insert(fsrsState).values({
+      questionId: id,
+      dueAt: initState.due_at,
+      stability: initState.stability,
+      difficulty: initState.difficulty,
+      lastReviewAt: initState.last_review_at,
+      lapses: initState.lapses,
+      reps: initState.reps,
+    }).onConflictDoUpdate({
+      target: fsrsState.questionId,
+      set: {
+        dueAt: initState.due_at,
+        stability: initState.stability,
+        difficulty: initState.difficulty,
+        lastReviewAt: initState.last_review_at,
+        lapses: initState.lapses,
+        reps: initState.reps,
+      },
+    }).run();
+
     ids.push(id);
   }
 
