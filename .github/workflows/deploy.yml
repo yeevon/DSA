@@ -57,6 +57,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # 2026-05-02: Static integrity check over .claude/ + agent_docs/.
+      # Runs before npm ci so workflow drift fails the build cheaply
+      # (no pandoc, no install, no compile). Validator is pure Node
+      # stdlib — no deps required. See scripts/validate-claude-workflow.md
+      # for what's covered and the 6 manual-exercise scenarios that aren't.
+      - name: Validate .claude/ workflow integrity
+        run: npm run workflow:validate
+
       - name: Install dependencies
         run: npm ci
 

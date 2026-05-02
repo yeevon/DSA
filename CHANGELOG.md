@@ -14,6 +14,17 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **CI workflow-validate gate** — `.github/workflows/deploy.yml`
+  now runs `npm run workflow:validate` after Node setup and before
+  `npm ci`. Workflow drift fails the build cheaply (before paying for
+  pandoc install + dep install + type-check + Astro build), and a
+  failing validator blocks the GH Pages deploy via the existing
+  `deploy: needs: build` dependency. Validator is pure Node stdlib —
+  no extra dependencies pulled in. Companion to today's
+  `scripts/validate-claude-workflow.mjs` addition. Dep audit:
+  skipped — `.github/workflows/deploy.yml` is CI config, not a dep
+  manifest.
+
 - **Added** **Workflow integrity validator** — `scripts/validate-claude-workflow.mjs`
   + `scripts/validate-claude-workflow.md`. Static-integrity checker over
   the `.claude/` tree: 47 paper-review checks across file existence,
