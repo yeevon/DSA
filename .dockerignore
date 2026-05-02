@@ -1,0 +1,24 @@
+# .dockerignore — keep build context minimal.
+#
+# The Dockerfile currently does not COPY anything from the build
+# context (the project is bind-mounted at runtime), so this list is
+# defensive: if a future revision starts COPYing source in, none of
+# these should ride along.
+
+**/node_modules
+**/.venv
+**/dist
+**/.astro
+**/.smoke
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+.git
+.github
+.vscode
+*.log
+
+# never bake secrets into an image
+.env
+.env.*
+!.env.example

@@ -1,0 +1,69 @@
+# docker-compose.yml — cs-300 agent development sandbox.
+#
+# Authored 2026-05-01. Companion to ./Dockerfile.
+#
+# Usage:
+#   docker compose build                              # one-time / on Dockerfile change
+#   docker compose run --rm dev                       # ephemeral interactive shell
+#   docker compose up -d && docker compose exec dev bash   # long-lived
+#
+# Bind layout (deliberate):
+#   ${PWD}            -> ${PWD}                  same absolute path on
+#                                                both sides so Claude's
+#                                                ~/.claude/projects/<path>
+#                                                memory key matches host.
+#   ${HOME}/.claude   -> /home/node/.claude      auth + per-project memory
+#                                                persist across runs.
+#   ${HOME}/prj/generalized_claude_workflow
+#                     -> same path  (read-only)  reference source for
+#                                                building new agent
+#                                                workflows; agents read
+#                                                CLAUDE.md / agent_docs/
+#                                                / MANIFEST.md as guidance,
+#                                                never write through this
+#                                                mount. Read-only is the
+#                                                point — edits to that
+#                                                workflow happen on the
+#                                                host, not from inside
+#                                                this sandbox.
+#
+# Named volumes shadow node_modules / .venv / .astro so the
+# container's installs don't clobber host artifacts (better-sqlite3
+# in particular has native bindings that may differ across libcs).
+#
+# UID/GID default to 1000:1000. Override via SANDBOX_UID / SANDBOX_GID
+# (env or .env file) if your host user differs — the build arg and
+# runtime user must match for /home/node to be writable. We avoid
+# the names UID / GID because bash exports UID as readonly, which
+# breaks the `UID=... make shell` prefix-assignment idiom.
+
+services:
+  dev:
+    build:
+      context: .
+      args:
+        USER_UID: ${SANDBOX_UID:-1000}
+        USER_GID: ${SANDBOX_GID:-1000}
+    image: cs-300-agent-sandbox:latest
+    container_name: cs-300-agent
+    init: true
+    stdin_open: true
+    tty: true
+    working_dir: ${PWD}
+    user: "${SANDBOX_UID:-1000}:${SANDBOX_GID:-1000}"
+    environment:
+      HOME: /home/node
+      TERM: ${TERM:-xterm-256color}
+    volumes:
+      - ${PWD}:${PWD}
+      - ${HOME}/.claude:/home/node/.claude
+      - ${HOME}/prj/generalized_claude_workflow:${HOME}/prj/generalized_claude_workflow:ro
+      - node_modules:${PWD}/node_modules
+      - venv:${PWD}/.venv
+      - astro_cache:${PWD}/.astro
+    command: bash
+
+volumes:
+  node_modules:
+  venv:
+  astro_cache:

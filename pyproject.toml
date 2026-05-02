@@ -1,0 +1,29 @@
+# cs-300 — Python package manifest.
+#
+# Established by M4 T01 (2026-05-01) — see
+# design_docs/milestones/m4_phase4_question_gen/tasks/T01_arch_and_package.md.
+#
+# Scope: declares the `cs300` package so editors / type-checkers /
+# import-resolvers can find `cs300.workflows.*` modules. No install-time
+# dependencies — the runtime is jmdl-ai-workflows, loaded out-of-band via
+# `uvx --from jmdl-ai-workflows aiw-mcp ...` (see M4 README launch
+# command). At runtime, `aiw-mcp` discovers cs-300's workflow modules by
+# `AIW_EXTRA_WORKFLOW_MODULES=cs300.workflows.question_gen,...` with
+# `PYTHONPATH=<repo_root>`; running this project does NOT require
+# `pip install -e .` (confirmed by the M4 unblock smoke 2026-04-25).
+# This manifest exists for tooling discoverability only.
+
+[project]
+name = "cs300"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "cs-300 workflow modules for jmdl-ai-workflows."
+# No install-time dependencies — ai-workflows is the runtime, loaded
+# separately via uvx.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cs300*"]
