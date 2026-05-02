@@ -14,6 +14,18 @@ non-decisions (a question raised and intentionally postponed).
 
 ## 2026-05-02
 
+- **Added** **M4 T03 — `grade` workflow module** (`cs300/workflows/grade.py`).
+  Evaluates `llm_graded` student responses against a rubric via Ollama Qwen 14B.
+  `GradeOutput.outcome` (`Literal['pass','fail','partial']`) is the first field
+  (maps to `result.artifact`); `score` (0.0–1.0) and `feedback` follow.
+  `prompt_fn` (Tier 2) constructs a structured grading prompt from `rubric_criteria`
+  and `response_text` using f-strings (avoids `str.format()` injection per ADV-2).
+  `ValidateStep(target_field="outcome")` provides LangGraph-layer shape validation.
+  T08 enqueues this workflow after an `llm_graded` attempt is submitted; the
+  state-service write happens in T08 after polling.
+  AC-2 smoke verified: `aiw show-inputs grade` lists all four input fields.
+  Dep audit: skipped — no manifest changes.
+
 - **Added** **M4 T02 — `question_gen` workflow module** (`cs300/workflows/question_gen.py`).
   Implements the primary M4 deliverable: a `WorkflowSpec`-based workflow that
   generates `mc`, `short`, `llm_graded`, and `code` practice questions from a

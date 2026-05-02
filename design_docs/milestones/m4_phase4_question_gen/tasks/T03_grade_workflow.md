@@ -1,6 +1,6 @@
 # T03 — grade workflow module
 
-**Status:** todo
+**Status:** ✅ done 2026-05-02
 **Depends on:** T01 (cs300 package), T02 (establishes the pattern to follow)
 **Blocks:** T08 (llm_graded async flow enqueues this workflow)
 
